@@ -11,5 +11,12 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    // Force polling because inotify file watching does not work on
+    // Windows NTFS mounts in WSL2. Polling interval of 300ms is a
+    // reasonable balance between responsiveness and CPU usage.
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
   },
 });

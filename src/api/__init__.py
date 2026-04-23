@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.deps import lifespan
@@ -44,8 +45,19 @@ def create_app() -> FastAPI:
     app.include_router(stats.router, prefix="/api")
 
     # Serve React production build if the directory exists.
+    # Mount static assets at /assets, then catch all non-API routes
+    # and return index.html so client-side routing works on refresh.
     frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     if frontend_dist.is_dir():
-        app.mount("/", StaticFiles(directory=str(frontend_dist), html=True))
+        app.mount(
+            "/assets",
+            StaticFiles(directory=str(frontend_dist / "assets")),
+            name="assets",
+        )
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        def serve_spa(full_path: str) -> FileResponse:
+            """Serve index.html for any non-API path (SPA catch-all)."""
+            return FileResponse(str(frontend_dist / "index.html"))
 
     return app

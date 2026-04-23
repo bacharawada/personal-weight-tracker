@@ -32,10 +32,10 @@ export function PlotlyChart({
           {
             ...(fig.layout ?? {}),
             autosize: true,
-            margin: { l: 60, r: 30, t: 50, b: 40 },
+            margin: { l: 70, r: 40, t: 90, b: 60 },
           },
           { responsive: true, displayModeBar: true }
-        ).then((gd) => {
+        ).then((gd: Plotly.PlotlyHTMLElement) => {
           if (onClick) {
             gd.on("plotly_click", onClick);
           }
@@ -54,10 +54,10 @@ export function PlotlyChart({
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${className}`}
+      className={`relative bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${className}`}
     >
       {loading && (
-        <div className="absolute inset-0 bg-white dark:bg-gray-800 animate-pulse" />
+        <div className="absolute inset-0 bg-white dark:bg-gray-800 animate-pulse rounded-lg" />
       )}
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
     </div>

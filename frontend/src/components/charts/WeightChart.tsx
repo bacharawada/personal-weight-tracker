@@ -12,7 +12,8 @@ interface WeightChartProps {
 export function WeightChart({ params, refreshKey, onPointClick }: WeightChartProps) {
   const fetchFigure = useCallback(() => getWeightChart(params), [params]);
 
-  function handleClick(event: Plotly.PlotMouseEvent) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleClick(event: any) {
     if (event.points.length > 0) {
       const pt = event.points[0];
       onPointClick({
@@ -27,7 +28,7 @@ export function WeightChart({ params, refreshKey, onPointClick }: WeightChartPro
       fetchFigure={fetchFigure}
       refreshKey={refreshKey}
       onClick={handleClick}
-      className="h-[420px]"
+      className="h-[520px]"
     />
   );
 }
