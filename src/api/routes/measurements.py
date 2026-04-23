@@ -7,7 +7,7 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.deps import get_store
-from api.schemas import MeasurementIn, MeasurementOut, MtimeOut, PaletteOut
+from api.schemas import MeasurementIn, MeasurementOut, MeasurementUpdate, MtimeOut, PaletteOut
 from db import DuplicateDateError, NotFoundError, WeightDataStore, get_db_mtime
 from viz import PALETTES
 
@@ -72,6 +72,37 @@ def add_measurement(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return {"date": body.date, "weight": body.weight}
+
+
+@router.patch(
+    "/measurements/{date}",
+    response_model=MeasurementOut,
+    responses={404: {"description": "Measurement not found"}, 422: {"description": "Validation error"}},
+)
+def update_measurement(
+    date: datetime.date,
+    body: MeasurementUpdate,
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Update the weight for an existing measurement.
+
+    Args:
+        date: The date of the measurement to update.
+        body: New weight value.
+        store: Injected data store.
+
+    Returns:
+        The updated measurement.
+
+    Raises:
+        HTTPException: 404 if no measurement exists for this date.
+    """
+    try:
+        store.update(date, body.weight)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return {"date": date, "weight": body.weight}
 
 
 @router.delete(

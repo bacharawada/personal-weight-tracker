@@ -212,9 +212,9 @@ class TestSummaryStats:
         assert abs(stats.total_loss_kg - expected) < 0.01
 
     def test_days_tracked(self, sample_df: pd.DataFrame) -> None:
-        """Days tracked equals number of unique dates."""
+        """Days tracked is elapsed calendar days (first to last, inclusive)."""
         stats = compute_summary_stats(sample_df)
-        assert stats.days_tracked == 10
+        assert stats.days_tracked == 127  # 10 rows × 14-day freq = 126 days + 1
 
     def test_empty_dataframe(self) -> None:
         """Stats for empty DataFrame return zero values."""

@@ -1,15 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { AddMeasurement } from "../components/forms/AddMeasurement";
 import { DeletePoint } from "../components/forms/DeletePoint";
-import { getMeasurements, exportCsvUrl } from "../lib/api";
+import { getMeasurements, updateMeasurement, exportCsvUrl } from "../lib/api";
 import type { Measurement } from "../lib/types";
-import { Download, Trash2 } from "lucide-react";
+import { Check, Download, Pencil, Trash2, X } from "lucide-react";
 
 export function DataPage() {
   const { refreshKey, bump, selectedPoint, setSelectedPoint, hasData } = useWeightTracker();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Inline edit state
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [editWeight, setEditWeight] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -19,17 +26,66 @@ export function DataPage() {
       .finally(() => setLoading(false));
   }, [refreshKey]);
 
+  // Focus the input whenever editing starts
+  useEffect(() => {
+    if (editingDate && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingDate]);
+
   const handleRowClick = useCallback(
     (m: Measurement) => {
-      setSelectedPoint(
-        selectedPoint?.date === m.date ? null : { date: m.date, weight: m.weight }
-      );
+      if (editingDate) return; // Don't change selection while editing
+      setSelectedPoint(selectedPoint?.date === m.date ? null : { date: m.date, weight: m.weight });
     },
-    [selectedPoint, setSelectedPoint]
+    [editingDate, selectedPoint, setSelectedPoint]
+  );
+
+  const startEdit = useCallback((m: Measurement, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingDate(m.date);
+    setEditWeight(String(m.weight));
+    setEditError(null);
+    setSelectedPoint(null);
+  }, [setSelectedPoint]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingDate(null);
+    setEditWeight("");
+    setEditError(null);
+  }, []);
+
+  const saveEdit = useCallback(async (date: string) => {
+    const w = parseFloat(editWeight);
+    if (isNaN(w) || w < 40 || w > 300) {
+      setEditError("Must be 40–300 kg");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateMeasurement(date, w);
+      setEditingDate(null);
+      setEditWeight("");
+      setEditError(null);
+      bump();
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }, [editWeight, bump]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent, date: string) => {
+      if (e.key === "Enter") saveEdit(date);
+      if (e.key === "Escape") cancelEdit();
+    },
+    [saveEdit, cancelEdit]
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-8 space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Data</h1>
@@ -65,31 +121,93 @@ export function DataPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Weight (kg)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Action</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400 w-32">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {measurements.map((m) => {
                   const isSelected = selectedPoint?.date === m.date;
+                  const isEditing = editingDate === m.date;
+
                   return (
                     <tr
                       key={m.date}
                       onClick={() => handleRowClick(m)}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected
-                          ? "bg-blue-50 dark:bg-blue-950"
-                          : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                      className={`group transition-colors ${
+                        isEditing
+                          ? "bg-yellow-50 dark:bg-yellow-950/20"
+                          : isSelected
+                          ? "bg-blue-50 dark:bg-blue-950 cursor-pointer"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
                       }`}
                     >
-                      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100">{m.date}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-gray-900 dark:text-gray-100">
-                        {m.weight.toFixed(2)}
+                      {/* Date */}
+                      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium">
+                        {m.date}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
-                        {isSelected && (
-                          <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                            <Trash2 size={12} /> Selected
+
+                      {/* Weight — shows input when editing */}
+                      <td className="px-4 py-2 text-right">
+                        {isEditing ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <input
+                              ref={inputRef}
+                              type="number"
+                              value={editWeight}
+                              onChange={(e) => { setEditWeight(e.target.value); setEditError(null); }}
+                              onKeyDown={(e) => handleKeyDown(e, m.date)}
+                              onClick={(e) => e.stopPropagation()}
+                              min={40}
+                              max={300}
+                              step={0.05}
+                              className="w-28 text-right rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                            />
+                            {editError && (
+                              <span className="text-xs text-red-500">{editError}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="font-mono text-gray-900 dark:text-gray-100">
+                            {m.weight.toFixed(2)}
                           </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-2.5 text-right">
+                        {isEditing ? (
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => saveEdit(m.date)}
+                              disabled={saving}
+                              title="Save"
+                              className="p-1.5 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 disabled:opacity-40 transition-colors"
+                            >
+                              <Check size={15} />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              title="Cancel"
+                              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              <X size={15} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={(e) => startEdit(m, e)}
+                              title="Edit weight"
+                              className="p-1.5 rounded-md text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            {isSelected && (
+                              <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                <Trash2 size={12} /> Selected
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>

@@ -31,6 +31,14 @@ class MeasurementOut(BaseModel):
     weight: float
 
 
+class MeasurementUpdate(BaseModel):
+    """Request body for updating an existing measurement's weight."""
+
+    weight: float = Field(
+        ..., ge=40.0, le=300.0, description="New body weight in kg (40-300)"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Stats
 # ---------------------------------------------------------------------------
@@ -43,6 +51,7 @@ class StatsOut(BaseModel):
     avg_loss_per_week: float
     current_trend: float
     days_tracked: int
+    measurement_count: int
 
 
 # ---------------------------------------------------------------------------

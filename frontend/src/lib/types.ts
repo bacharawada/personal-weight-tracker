@@ -15,6 +15,7 @@ export interface Stats {
   avg_loss_per_week: number;
   current_trend: number;
   days_tracked: number;
+  measurement_count: number;
 }
 
 export interface Mtime {

@@ -197,7 +197,9 @@ class TestStatsEndpoint:
         data = r.json()
         assert "total_loss_kg" in data
         assert "days_tracked" in data
-        assert data["days_tracked"] == 5
+        assert "measurement_count" in data
+        assert data["days_tracked"] == 123  # elapsed days: 2025-06-01 to 2025-10-01 inclusive
+        assert data["measurement_count"] == 5
         assert data["total_loss_kg"] > 0
 
     def test_stats_empty(self) -> None:

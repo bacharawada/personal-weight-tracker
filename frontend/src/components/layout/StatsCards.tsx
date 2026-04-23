@@ -15,8 +15,8 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
 
   if (!stats) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+        {[...Array(5)].map((_, i) => (
           <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 animate-pulse h-20" />
         ))}
       </div>
@@ -33,7 +33,7 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
   const cards = [
     {
       label: "Total Loss",
-      value: `${stats.total_loss_kg >= 0 ? "+" : ""}${stats.total_loss_kg.toFixed(1)} kg`,
+      value: `${stats.total_loss_kg > 0 ? "-" : "+"}${Math.abs(stats.total_loss_kg).toFixed(1)} kg`,
       color: stats.total_loss_kg > 0 ? "text-green-600" : "text-red-600",
     },
     {
@@ -51,10 +51,15 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
       value: String(stats.days_tracked),
       color: "text-gray-900 dark:text-gray-100",
     },
+    {
+      label: "Measurements",
+      value: String(stats.measurement_count),
+      color: "text-gray-900 dark:text-gray-100",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
       {cards.map((card) => (
         <div
           key={card.label}

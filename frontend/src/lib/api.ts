@@ -32,6 +32,14 @@ export async function addMeasurement(data: MeasurementIn): Promise<Measurement> 
   });
 }
 
+export async function updateMeasurement(date: string, weight: number): Promise<Measurement> {
+  return fetchJson<Measurement>(`${BASE}/measurements/${date}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ weight }),
+  });
+}
+
 export async function deleteMeasurement(date: string): Promise<void> {
   const res = await fetch(`${BASE}/measurements/${date}`, { method: "DELETE" });
   if (!res.ok) {

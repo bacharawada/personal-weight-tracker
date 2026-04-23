@@ -107,6 +107,31 @@ class WeightDataStore:
                 ) from exc
             raise  # pragma: no cover
 
+    def update(self, date: datetime.date, weight: float) -> None:
+        """Update the weight for an existing measurement.
+
+        Args:
+            date: The date of the measurement to update.
+            weight: New body weight in kilograms (must be 40--300).
+
+        Raises:
+            NotFoundError: If no measurement exists for *date*.
+        """
+        stmt = (
+            measurements.update()
+            .where(measurements.c.date == date)
+            .values(weight=weight)
+        )
+        try:
+            with self._engine.begin() as conn:
+                result = conn.execute(stmt)
+                if result.rowcount == 0:
+                    raise NotFoundError(f"No measurement found for {date}")
+        except IntegrityError as exc:
+            raise DuplicateDateError(
+                f"Weight {weight} kg is outside the allowed range (40-300 kg)"
+            ) from exc
+
     def remove(self, date: datetime.date) -> None:
         """Delete the measurement for the given date.
 

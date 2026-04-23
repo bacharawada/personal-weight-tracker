@@ -18,7 +18,7 @@ class SummaryStats:
         total_loss_kg: First weight minus latest weight.
         avg_loss_per_week: Mean weekly loss over the entire period.
         current_trend: Rolling-mean slope over the last 4 weeks (kg/week).
-        days_tracked: Number of distinct measurement dates.
+        days_tracked: Elapsed calendar days from first to last measurement (inclusive).
     """
 
     total_loss_kg: float
@@ -75,5 +75,8 @@ def compute_summary_stats(df: pd.DataFrame) -> SummaryStats:
         total_loss_kg=total_loss,
         avg_loss_per_week=avg_per_week,
         current_trend=current_trend,
-        days_tracked=int(dates.nunique()),
+        # NOTE: days_tracked is the elapsed calendar days between the
+        # first and last measurement, not the count of measurements.
+        # Use (last - first).days + 1 to include both endpoints.
+        days_tracked=int(total_days) + 1,
     )

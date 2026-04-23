@@ -36,4 +36,5 @@ def get_stats(
         "avg_loss_per_week": stats.avg_loss_per_week,
         "current_trend": stats.current_trend,
         "days_tracked": stats.days_tracked,
+        "measurement_count": len(df),
     }

@@ -193,10 +193,9 @@ def build_weight_figure(
         )
 
     # -- Layout ------------------------------------------------------------
-    total_loss = float(df["weight"].iloc[0] - df["weight"].iloc[-1])
     fig.update_layout(
         template=template,
-        title=f"Body Weight Progression | Total loss: {total_loss:+.1f} kg",
+        title="Body Weight Progression",
         xaxis_title="Date",
         yaxis_title="Weight (kg)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
