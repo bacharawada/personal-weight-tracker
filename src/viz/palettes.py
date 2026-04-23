@@ -12,12 +12,15 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PaletteConfig:
-    """Typed colour palette for all chart traces.
+    """Typed colour palette for all chart traces and UI accents.
 
     Attributes:
         name: Human-readable palette name.
+        accent: Primary UI accent color (buttons, active states, titles,
+            spinners, focus rings). Dedicated to interactive chrome —
+            never used on chart traces.
         raw: Colour for raw data points and line.
-        smoothed: Colour for the rolling-mean line.
+        smoothed: Colour for the rolling-mean (smoothed) line.
         fit: Colour for the exponential-decay fit curve.
         derivative: Colour for negative derivative bars.
         derivative_pos: Colour for positive derivative bars.
@@ -27,6 +30,7 @@ class PaletteConfig:
     """
 
     name: str
+    accent: str
     raw: str
     smoothed: str
     fit: str
@@ -40,6 +44,7 @@ class PaletteConfig:
 PALETTES: dict[str, PaletteConfig] = {
     "Classic": PaletteConfig(
         name="Classic",
+        accent="#2563EB",   # blue-600
         raw="#2E6DB4",
         smoothed="#C97A0A",
         fit="#2CA02C",
@@ -51,6 +56,7 @@ PALETTES: dict[str, PaletteConfig] = {
     ),
     "Teal": PaletteConfig(
         name="Teal",
+        accent="#0D9488",   # teal-600
         raw="#00897B",
         smoothed="#26A69A",
         fit="#004D40",
@@ -62,6 +68,7 @@ PALETTES: dict[str, PaletteConfig] = {
     ),
     "Warm": PaletteConfig(
         name="Warm",
+        accent="#D97706",   # amber-600
         raw="#E65100",
         smoothed="#FF8F00",
         fit="#BF360C",
@@ -73,6 +80,7 @@ PALETTES: dict[str, PaletteConfig] = {
     ),
     "Monochrome": PaletteConfig(
         name="Monochrome",
+        accent="#374151",   # gray-700
         raw="#424242",
         smoothed="#757575",
         fit="#1565C0",
@@ -84,6 +92,7 @@ PALETTES: dict[str, PaletteConfig] = {
     ),
     "Forest": PaletteConfig(
         name="Forest",
+        accent="#16A34A",   # green-600
         raw="#2E7D32",
         smoothed="#558B2F",
         fit="#33691E",

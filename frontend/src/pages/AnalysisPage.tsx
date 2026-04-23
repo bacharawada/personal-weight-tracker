@@ -43,7 +43,11 @@ export function AnalysisPage() {
               setChartParams({ ...chartParams, smoothing: Number(e.target.value) })
             }
             className="w-full"
-            style={{ accentColor: accent } as React.CSSProperties}
+            style={{
+              accentColor: accent,
+              outline: "none",
+              boxShadow: "none",
+            } as React.CSSProperties}
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>3</span><span>10</span>

@@ -94,7 +94,7 @@ def build_weight_figure(
     if df.empty:
         fig.update_layout(
             template=template,
-            title=_title("Weight Progression", palette.smoothed),
+            title=_title("Weight Progression", palette.accent),
             xaxis_title="Date",
             yaxis_title="Weight (kg)",
             annotations=[
@@ -215,7 +215,7 @@ def build_weight_figure(
     # -- Layout ------------------------------------------------------------
     fig.update_layout(
         template=template,
-        title=_title("Body Weight Progression", palette.smoothed),
+        title=_title("Body Weight Progression", palette.accent),
         xaxis_title="Date",
         yaxis_title="Weight (kg)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -267,7 +267,7 @@ def build_derivative_figure(
     if df.empty or len(df) < 2:
         fig.update_layout(
             template=template,
-            title=_title("Rate of Change (kg/week)", palette.smoothed),
+            title=_title("Rate of Change (kg/week)", palette.accent),
             xaxis_title="Date",
             yaxis_title="Rate (kg/week)",
         )
@@ -306,7 +306,7 @@ def build_derivative_figure(
 
     fig.update_layout(
         template=template,
-        title=_title("Rate of Change", palette.smoothed),
+        title=_title("Rate of Change", palette.accent),
         xaxis_title="Date",
         yaxis_title="Rate (kg/week)",
         hovermode="x unified",
@@ -349,7 +349,7 @@ def build_residuals_figure(
     if fit_result is None or not fit_result.success or df.empty:
         fig.update_layout(
             template=template,
-            title=_title("Residuals vs. Model", palette.smoothed),
+            title=_title("Residuals vs. Model", palette.accent),
             xaxis_title="Date",
             yaxis_title="Residual (kg)",
             annotations=[
@@ -428,7 +428,7 @@ def build_residuals_figure(
 
     fig.update_layout(
         template=template,
-        title=_title("Residuals vs. Exponential Decay Model", palette.smoothed),
+        title=_title("Residuals vs. Exponential Decay Model", palette.accent),
         xaxis_title="Date",
         yaxis_title="Residual (kg)",
         hovermode="x unified",
