@@ -37,6 +37,6 @@ ignore = [
 known-first-party = ["db", "analysis", "viz", "api"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src"]
+testpaths = ["backend"]
+pythonpath = ["backend"]
 addopts = "--strict-markers -v"

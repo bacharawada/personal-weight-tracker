@@ -2,9 +2,9 @@
 
 Usage::
 
-    PYTHONPATH=src python -m api
+    PYTHONPATH=backend python -m api
     # or
-    PYTHONPATH=src uvicorn api:create_app --factory --reload --port 8000
+    PYTHONPATH=backend uvicorn api:create_app --factory --reload --port 8000
 """
 
 from __future__ import annotations

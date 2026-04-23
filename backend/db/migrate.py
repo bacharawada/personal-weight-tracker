@@ -7,7 +7,7 @@ duplicate rows thanks to ``INSERT OR IGNORE`` semantics.
 
 Usage::
 
-    python src/db/migrate.py
+    python backend/db/migrate.py
 """
 
 from __future__ import annotations

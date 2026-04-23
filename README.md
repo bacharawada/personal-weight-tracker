@@ -13,10 +13,10 @@ Interactive web application for body weight tracking and analysis. React + TypeS
 pip install -r requirements.txt
 
 # 2. Seed the database from the CSV (run once)
-PYTHONPATH=src python src/db/migrate.py
+PYTHONPATH=backend python backend/db/migrate.py
 
 # 3. Start the API server
-PYTHONPATH=src uvicorn api:create_app --factory --reload --port 8000
+PYTHONPATH=backend uvicorn api:create_app --factory --reload --port 8000
 ```
 
 ### Frontend
@@ -41,30 +41,40 @@ npm run build
 ## Project Structure
 
 ```
-src/
+backend/
+├── conftest.py                  # Shared pytest fixtures (in-memory SQLite)
 ├── db/                          # Data storage & migration
 │   ├── engine.py                # SQLAlchemy engine, table schema, domain exceptions
 │   ├── store.py                 # WeightDataStore class (CRUD operations)
-│   └── migrate.py               # One-time CSV -> SQLite seeding script
+│   ├── migrate.py               # One-time CSV -> SQLite seeding script
+│   └── tests/
+│       └── test_data.py         # DB package + migration tests
 ├── analysis/                    # Pure data science (no UI dependencies)
 │   ├── smoothing.py             # Centred rolling mean
 │   ├── derivative.py            # Time-based derivative (kg/week)
 │   ├── curve_fit.py             # Exponential decay fit, extrapolation, deviations
-│   └── stats.py                 # Summary KPI computation
+│   ├── stats.py                 # Summary KPI computation
+│   └── tests/
+│       └── test_analysis.py     # Analysis package tests
 ├── viz/                         # Visualization layer
 │   ├── palettes.py              # PaletteConfig dataclass + PALETTES registry
-│   └── charts.py                # Plotly figure-building functions (pure)
+│   ├── charts.py                # Plotly figure-building functions (pure)
+│   └── tests/
+│       └── test_figures.py      # Viz package tests
 ├── api/                         # FastAPI REST API
 │   ├── __init__.py              # App factory (create_app)
 │   ├── deps.py                  # Dependency injection (engine, store)
 │   ├── schemas.py               # Pydantic request/response models
-│   └── routes/
-│       ├── measurements.py      # CRUD + palettes + db-mtime
-│       ├── charts.py            # Plotly figure JSON endpoints
-│       ├── exports.py           # PNG and CSV downloads
-│       └── stats.py             # Summary KPI endpoint
+│   ├── routes/
+│   │   ├── measurements.py      # CRUD + palettes + db-mtime
+│   │   ├── charts.py            # Plotly figure JSON endpoints
+│   │   ├── exports.py           # PNG and CSV downloads
+│   │   └── stats.py             # Summary KPI endpoint
+│   └── tests/
+│       └── test_api.py          # API endpoint tests
 └── __main__.py                  # Uvicorn entry point
 frontend/
+├── tests/                       # Frontend tests (placeholder)
 ├── src/
 │   ├── components/
 │   │   ├── layout/              # Navbar, StatsCards, Sidebar
@@ -80,12 +90,6 @@ frontend/
 data/
 ├── weight_progression.csv       # Seed file (read-only after migration)
 └── weight_tracker.db            # SQLite database (gitignored)
-tests/
-├── conftest.py                  # Shared fixtures (in-memory SQLite)
-├── test_analysis.py             # Analysis package tests
-├── test_data.py                 # DB package + migration tests
-├── test_figures.py              # Viz package tests
-└── test_api.py                  # API endpoint tests
 ```
 
 ---
@@ -123,7 +127,7 @@ tests/
 ## Running Tests
 
 ```bash
-pytest --cov=src/db --cov=src/analysis --cov=src/viz --cov=src/api tests/
+pytest --cov=backend/db --cov=backend/analysis --cov=backend/viz --cov=backend/api backend/
 ```
 
 ---
