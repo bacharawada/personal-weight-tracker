@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
+import { PageTransition } from "../components/layout/PageTransition";
 import { StatsCards } from "../components/layout/StatsCards";
 import { WeightChart } from "../components/charts/WeightChart";
 
@@ -14,6 +15,7 @@ export function DashboardPage() {
   );
 
   return (
+    <PageTransition>
     <div className="p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
@@ -30,5 +32,6 @@ export function DashboardPage() {
         onPointClick={handlePointClick}
       />
     </div>
+    </PageTransition>
   );
 }

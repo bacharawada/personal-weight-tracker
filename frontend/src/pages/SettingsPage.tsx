@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
+import { PageTransition } from "../components/layout/PageTransition";
 import { getPalettes, exportPngUrl } from "../lib/api";
 import { Download, Moon, Sun } from "lucide-react";
 
@@ -20,6 +21,7 @@ export function SettingsPage() {
   }, []);
 
   return (
+    <PageTransition>
     <div className="p-6 space-y-8 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
@@ -118,5 +120,6 @@ export function SettingsPage() {
         </div>
       </section>
     </div>
+    </PageTransition>
   );
 }

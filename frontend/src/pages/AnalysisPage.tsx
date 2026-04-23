@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
+import { PageTransition } from "../components/layout/PageTransition";
 import { WeightChart } from "../components/charts/WeightChart";
 import { DerivativeChart } from "../components/charts/DerivativeChart";
 import { ResidualsChart } from "../components/charts/ResidualsChart";
@@ -20,6 +21,7 @@ export function AnalysisPage() {
   );
 
   return (
+    <PageTransition>
     <div className="p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Analysis</h1>
@@ -78,5 +80,6 @@ export function AnalysisPage() {
       <DerivativeChart params={chartParams} refreshKey={refreshKey} />
       <ResidualsChart params={chartParams} refreshKey={refreshKey} />
     </div>
+    </PageTransition>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { addMeasurement } from "../../lib/api";
 import { Plus } from "lucide-react";
 
@@ -75,20 +76,27 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
           disabled={loading}
           className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-md px-3 py-2 text-sm font-medium transition-colors"
         >
-          <Plus size={14} /> Add
+          <Plus size={14} /> {loading ? "Adding…" : "Add"}
         </button>
       </form>
-      {feedback && (
-        <div
-          className={`mt-2 p-2 rounded-md text-sm ${
-            feedback.type === "success"
-              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-              : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
-          }`}
-        >
-          {feedback.msg}
-        </div>
-      )}
+
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className={`mt-2 p-2 rounded-md text-sm overflow-hidden ${
+              feedback.type === "success"
+                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+            }`}
+          >
+            {feedback.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { deleteMeasurement } from "../../lib/api";
 import { Trash2 } from "lucide-react";
 
@@ -39,38 +40,59 @@ export function DeletePoint({ selectedPoint, onSuccess }: DeletePointProps) {
         </p>
       ) : (
         <p className="text-sm text-gray-400 dark:text-gray-500 mb-2">
-          Click a point on the chart to select it.
+          Click a row in the table to select it.
         </p>
       )}
 
-      {!confirming ? (
-        <button
-          onClick={() => setConfirming(true)}
-          disabled={!selectedPoint}
-          className="w-full flex items-center justify-center gap-1.5 border border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 disabled:pointer-events-none rounded-md px-3 py-2 text-sm font-medium transition-colors"
-        >
-          <Trash2 size={14} /> Delete Selected Point
-        </button>
-      ) : (
-        <button
-          onClick={handleDelete}
-          className="w-full flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md px-3 py-2 text-sm font-medium transition-colors"
-        >
-          <Trash2 size={14} /> Confirm Deletion
-        </button>
-      )}
+      {/* Crossfade between Delete and Confirm buttons */}
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          {!confirming ? (
+            <motion.button
+              key="delete"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setConfirming(true)}
+              disabled={!selectedPoint}
+              className="w-full flex items-center justify-center gap-1.5 border border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 disabled:pointer-events-none rounded-md px-3 py-2 text-sm font-medium transition-colors"
+            >
+              <Trash2 size={14} /> Delete Selected Point
+            </motion.button>
+          ) : (
+            <motion.button
+              key="confirm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={handleDelete}
+              className="w-full flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md px-3 py-2 text-sm font-medium transition-colors"
+            >
+              <Trash2 size={14} /> Confirm Deletion
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {feedback && (
-        <div
-          className={`mt-2 p-2 rounded-md text-sm ${
-            feedback.type === "success"
-              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
-              : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
-          }`}
-        >
-          {feedback.msg}
-        </div>
-      )}
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className={`mt-2 p-2 rounded-md text-sm overflow-hidden ${
+              feedback.type === "success"
+                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
+                : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+            }`}
+          >
+            {feedback.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

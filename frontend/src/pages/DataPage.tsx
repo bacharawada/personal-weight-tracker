@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
+import { PageTransition } from "../components/layout/PageTransition";
 import { AddMeasurement } from "../components/forms/AddMeasurement";
 import { DeletePoint } from "../components/forms/DeletePoint";
 import { getMeasurements, updateMeasurement, exportCsvUrl } from "../lib/api";
@@ -85,6 +87,7 @@ export function DataPage() {
   );
 
   return (
+    <PageTransition>
     <div className="p-8 space-y-6">
       <div className="flex items-start justify-between">
         <div>
@@ -146,31 +149,47 @@ export function DataPage() {
                         {m.date}
                       </td>
 
-                      {/* Weight — shows input when editing */}
+                      {/* Weight — crossfades between display and edit input */}
                       <td className="px-4 py-2 text-right">
-                        {isEditing ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <input
-                              ref={inputRef}
-                              type="number"
-                              value={editWeight}
-                              onChange={(e) => { setEditWeight(e.target.value); setEditError(null); }}
-                              onKeyDown={(e) => handleKeyDown(e, m.date)}
-                              onClick={(e) => e.stopPropagation()}
-                              min={40}
-                              max={300}
-                              step={0.05}
-                              className="w-28 text-right rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                            />
-                            {editError && (
-                              <span className="text-xs text-red-500">{editError}</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="font-mono text-gray-900 dark:text-gray-100">
-                            {m.weight.toFixed(2)}
-                          </span>
-                        )}
+                        <AnimatePresence mode="wait">
+                          {isEditing ? (
+                            <motion.div
+                              key="edit"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.12 }}
+                              className="flex flex-col items-end gap-1"
+                            >
+                              <input
+                                ref={inputRef}
+                                type="number"
+                                value={editWeight}
+                                onChange={(e) => { setEditWeight(e.target.value); setEditError(null); }}
+                                onKeyDown={(e) => handleKeyDown(e, m.date)}
+                                onClick={(e) => e.stopPropagation()}
+                                min={40}
+                                max={300}
+                                step={0.05}
+                                className="w-28 text-right rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                              />
+                              {editError && (
+                                <span className="text-xs text-red-500">{editError}</span>
+                              )}
+                            </motion.div>
+                          ) : (
+                            <motion.span
+                              key="display"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.12 }}
+                              className="font-mono text-gray-900 dark:text-gray-100"
+                            >
+                              {m.weight.toFixed(2)}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
                       </td>
 
                       {/* Actions */}
@@ -232,5 +251,6 @@ export function DataPage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 }

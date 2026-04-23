@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { getStats } from "../../lib/api";
 import type { Stats } from "../../lib/types";
 
@@ -60,14 +61,17 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
-      {cards.map((card) => (
-        <div
+      {cards.map((card, i) => (
+        <motion.div
           key={card.label}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: i * 0.05, ease: "easeOut" }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center"
         >
           <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
           <p className={`text-xl font-bold ${card.color}`}>{card.value}</p>
-        </div>
+        </motion.div>
       ))}
     </div>
   );
