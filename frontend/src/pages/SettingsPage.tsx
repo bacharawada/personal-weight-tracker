@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
+import { PageTitle } from "../components/layout/PageTitle";
 import { Spinner } from "../components/ui/Spinner";
 import { getPalettes, exportPngUrl } from "../lib/api";
+import { getPaletteAccent } from "../lib/palette";
 import { Download, Moon, Sun } from "lucide-react";
 
 const PALETTE_PREVIEWS: Record<string, string[]> = {
@@ -25,12 +27,7 @@ export function SettingsPage() {
   return (
     <PageTransition>
     <div className="p-6 space-y-8 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Settings</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Customize the appearance and export your data
-        </p>
-      </div>
+      <PageTitle title="Settings" subtitle="Customize the appearance and export your data" />
 
       {/* Theme */}
       <section>
@@ -102,7 +99,7 @@ export function SettingsPage() {
                     {name}
                   </span>
                   {isActive && (
-                    <span className="ml-auto text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    <span className="ml-auto text-xs font-medium" style={{ color: getPaletteAccent(chartParams.palette) }}>
                       Active
                     </span>
                   )}

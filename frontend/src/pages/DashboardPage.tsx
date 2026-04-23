@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
+import { PageTitle } from "../components/layout/PageTitle";
 import { StatsCards } from "../components/layout/StatsCards";
 import { WeightChart } from "../components/charts/WeightChart";
 
@@ -17,12 +18,7 @@ export function DashboardPage() {
   return (
     <PageTransition>
     <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Dashboard</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Overview of your weight progression
-        </p>
-      </div>
+      <PageTitle title="Dashboard" subtitle="Overview of your weight progression" />
 
       <StatsCards refreshKey={refreshKey} />
 

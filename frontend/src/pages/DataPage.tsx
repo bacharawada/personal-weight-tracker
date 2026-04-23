@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
-import { Spinner } from "../components/ui/Spinner";
 import { PageTransition } from "../components/layout/PageTransition";
+import { PageTitle } from "../components/layout/PageTitle";
 import { AddMeasurement } from "../components/forms/AddMeasurement";
 import { DeletePoint } from "../components/forms/DeletePoint";
 import { getMeasurements, updateMeasurement, exportCsvUrl } from "../lib/api";
 import type { Measurement } from "../lib/types";
+import { getPaletteAccent } from "../lib/palette";
+import { Spinner } from "../components/ui/Spinner";
 import { Check, Download, Pencil, Trash2, X } from "lucide-react";
 
 export function DataPage() {
-  const { refreshKey, bump, selectedPoint, setSelectedPoint, hasData } = useWeightTracker();
+  const { refreshKey, bump, selectedPoint, setSelectedPoint, hasData, chartParams } = useWeightTracker();
+  const accent = getPaletteAccent(chartParams.palette);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,12 +94,10 @@ export function DataPage() {
     <PageTransition>
     <div className="p-8 space-y-6">
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Data</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {measurements.length} measurement{measurements.length !== 1 ? "s" : ""} recorded
-          </p>
-        </div>
+        <PageTitle
+          title="Data"
+          subtitle={`${measurements.length} measurement${measurements.length !== 1 ? "s" : ""} recorded`}
+        />
         <a
           href={hasData ? exportCsvUrl() : undefined}
           download="measurements.csv"
@@ -230,7 +231,7 @@ export function DataPage() {
                               <Pencil size={14} />
                             </button>
                             {isSelected && (
-                              <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                              <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: accent }}>
                                 <Trash2 size={12} /> Selected
                               </span>
                             )}

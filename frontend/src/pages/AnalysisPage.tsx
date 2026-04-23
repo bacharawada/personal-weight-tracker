@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
+import { PageTitle } from "../components/layout/PageTitle";
 import { WeightChart } from "../components/charts/WeightChart";
 import { DerivativeChart } from "../components/charts/DerivativeChart";
 import { ResidualsChart } from "../components/charts/ResidualsChart";
@@ -23,12 +24,7 @@ export function AnalysisPage() {
   return (
     <PageTransition>
     <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Analysis</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Rate of change and residuals vs. exponential decay model
-        </p>
-      </div>
+      <PageTitle title="Analysis" subtitle="Rate of change and residuals vs. exponential decay model" />
 
       {/* Controls row */}
       <div className="flex flex-wrap gap-6 bg-white dark:bg-gray-800 rounded-lg shadow p-5">
