@@ -1,8 +1,19 @@
-"""Allow running the application with ``python -m ui.layout`` from src/."""
+"""Entry point for running the Weight Tracker API server.
+
+Usage::
+
+    PYTHONPATH=src python -m api
+    # or
+    PYTHONPATH=src uvicorn api:create_app --factory --reload --port 8000
+"""
 
 from __future__ import annotations
 
-from ui.layout import app
+import uvicorn
+
+from api import create_app
+
+app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8050)
+    uvicorn.run("api:create_app", factory=True, host="0.0.0.0", port=8000, reload=True)
