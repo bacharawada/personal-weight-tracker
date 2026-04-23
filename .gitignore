@@ -77,5 +77,8 @@ logs/
 # Data (optional: uncomment if you don't want to track data files)
 # data/output/
 
+# SQLite database (created on first run)
+data/weight_tracker.db
+
 # AI agent instructions
-AGENT_INSTRUCTIONS.md
+agent_instructions.md
