@@ -14,6 +14,7 @@ import {
   useState,
 } from "react";
 import { getMeasurements } from "../lib/api";
+import { getPaletteAccent } from "../lib/palette";
 import type { ChartParams } from "../lib/types";
 import { usePolling } from "../hooks/usePolling";
 import { useTheme } from "../hooks/useTheme";
@@ -32,6 +33,9 @@ interface WeightTrackerContextValue {
   chartParams: ChartParams;
   setChartParams: (params: ChartParams) => void;
 
+  // Active palette accent color (hex) derived from chartParams.palette
+  accent: string;
+
   // Data refresh
   refreshKey: number;
   bump: () => void;
@@ -44,7 +48,7 @@ interface WeightTrackerContextValue {
   setSelectedPoint: (point: SelectedPoint | null) => void;
 }
 
-const WeightTrackerContext = createContext<WeightTrackerContextValue | null>(null);
+export const WeightTrackerContext = createContext<WeightTrackerContextValue | null>(null);
 
 export function WeightTrackerProvider({ children }: { children: React.ReactNode }) {
   const { isDark, toggle } = useTheme();
@@ -83,19 +87,25 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
     return Math.abs(hash);
   }, [refreshKey, chartParams]);
 
+  const accent = useMemo(
+    () => getPaletteAccent(chartParams.palette),
+    [chartParams.palette]
+  );
+
   const value = useMemo<WeightTrackerContextValue>(
     () => ({
       isDark,
       toggleTheme: toggle,
       chartParams: { ...chartParams, dark: isDark },
       setChartParams,
+      accent,
       refreshKey: chartRefreshKey,
       bump,
       hasData,
       selectedPoint,
       setSelectedPoint,
     }),
-    [isDark, toggle, chartParams, chartRefreshKey, bump, hasData, selectedPoint]
+    [isDark, toggle, chartParams, accent, chartRefreshKey, bump, hasData, selectedPoint]
   );
 
   return (

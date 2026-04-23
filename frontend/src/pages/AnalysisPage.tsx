@@ -14,7 +14,7 @@ const HORIZON_OPTIONS = [
 ];
 
 export function AnalysisPage() {
-  const { chartParams, setChartParams, refreshKey, setSelectedPoint } = useWeightTracker();
+  const { chartParams, setChartParams, refreshKey, setSelectedPoint, accent } = useWeightTracker();
 
   const handlePointClick = useCallback(
     (point: { date: string; weight: number }) => setSelectedPoint(point),
@@ -42,7 +42,8 @@ export function AnalysisPage() {
             onChange={(e) =>
               setChartParams({ ...chartParams, smoothing: Number(e.target.value) })
             }
-            className="w-full accent-blue-600"
+            className="w-full"
+            style={{ accentColor: accent } as React.CSSProperties}
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>3</span><span>10</span>
@@ -60,10 +61,15 @@ export function AnalysisPage() {
                 key={opt.value}
                 onClick={() => setChartParams({ ...chartParams, horizon: opt.value })}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  chartParams.horizon === opt.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  chartParams.horizon !== opt.value
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    : "text-white"
                 }`}
+                style={
+                  chartParams.horizon === opt.value
+                    ? { backgroundColor: accent }
+                    : undefined
+                }
               >
                 {opt.label}
               </button>

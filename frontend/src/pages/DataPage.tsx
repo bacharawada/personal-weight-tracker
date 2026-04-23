@@ -148,10 +148,13 @@ export function DataPage() {
                       className={`group transition-colors ${
                         isEditing
                           ? "bg-yellow-50 dark:bg-yellow-950/20"
-                          : isSelected
-                          ? "bg-blue-50 dark:bg-blue-950 cursor-pointer"
-                          : "hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                          : "cursor-pointer"
                       }`}
+                      style={
+                        !isEditing && isSelected
+                          ? { backgroundColor: `${accent}18` }
+                          : undefined
+                      }
                     >
                       {/* Date */}
                       <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium">

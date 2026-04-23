@@ -82,9 +82,13 @@ export function SettingsPage() {
                   onClick={() => setChartParams({ ...chartParams, palette: name })}
                   className={`flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-colors ${
                     isActive
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+                      ? ""
                       : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                   }`}
+                  style={isActive ? {
+                    borderColor: getPaletteAccent(name),
+                    backgroundColor: `${getPaletteAccent(name)}18`,
+                  } : undefined}
                 >
                   <div className="flex gap-1">
                     {swatches.map((color) => (

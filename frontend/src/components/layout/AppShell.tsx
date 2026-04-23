@@ -27,9 +27,12 @@ const NAV_ITEMS = [
 ];
 
 export function AppShell() {
-  const { isDark, toggleTheme } = useWeightTracker();
+  const { isDark, toggleTheme, accent } = useWeightTracker();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+
+  // 12% opacity background for the active pill
+  const accentBg = `${accent}1e`;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
@@ -45,7 +48,7 @@ export function AppShell() {
           "flex items-center border-b border-gray-200 dark:border-gray-800 h-14 overflow-hidden",
           collapsed ? "justify-center px-0" : "px-4 gap-2"
         )}>
-          <BarChart2 size={20} className="text-blue-600 shrink-0" />
+          <BarChart2 size={20} style={{ color: accent }} className="shrink-0" />
           <AnimatePresence initial={false}>
             {!collapsed && (
               <motion.span
@@ -54,7 +57,8 @@ export function AppShell() {
                 animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.15 }}
-                className="font-bold text-gray-900 dark:text-white text-sm whitespace-nowrap overflow-hidden"
+                className="font-bold text-sm whitespace-nowrap overflow-hidden"
+                style={{ color: accent }}
               >
                 Weight Tracker
               </motion.span>
@@ -72,7 +76,7 @@ export function AppShell() {
           </button>
         </div>
 
-        {/* Navigation — animated active pill via layoutId */}
+        {/* Navigation */}
         <nav className="flex-1 px-2 py-3 space-y-1 relative">
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
@@ -85,8 +89,8 @@ export function AppShell() {
                   "relative flex items-center rounded-lg text-sm font-medium transition-colors z-10",
                   collapsed ? "justify-center p-2" : "gap-3 px-3 py-2",
                   isActive
-                    ? "text-blue-700 dark:text-blue-400"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    ? "text-gray-900 dark:text-white"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
                 )
               }
             >
@@ -96,11 +100,12 @@ export function AppShell() {
                   {isActive && (
                     <motion.div
                       layoutId="nav-active-pill"
-                      className="absolute inset-0 rounded-lg bg-blue-50 dark:bg-blue-950"
+                      className="absolute inset-0 rounded-lg"
+                      style={{ backgroundColor: accentBg }}
                       transition={{ type: "spring", stiffness: 400, damping: 35 }}
                     />
                   )}
-                  <span className="relative z-10 shrink-0">
+                  <span className="relative z-10 shrink-0" style={isActive ? { color: accent } : {}}>
                     <Icon size={18} />
                   </span>
                   <AnimatePresence initial={false}>
@@ -112,6 +117,7 @@ export function AppShell() {
                         exit={{ opacity: 0, width: 0 }}
                         transition={{ duration: 0.13 }}
                         className="relative z-10 overflow-hidden whitespace-nowrap"
+                        style={isActive ? { color: accent } : {}}
                       >
                         {label}
                       </motion.span>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { deleteMeasurement } from "../../lib/api";
 import { Trash2 } from "lucide-react";
 
@@ -9,6 +10,7 @@ interface DeletePointProps {
 }
 
 export function DeletePoint({ selectedPoint, onSuccess }: DeletePointProps) {
+  const { accent } = useWeightTracker();
   const [confirming, setConfirming] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
@@ -84,10 +86,15 @@ export function DeletePoint({ selectedPoint, onSuccess }: DeletePointProps) {
             exit={{ opacity: 0, y: -4, height: 0 }}
             transition={{ duration: 0.2 }}
             className={`mt-2 p-2 rounded-md text-sm overflow-hidden ${
-              feedback.type === "success"
-                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
-                : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+              feedback.type === "error"
+                ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+                : ""
             }`}
+            style={
+              feedback.type === "success"
+                ? { backgroundColor: `${accent}22`, color: accent }
+                : undefined
+            }
           >
             {feedback.msg}
           </motion.div>

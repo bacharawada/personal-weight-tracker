@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { addMeasurement } from "../../lib/api";
 import { Plus } from "lucide-react";
 
@@ -8,6 +9,7 @@ interface AddMeasurementProps {
 }
 
 export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
+  const { accent } = useWeightTracker();
   const [date, setDate] = useState("");
   const [weight, setWeight] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -74,7 +76,8 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-md px-3 py-2 text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 text-white rounded-md px-3 py-2 text-sm font-medium transition-opacity disabled:opacity-50"
+          style={{ backgroundColor: accent }}
         >
           <Plus size={14} /> {loading ? "Adding…" : "Add"}
         </button>
