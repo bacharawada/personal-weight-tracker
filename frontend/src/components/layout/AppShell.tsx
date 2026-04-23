@@ -1,10 +1,13 @@
 /**
- * Application shell — left sidebar navigation + main content area.
+ * Application shell — collapsible left sidebar + main content area.
  */
 
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   BarChart2,
+  ChevronLeft,
+  ChevronRight,
   Database,
   LayoutDashboard,
   Moon,
@@ -24,49 +27,78 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   const { isDark, toggleTheme } = useWeightTracker();
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       {/* ── Sidebar ─────────────────────────────────────────── */}
-      <aside className="flex flex-col w-56 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
-        {/* Logo / app name */}
-        <div className="flex items-center gap-2 px-5 py-5 border-b border-gray-200 dark:border-gray-800">
-          <BarChart2 size={22} className="text-blue-600 shrink-0" />
-          <span className="font-bold text-gray-900 dark:text-white text-sm leading-tight">
-            Weight<br />Tracker
-          </span>
+      <aside
+        className={cn(
+          "flex flex-col shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-200",
+          collapsed ? "w-14" : "w-52"
+        )}
+      >
+        {/* Header: logo + title + collapse button */}
+        <div className={cn(
+          "flex items-center border-b border-gray-200 dark:border-gray-800 h-14",
+          collapsed ? "justify-center px-0" : "px-4 gap-2"
+        )}>
+          {!collapsed && (
+            <>
+              <BarChart2 size={20} className="text-blue-600 shrink-0" />
+              <span className="font-bold text-gray-900 dark:text-white text-sm whitespace-nowrap">
+                Weight Tracker
+              </span>
+            </>
+          )}
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            className={cn(
+              "p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+              collapsed ? "" : "ml-auto"
+            )}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
         </div>
 
         {/* Navigation links */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-2 py-3 space-y-1">
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center rounded-lg text-sm font-medium transition-colors",
+                  collapsed ? "justify-center p-2" : "gap-3 px-3 py-2",
                   isActive
                     ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                 )
               }
             >
-              <Icon size={18} />
-              {label}
+              <Icon size={18} className="shrink-0" />
+              {!collapsed && label}
             </NavLink>
           ))}
         </nav>
 
-        {/* Theme toggle at bottom */}
-        <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-800">
+        {/* Theme toggle */}
+        <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            title={isDark ? "Light mode" : "Dark mode"}
+            className={cn(
+              "flex items-center rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors w-full",
+              collapsed ? "justify-center p-2" : "gap-3 px-3 py-2"
+            )}
           >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            {isDark ? "Light mode" : "Dark mode"}
+            {isDark ? <Sun size={18} className="shrink-0" /> : <Moon size={18} className="shrink-0" />}
+            {!collapsed && (isDark ? "Light mode" : "Dark mode")}
           </button>
         </div>
       </aside>
