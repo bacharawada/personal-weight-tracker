@@ -80,5 +80,9 @@ logs/
 # SQLite database (created on first run)
 data/weight_tracker.db
 
+# Node.js
+frontend/node_modules/
+frontend/dist/
+
 # AI agent instructions
 agent_instructions.md

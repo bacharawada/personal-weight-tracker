@@ -13,7 +13,12 @@ select = [
     "SIM", # flake8-simplify
     "TCH", # flake8-type-checking
 ]
-ignore = ["E501"]
+ignore = [
+    "E501",
+    # B008: FastAPI's Depends() and Query() in function defaults is the
+    # standard pattern — not a bug.
+    "B008",
+]
 
 [lint.isort]
-known-first-party = ["db", "analysis", "viz", "ui"]
+known-first-party = ["db", "analysis", "viz", "api"]

@@ -5,7 +5,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 [project]
 name = "weight-tracker"
 version = "1.0.0"
-description = "Interactive Dash application for body weight tracking and analysis"
+description = "Interactive weight tracking application with React frontend and FastAPI backend"
 requires-python = ">=3.11"
 
 [tool.black]
@@ -28,10 +28,13 @@ select = [
     "SIM", # flake8-simplify
     "TCH", # flake8-type-checking
 ]
-ignore = ["E501"]
+ignore = [
+    "E501",
+    "B008",  # FastAPI Depends()/Query() in defaults is standard
+]
 
 [tool.ruff.lint.isort]
-known-first-party = ["db", "analysis", "viz", "ui"]
+known-first-party = ["db", "analysis", "viz", "api"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
