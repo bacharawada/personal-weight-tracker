@@ -48,11 +48,11 @@ def _title(text: str, color: str) -> dict:
         ``fig.update_layout()``.
     """
     return dict(
-        text=text,
+        text=f"<b>{text}</b>",
         font=dict(size=16, color=color),
         x=0,
         xanchor="left",
-        pad=dict(l=4),
+        pad=dict(l=16, t=8, b=4),
     )
 
 

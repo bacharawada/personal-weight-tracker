@@ -34,7 +34,7 @@ export function PlotlyChart({
           {
             ...(fig.layout ?? {}),
             autosize: true,
-            margin: { l: 70, r: 40, t: 90, b: 60 },
+            margin: { l: 70, r: 40, t: 100, b: 60 },
           },
           { responsive: true, displayModeBar: true }
         ).then((gd: Plotly.PlotlyHTMLElement) => {
