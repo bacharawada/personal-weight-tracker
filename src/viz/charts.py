@@ -36,6 +36,29 @@ def _plotly_template(dark: bool) -> str:
     return "plotly_dark" if dark else "plotly_white"
 
 
+def _title(text: str, dark: bool) -> dict:
+    """Return a Plotly title dict with styled font.
+
+    Args:
+        text: Title text.
+        dark: Whether dark mode is active.
+
+    Returns:
+        A dict suitable for use as the ``title`` argument in
+        ``fig.update_layout()``.
+    """
+    return dict(
+        text=text,
+        font=dict(
+            size=16,
+            color="#60a5fa" if dark else "#2563eb",  # blue-400 / blue-600
+        ),
+        x=0,
+        xanchor="left",
+        pad=dict(l=4),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main weight chart (Panel 1)
 # ---------------------------------------------------------------------------
@@ -74,7 +97,7 @@ def build_weight_figure(
     if df.empty:
         fig.update_layout(
             template=template,
-            title="Weight Progression",
+            title=_title("Weight Progression", dark),
             xaxis_title="Date",
             yaxis_title="Weight (kg)",
             annotations=[
@@ -195,7 +218,7 @@ def build_weight_figure(
     # -- Layout ------------------------------------------------------------
     fig.update_layout(
         template=template,
-        title="Body Weight Progression",
+        title=_title("Body Weight Progression", dark),
         xaxis_title="Date",
         yaxis_title="Weight (kg)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -247,7 +270,7 @@ def build_derivative_figure(
     if df.empty or len(df) < 2:
         fig.update_layout(
             template=template,
-            title="Rate of Change (kg/week)",
+            title=_title("Rate of Change (kg/week)", dark),
             xaxis_title="Date",
             yaxis_title="Rate (kg/week)",
         )
@@ -286,7 +309,7 @@ def build_derivative_figure(
 
     fig.update_layout(
         template=template,
-        title="Rate of Change",
+        title=_title("Rate of Change", dark),
         xaxis_title="Date",
         yaxis_title="Rate (kg/week)",
         hovermode="x unified",
@@ -329,7 +352,7 @@ def build_residuals_figure(
     if fit_result is None or not fit_result.success or df.empty:
         fig.update_layout(
             template=template,
-            title="Residuals vs. Model",
+            title=_title("Residuals vs. Model", dark),
             xaxis_title="Date",
             yaxis_title="Residual (kg)",
             annotations=[
@@ -408,7 +431,7 @@ def build_residuals_figure(
 
     fig.update_layout(
         template=template,
-        title="Residuals vs. Exponential Decay Model",
+        title=_title("Residuals vs. Exponential Decay Model", dark),
         xaxis_title="Date",
         yaxis_title="Residual (kg)",
         hovermode="x unified",

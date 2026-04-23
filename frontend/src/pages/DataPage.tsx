@@ -92,7 +92,7 @@ export function DataPage() {
     <div className="p-8 space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Data</h1>
+          <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Data</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {measurements.length} measurement{measurements.length !== 1 ? "s" : ""} recorded
           </p>
