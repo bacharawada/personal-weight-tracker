@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Plotly } from "../../lib/PlotlyFactory";
+import { Spinner } from "../ui/Spinner";
 
 interface PlotlyChartProps {
   fetchFigure: () => Promise<object>;
@@ -44,7 +46,6 @@ export function PlotlyChart({
       .catch(console.error)
       .finally(() => setLoading(false));
 
-    // Cleanup: remove event listeners when effect re-runs.
     return () => {
       if (containerRef.current) {
         Plotly.purge(containerRef.current);
@@ -56,10 +57,28 @@ export function PlotlyChart({
     <div
       className={`relative bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${className}`}
     >
-      {loading && (
-        <div className="absolute inset-0 bg-white dark:bg-gray-800 animate-pulse rounded-lg" />
-      )}
-      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+      {/* Spinner overlay — fades out when data arrives */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            key="chart-loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg"
+          >
+            <Spinner size={32} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Chart fades in after loading */}
+      <motion.div
+        animate={{ opacity: loading ? 0 : 1 }}
+        transition={{ duration: 0.3 }}
+        ref={containerRef}
+        style={{ width: "100%", height: "100%" }}
+      />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
+import { Spinner } from "../components/ui/Spinner";
 import { getPalettes, exportPngUrl } from "../lib/api";
 import { Download, Moon, Sun } from "lucide-react";
 
@@ -56,7 +58,24 @@ export function SettingsPage() {
       <section>
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Colour Palette</h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <AnimatePresence mode="wait">
+          {palettes.length === 0 ? (
+            <motion.div
+              key="palette-loading"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex justify-center py-6"
+            >
+              <Spinner size={24} />
+            </motion.div>
+          ) : (
+          <motion.div
+            key="palette-grid"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+          >
             {palettes.map((name) => {
               const swatches = PALETTE_PREVIEWS[name] ?? ["#888", "#aaa", "#ccc"];
               const isActive = chartParams.palette === name;
@@ -90,7 +109,9 @@ export function SettingsPage() {
                 </button>
               );
             })}
-          </div>
+          </motion.div>
+          )}
+          </AnimatePresence>
         </div>
       </section>
 

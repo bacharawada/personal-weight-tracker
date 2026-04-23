@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
+import { Spinner } from "../components/ui/Spinner";
 import { PageTransition } from "../components/layout/PageTransition";
 import { AddMeasurement } from "../components/forms/AddMeasurement";
 import { DeletePoint } from "../components/forms/DeletePoint";
@@ -113,13 +114,20 @@ export function DataPage() {
         {/* Table — 2/3 width */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-400">Loading…</div>
+            <div className="p-8 flex justify-center items-center">
+              <Spinner size={28} />
+            </div>
           ) : measurements.length === 0 ? (
             <div className="p-8 text-center text-gray-400">
               No measurements yet. Add your first one.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <motion.table
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25 }}
+              className="w-full text-sm"
+            >
               <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
@@ -233,7 +241,7 @@ export function DataPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </motion.table>
           )}
         </div>
 
