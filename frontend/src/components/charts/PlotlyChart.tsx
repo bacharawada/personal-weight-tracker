@@ -1,47 +1,65 @@
-import { useEffect, useState } from "react";
-import Plot from "react-plotly.js";
+import { useEffect, useRef, useState } from "react";
+import { Plotly } from "../../lib/PlotlyFactory";
 
 interface PlotlyChartProps {
   fetchFigure: () => Promise<object>;
   refreshKey: number;
-  onClick?: (data: Plotly.PlotMouseEvent) => void;
+  onClick?: (event: Plotly.PlotMouseEvent) => void;
   className?: string;
 }
 
-export function PlotlyChart({ fetchFigure, refreshKey, onClick, className = "" }: PlotlyChartProps) {
-  const [figure, setFigure] = useState<{ data: Plotly.Data[]; layout: Partial<Plotly.Layout> } | null>(null);
+export function PlotlyChart({
+  fetchFigure,
+  refreshKey,
+  onClick,
+  className = "",
+}: PlotlyChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!containerRef.current) return;
+
     setLoading(true);
+
     fetchFigure()
       .then((fig: any) => {
-        setFigure({ data: fig.data || [], layout: fig.layout || {} });
+        if (!containerRef.current) return;
+
+        Plotly.react(
+          containerRef.current,
+          fig.data ?? [],
+          {
+            ...(fig.layout ?? {}),
+            autosize: true,
+            margin: { l: 60, r: 30, t: 50, b: 40 },
+          },
+          { responsive: true, displayModeBar: true }
+        ).then((gd) => {
+          if (onClick) {
+            gd.on("plotly_click", onClick);
+          }
+        });
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [refreshKey, fetchFigure]);
 
-  if (loading || !figure) {
-    return (
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow animate-pulse h-80 ${className}`} />
-    );
-  }
+    // Cleanup: remove event listeners when effect re-runs.
+    return () => {
+      if (containerRef.current) {
+        Plotly.purge(containerRef.current);
+      }
+    };
+  }, [refreshKey, fetchFigure]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${className}`}>
-      <Plot
-        data={figure.data}
-        layout={{
-          ...figure.layout,
-          autosize: true,
-          margin: { l: 60, r: 30, t: 50, b: 40 },
-        }}
-        config={{ displayModeBar: true, responsive: true }}
-        useResizeHandler
-        style={{ width: "100%", height: "100%" }}
-        onClick={onClick}
-      />
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${className}`}
+    >
+      {loading && (
+        <div className="absolute inset-0 bg-white dark:bg-gray-800 animate-pulse" />
+      )}
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
     </div>
   );
 }
