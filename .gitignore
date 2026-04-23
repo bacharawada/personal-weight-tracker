@@ -76,3 +76,6 @@ logs/
 
 # Data (optional: uncomment if you don't want to track data files)
 # data/output/
+
+# AI agent instructions
+AGENT_INSTRUCTIONS.md
