@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends
 
 from api.deps import get_current_user, get_store
 from api.schemas import UserProfileOut
-from db import WeightDataStore
+
+if TYPE_CHECKING:
+    from db import WeightDataStore
 
 router = APIRouter(tags=["users"])
 

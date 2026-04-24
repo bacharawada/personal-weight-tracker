@@ -17,8 +17,6 @@ CSV expectations (European-friendly defaults):
 from __future__ import annotations
 
 import io
-import re
-from typing import TYPE_CHECKING
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -31,9 +29,6 @@ from api.schemas import (
     CsvPreviewRow,
 )
 from db import DuplicateDateError, WeightDataStore
-
-if TYPE_CHECKING:
-    pass
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 

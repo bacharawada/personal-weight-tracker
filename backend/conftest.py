@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 import sqlalchemy as sa
 
-from db import WeightDataStore, measurements, metadata, users
+from db import WeightDataStore, measurements, metadata
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine

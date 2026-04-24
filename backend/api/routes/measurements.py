@@ -7,7 +7,13 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.deps import get_current_user, get_store
-from api.schemas import MeasurementIn, MeasurementOut, MeasurementUpdate, MtimeOut, PaletteOut
+from api.schemas import (
+    MeasurementIn,
+    MeasurementOut,
+    MeasurementUpdate,
+    MtimeOut,
+    PaletteOut,
+)
 from db import DuplicateDateError, NotFoundError, WeightDataStore
 from viz import PALETTES
 

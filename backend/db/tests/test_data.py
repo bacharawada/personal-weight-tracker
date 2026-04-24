@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 import pandas as pd
 import pytest
 import sqlalchemy as sa
-
 from conftest import TEST_USER_SUB
 
 if TYPE_CHECKING:

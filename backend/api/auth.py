@@ -17,16 +17,12 @@ from __future__ import annotations
 
 import os
 import time
-from typing import TYPE_CHECKING
 
 import httpx
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from jose.exceptions import ExpiredSignatureError
-
-if TYPE_CHECKING:
-    pass
 
 # ---------------------------------------------------------------------------
 # Config

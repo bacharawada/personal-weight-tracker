@@ -16,7 +16,7 @@ import sqlalchemy as sa
 from fastapi.testclient import TestClient
 
 from api import deps as api_deps
-from db import WeightDataStore, measurements, metadata, users
+from db import WeightDataStore, measurements, metadata
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -94,8 +94,9 @@ def _make_client(seed: bool = False) -> TestClient:
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
-    from api.routes import charts, exports, stats, users as user_routes
+    from api.routes import charts, exports, stats
     from api.routes import measurements as meas_routes
+    from api.routes import users as user_routes
 
     engine, store = _make_engine_and_store(seed=seed)
 
