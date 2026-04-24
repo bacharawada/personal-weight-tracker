@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Plotly } from "../../lib/PlotlyFactory";
 import { Spinner } from "../ui/Spinner";
@@ -19,12 +19,21 @@ export function PlotlyChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
 
+  // Keep a ref to the latest fetchFigure so the effect closure always calls
+  // the current version without needing fetchFigure in the dependency array.
+  // This prevents re-fetching whenever the parent re-renders and produces a
+  // new function reference (which happens on every render with inline arrows).
+  const fetchFigureRef = useRef(fetchFigure);
+  useLayoutEffect(() => {
+    fetchFigureRef.current = fetchFigure;
+  });
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     setLoading(true);
 
-    fetchFigure()
+    fetchFigureRef.current()
       .then((fig: any) => {
         if (!containerRef.current) return;
 
@@ -51,7 +60,7 @@ export function PlotlyChart({
         Plotly.purge(containerRef.current);
       }
     };
-  }, [refreshKey, fetchFigure]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [refreshKey]); // only re-fetch when the data actually changes
 
   return (
     <div

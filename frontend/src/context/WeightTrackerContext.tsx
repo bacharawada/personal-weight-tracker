@@ -103,7 +103,10 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
     () => ({
       isDark,
       toggleTheme: toggle,
-      chartParams: { ...chartParams, dark: isDark },
+      // chartParams already has dark kept in sync via the useEffect above —
+      // do NOT spread a new object here, that creates a new reference every
+      // render and triggers unnecessary chart re-fetches.
+      chartParams,
       setChartParams,
       accent,
       refreshKey: chartRefreshKey,
