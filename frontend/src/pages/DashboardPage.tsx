@@ -17,17 +17,17 @@ export function DashboardPage() {
 
   return (
     <PageTransition>
-    <div className="p-8 space-y-8">
-      <PageTitle title="Dashboard" subtitle="Overview of your weight progression" />
+      <div className="flex flex-col h-full p-8 gap-8">
+        <PageTitle title="Dashboard" subtitle="Overview of your weight progression" />
 
-      <StatsCards refreshKey={refreshKey} />
+        <StatsCards refreshKey={refreshKey} />
 
-      <WeightChart
-        params={chartParams}
-        refreshKey={refreshKey}
-        onPointClick={handlePointClick}
-      />
-    </div>
+        <WeightChart
+          params={chartParams}
+          refreshKey={refreshKey}
+          onPointClick={handlePointClick}
+        />
+      </div>
     </PageTransition>
   );
 }

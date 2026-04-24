@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 export function PageTransition({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
+      className="h-full flex flex-col"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}

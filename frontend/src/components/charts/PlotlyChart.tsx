@@ -55,7 +55,7 @@ export function PlotlyChart({
 
   return (
     <div
-      className={`relative bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${className}`}
+      className={`relative bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden flex flex-col ${className}`}
     >
       {/* Spinner overlay — fades out when data arrives */}
       <AnimatePresence>
