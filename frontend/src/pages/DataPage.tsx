@@ -10,6 +10,7 @@ import type { CsvImportResult, Measurement } from "../lib/types";
 import { Spinner } from "../components/ui/Spinner";
 import {
   Check,
+  ChevronRight,
   Download,
   FileUp,
   Pencil,
@@ -151,6 +152,8 @@ export function DataPage() {
   return (
     <PageTransition>
       <div className="p-8 space-y-6">
+        {/* Centered content wrapper */}
+        <div className="max-w-4xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
@@ -159,7 +162,7 @@ export function DataPage() {
             subtitle={`${measurements.length} measurement${measurements.length !== 1 ? "s" : ""} recorded`}
           />
 
-            {/* Right: export + delete all */}
+          {/* Right: export + delete all */}
           <div className="flex items-center gap-2 shrink-0">
             {hasData && (
               <Button
@@ -188,10 +191,10 @@ export function DataPage() {
         </div>
 
         {/* Body: table + action cards side by side */}
-        <div className="flex gap-6 items-start">
+        <div className="flex gap-5 items-start">
 
-          {/* Table — fixed reasonable width, not full bleed */}
-          <div className="flex-1 min-w-0 max-w-xl bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          {/* Table */}
+          <div className="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             {loading ? (
               <div className="p-12 flex justify-center">
                 <Spinner size={28} />
@@ -326,51 +329,23 @@ export function DataPage() {
           </div>
 
           {/* Action cards — Add entry + Import CSV */}
-          <div className="flex flex-col gap-4 w-64 shrink-0">
-            {/* Add entry card */}
-            <button
+          <div className="flex flex-col gap-3 w-56 shrink-0">
+            <ActionCard
+              icon={<Plus size={18} />}
+              title="Add entry"
+              description="Log a new measurement"
               onClick={() => setAddOpen(true)}
-              className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[var(--color-accent)] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer"
-            >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-                style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}
-              >
-                <Plus size={20} style={{ color: "var(--color-accent)" }} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-[var(--color-accent)] transition-colors">
-                  Add entry
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                  Log a new measurement
-                </p>
-              </div>
-            </button>
-
-            {/* Import CSV card */}
-            <button
+            />
+            <ActionCard
+              icon={<FileUp size={18} />}
+              title="Import CSV"
+              description="Upload from a file"
               onClick={() => setCsvOpen(true)}
-              className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[var(--color-accent)] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer"
-            >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-                style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}
-              >
-                <FileUp size={20} style={{ color: "var(--color-accent)" }} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-[var(--color-accent)] transition-colors">
-                  Import CSV
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                  Upload from a file
-                </p>
-              </div>
-            </button>
+            />
           </div>
 
         </div>
+        </div> {/* end max-w-4xl */}
       </div>
 
       {/* ── Add measurement modal ─────────────────────────── */}
@@ -465,5 +440,65 @@ export function DataPage() {
         </DialogContent>
       </Dialog>
     </PageTransition>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ActionCard — solid clickable card matching the onboarding PathCard style
+// ---------------------------------------------------------------------------
+
+function ActionCard({
+  icon,
+  title,
+  description,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="
+        group flex items-center gap-4 w-full p-4 text-left
+        bg-white dark:bg-gray-800
+        border border-gray-200 dark:border-gray-700
+        rounded-lg shadow-sm
+        hover:border-[var(--color-accent)]
+        hover:bg-blue-50/40 dark:hover:bg-[var(--color-accent)]/5
+        transition-all duration-150
+        cursor-pointer
+      "
+    >
+      {/* Icon square */}
+      <div
+        className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+        style={{
+          backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)",
+          color: "var(--color-accent)",
+        }}
+      >
+        {icon}
+      </div>
+
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100
+                      group-hover:text-[var(--color-accent)] transition-colors">
+          {title}
+        </p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+          {description}
+        </p>
+      </div>
+
+      {/* Chevron */}
+      <ChevronRight
+        size={16}
+        className="shrink-0 text-gray-300 dark:text-gray-600 group-hover:text-[var(--color-accent)] transition-colors"
+      />
+    </button>
   );
 }
