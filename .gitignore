@@ -55,8 +55,10 @@ coverage.xml
 .env.local
 .env.*.local
 
-# IDE
-.vscode/
+# IDE — ignore personal preferences but track shared dev config
+.vscode/*
+!.vscode/tasks.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo

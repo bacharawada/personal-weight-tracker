@@ -1,0 +1,375 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+
+    // ----------------------------------------------------------------
+    // Top-level compound tasks
+    // ----------------------------------------------------------------
+
+    {
+      // Recommended for day-to-day development:
+      // 1. Starts Postgres + Keycloak in Docker (detached)
+      // 2. Runs Alembic migrations
+      // 3. Starts native API + Vite dev server (hot-reload)
+      // 4. Opens the browser
+      "label": "Dev: Full stack (native API + Docker infra)",
+      "dependsOn": [
+        "Docker: Start infra",
+        "Alembic: Upgrade",
+        "Run API Server",
+        "Run Frontend Dev Server",
+        "Open Browser"
+      ],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+
+    {
+      // Alternative: run everything inside Docker containers.
+      // Less hot-reload friendly but mirrors production more closely.
+      "label": "Dev: Full stack (all in Docker)",
+      "dependsOn": ["Docker: Start all", "Open Browser"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+
+    // ----------------------------------------------------------------
+    // Docker tasks
+    // ----------------------------------------------------------------
+
+    {
+      // Start only the infrastructure services (Postgres + Keycloak)
+      // detached, so you can still run the API + frontend natively.
+      "label": "Docker: Start infra",
+      "type": "shell",
+      "command": "docker compose up postgres keycloak -d --wait",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+
+    {
+      // Start all four services (postgres, keycloak, backend, frontend).
+      "label": "Docker: Start all",
+      "type": "shell",
+      "command": "docker compose up --build -d --wait",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+
+    {
+      "label": "Docker: Stop",
+      "type": "shell",
+      "command": "docker compose down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    {
+      // Destroy containers AND volumes (wipes Postgres + Keycloak data).
+      // Use when you want a completely clean slate.
+      "label": "Docker: Stop + wipe volumes",
+      "type": "shell",
+      "command": "docker compose down -v && rm -rf .docker-volumes",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    {
+      "label": "Docker: Logs",
+      "type": "shell",
+      "command": "docker compose logs -f",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+
+    // ----------------------------------------------------------------
+    // Backend (native)
+    // ----------------------------------------------------------------
+
+    {
+      // Runs the FastAPI server natively with hot-reload.
+      // Requires Postgres to be reachable (use "Docker: Start infra" first).
+      // DATABASE_URL is read from .env via python-dotenv.
+      "label": "Run API Server",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/uvicorn",
+      "args": [
+        "api:create_app",
+        "--factory",
+        "--reload",
+        "--port", "8000"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend",
+          "WATCHFILES_FORCE_POLLING": "1"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+
+    {
+      // Apply any pending Alembic migrations to the local Postgres instance.
+      // DATABASE_URL is loaded from .env by alembic/env.py.
+      "label": "Alembic: Upgrade",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/alembic",
+      "args": ["-c", "backend/alembic.ini", "upgrade", "head"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    {
+      // Generate a new Alembic migration from schema changes.
+      // Edit the migration message via the input variable below.
+      "label": "Alembic: Generate migration",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/alembic",
+      "args": [
+        "-c", "backend/alembic.ini",
+        "revision", "--autogenerate",
+        "-m", "${input:migrationMessage}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    {
+      // Seed the database with data/weight_progression.csv
+      // for the dev-stub user (requires Postgres to be running).
+      "label": "Seed Database (migrate)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["backend/db/migrate.py"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ----------------------------------------------------------------
+    // Tests
+    // ----------------------------------------------------------------
+
+    {
+      // Tests use SQLite in-memory — no Docker or .env required.
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "pytest", "backend/", "-v", "--tb=short"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    {
+      "label": "Run Tests with Coverage",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "-m", "pytest", "backend/", "-v",
+        "--cov=backend/db",
+        "--cov=backend/analysis",
+        "--cov=backend/viz",
+        "--cov=backend/api",
+        "--cov-report=term-missing"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ----------------------------------------------------------------
+    // Frontend
+    // ----------------------------------------------------------------
+
+    {
+      "label": "Run Frontend Dev Server",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+
+    {
+      "label": "Build Frontend",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ----------------------------------------------------------------
+    // Install dependencies
+    // ----------------------------------------------------------------
+
+    {
+      "label": "Install Dependencies (Python)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/pip",
+      "args": ["install", "-r", "requirements.txt"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    {
+      "label": "Install Dependencies (npm)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    {
+      "label": "Install Dependencies (all)",
+      "dependsOn": [
+        "Install Dependencies (Python)",
+        "Install Dependencies (npm)"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+
+    // ----------------------------------------------------------------
+    // Utilities
+    // ----------------------------------------------------------------
+
+    {
+      "label": "Open Browser",
+      "type": "shell",
+      "command": "sleep 4 && /mnt/c/Windows/System32/cmd.exe /c start http://localhost:5173",
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+
+  ],
+
+  // Input variable for Alembic migration message
+  "inputs": [
+    {
+      "id": "migrationMessage",
+      "type": "promptString",
+      "description": "Migration description (snake_case)",
+      "default": "describe_your_change"
+    }
+  ]
+}
