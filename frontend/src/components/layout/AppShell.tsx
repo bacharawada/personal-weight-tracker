@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { cn } from "../../lib/cn";
+import { Button } from "../ui/button";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -27,12 +28,9 @@ const NAV_ITEMS = [
 ];
 
 export function AppShell() {
-  const { isDark, toggleTheme, accent } = useWeightTracker();
+  const { isDark, toggleTheme } = useWeightTracker();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-
-  // 12% opacity background for the active pill
-  const accentBg = `${accent}1e`;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
@@ -54,7 +52,7 @@ export function AppShell() {
             <AnimatePresence initial={false}>
               <BarChart2
                 size={20}
-                style={{ color: accent }}
+                style={{ color: "var(--color-accent)" }}
                 className="shrink-0"
               />
               <motion.span
@@ -64,22 +62,21 @@ export function AppShell() {
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.15 }}
                 className="font-bold text-sm whitespace-nowrap overflow-hidden"
-                style={{ color: accent }}
+                style={{ color: "var(--color-accent)" }}
               >
                 Weight Tracker
               </motion.span>
             </AnimatePresence>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setCollapsed((c) => !c)}
-            className={cn(
-              "p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0",
-              collapsed ? "" : "ml-auto",
-            )}
+            className={cn("shrink-0 text-gray-400", collapsed ? "" : "ml-auto")}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
+          </Button>
         </div>
 
         {/* Navigation */}
@@ -107,7 +104,7 @@ export function AppShell() {
                     <motion.div
                       layoutId="nav-active-pill"
                       className="absolute inset-0 rounded-lg"
-                      style={{ backgroundColor: accentBg }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}
                       transition={{
                         type: "spring",
                         stiffness: 400,
@@ -117,7 +114,7 @@ export function AppShell() {
                   )}
                   <span
                     className="relative z-10 shrink-0"
-                    style={isActive ? { color: accent } : {}}
+                    style={isActive ? { color: "var(--color-accent)" } : {}}
                   >
                     <Icon size={18} />
                   </span>
@@ -130,7 +127,7 @@ export function AppShell() {
                         exit={{ opacity: 0, width: 0 }}
                         transition={{ duration: 0.13 }}
                         className="relative z-10 overflow-hidden whitespace-nowrap"
-                        style={isActive ? { color: accent } : {}}
+                        style={isActive ? { color: "var(--color-accent)" } : {}}
                       >
                         {label}
                       </motion.span>
@@ -144,12 +141,13 @@ export function AppShell() {
 
         {/* Theme toggle */}
         <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
-          <button
+          <Button
+            variant="ghost"
             onClick={toggleTheme}
             title={isDark ? "Light mode" : "Dark mode"}
             className={cn(
-              "flex items-center rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors w-full overflow-hidden",
-              collapsed ? "justify-center p-2" : "gap-3 px-3 py-2",
+              "text-sm font-medium text-gray-600 dark:text-gray-400 w-full overflow-hidden",
+              collapsed ? "justify-center p-2 h-auto" : "gap-3 px-3 py-2 h-auto",
             )}
           >
             {isDark ? (
@@ -171,7 +169,7 @@ export function AppShell() {
                 </motion.span>
               )}
             </AnimatePresence>
-          </button>
+          </Button>
         </div>
       </aside>
 
