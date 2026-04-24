@@ -6,7 +6,7 @@
 
 # --- Stage: dev -------------------------------------------
 # Used by docker-compose for hot-reload development
-FROM node:20-alpine AS dev
+FROM docker.io/library/node:20-alpine AS dev
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # --- Stage: build -----------------------------------------
 # Compiles the React app to static files
-FROM node:20-alpine AS build
+FROM docker.io/library/node:20-alpine AS build
 
 WORKDIR /app
 
@@ -42,7 +42,7 @@ RUN npm run build
 
 # --- Stage: prod ------------------------------------------
 # Serves the static build with nginx
-FROM nginx:1.25-alpine AS prod
+FROM docker.io/library/nginx:1.25-alpine AS prod
 
 COPY --from=build /app/dist /usr/share/nginx/html
 

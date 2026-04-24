@@ -3,7 +3,7 @@
 # Base image: Python 3.11 slim (matches pyproject.toml target)
 # ============================================================
 
-FROM python:3.11-slim
+FROM docker.io/library/python:3.11-slim
 
 # Build-time arg: don't write .pyc files, don't buffer stdout
 ENV PYTHONDONTWRITEBYTECODE=1 \
