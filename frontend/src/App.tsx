@@ -2,7 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { WeightTrackerProvider } from "./context/WeightTrackerContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import { AppShell } from "./components/layout/AppShell";
+import { AppLayout } from "./components/layout/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { DataPage } from "./pages/DataPage";
@@ -30,7 +30,7 @@ export default function App() {
             <Route
               element={
                 <WeightTrackerProvider>
-                  <AppShell />
+                  <AppLayout />
                 </WeightTrackerProvider>
               }
             >

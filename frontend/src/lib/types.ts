@@ -38,3 +38,24 @@ export interface UserProfile {
   keycloak_sub: string;
   onboarding_completed: boolean;
 }
+
+// CSV import
+export interface CsvPreviewRow {
+  date: string;
+  weight: number;
+}
+
+export interface CsvPreview {
+  rows: CsvPreviewRow[];
+  total_rows: number;
+  detected_date_format: string;
+  date_format_example: string;
+  delimiter: string;
+  skipped_rows: number;
+}
+
+export interface CsvImportResult {
+  inserted: number;
+  skipped_duplicates: number;
+  skipped_invalid: number;
+}
