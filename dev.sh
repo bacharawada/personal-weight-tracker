@@ -24,6 +24,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Venv lives on the Linux filesystem to avoid NTFS permission/symlink issues.
+VENV="${VENV:-$HOME/.local/share/weight-analysis/venv}"
+
 # Load .env so POSTGRES_USER / POSTGRES_DB are available for pg_isready
 set -o allexport
 # shellcheck disable=SC1091
@@ -69,8 +72,8 @@ done
 log "Postgres is ready."
 
 # ── 3. Wait for Keycloak ─────────────────────────────────────
-log "Waiting for Keycloak (this takes ~30s on first boot)..."
-RETRIES=40
+log "Waiting for Keycloak (this takes ~60s on first boot)..."
+RETRIES=60
 until curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; do
   sleep 3
   RETRIES=$((RETRIES - 1))
@@ -84,10 +87,10 @@ log "Keycloak is healthy."
 
 # ── 4. Run Alembic migrations ────────────────────────────────
 log "Running Alembic migrations..."
-PYTHONPATH="$SCRIPT_DIR/backend" .venv/bin/alembic -c backend/alembic.ini upgrade head
+PYTHONPATH="$SCRIPT_DIR/backend" "$VENV/bin/alembic" -c backend/alembic.ini upgrade head
 log "Migrations complete."
 
 # ── 5. Hand off to overmind ──────────────────────────────────
 log "Starting API + frontend via overmind..."
 echo ""
-exec overmind start
+VENV="$VENV" exec overmind start

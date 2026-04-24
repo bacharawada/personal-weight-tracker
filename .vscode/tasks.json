@@ -142,7 +142,7 @@
       // DATABASE_URL is read from .env via python-dotenv.
       "label": "Run API Server",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/uvicorn",
+      "command": "${userHome}/.local/share/weight-analysis/venv/bin/uvicorn",
       "args": [
         "api:create_app",
         "--factory",
@@ -170,7 +170,7 @@
       // DATABASE_URL is loaded from .env by alembic/env.py.
       "label": "Alembic: Upgrade",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/alembic",
+      "command": "${userHome}/.local/share/weight-analysis/venv/bin/alembic",
       "args": ["-c", "backend/alembic.ini", "upgrade", "head"],
       "options": {
         "cwd": "${workspaceFolder}",
@@ -190,7 +190,7 @@
       // Edit the migration message via the input variable below.
       "label": "Alembic: Generate migration",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/alembic",
+      "command": "${userHome}/.local/share/weight-analysis/venv/bin/alembic",
       "args": [
         "-c", "backend/alembic.ini",
         "revision", "--autogenerate",
@@ -214,7 +214,7 @@
       // for the dev-stub user (requires Postgres to be running).
       "label": "Seed Database (migrate)",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python",
+      "command": "${userHome}/.local/share/weight-analysis/venv/bin/python",
       "args": ["backend/db/migrate.py"],
       "options": {
         "cwd": "${workspaceFolder}",
@@ -237,7 +237,7 @@
       // Tests use SQLite in-memory — no Podman or .env required.
       "label": "Run Tests",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python",
+      "command": "${userHome}/.local/share/weight-analysis/venv/bin/python",
       "args": ["-m", "pytest", "backend/", "-v", "--tb=short"],
       "options": {
         "cwd": "${workspaceFolder}",
@@ -256,7 +256,7 @@
     {
       "label": "Run Tests with Coverage",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python",
+      "command": "${userHome}/.local/share/weight-analysis/venv/bin/python",
       "args": [
         "-m", "pytest", "backend/", "-v",
         "--cov=backend/db",
@@ -322,7 +322,7 @@
     {
       "label": "Install Dependencies (Python)",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/pip",
+      "command": "${userHome}/.local/share/weight-analysis/venv/bin/pip",
       "args": ["install", "-r", "requirements.txt"],
       "options": {
         "cwd": "${workspaceFolder}"
