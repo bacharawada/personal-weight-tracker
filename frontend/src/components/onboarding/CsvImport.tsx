@@ -168,29 +168,36 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
               )}
             </div>
 
-            {/* Preview table — show first 10 rows as a sample */}
+            {/* Preview table — all rows, scrollable */}
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Sticky header */}
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">#</th>
                     <th className="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
                     <th className="px-4 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Weight (kg)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {preview.rows.slice(0, 10).map((row) => (
-                    <tr key={row.date} className="bg-white dark:bg-gray-900">
-                      <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-mono text-xs">{row.date}</td>
-                      <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">{row.weight}</td>
-                    </tr>
-                  ))}
-                </tbody>
               </table>
-              {preview.total_rows > 10 && (
-                <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 text-center border-t border-gray-100 dark:border-gray-700">
-                  Showing first 10 of {preview.total_rows} rows — all {preview.total_rows} will be imported
-                </div>
-              )}
+              {/* Scrollable body — capped at ~10 rows, user scrolls for more */}
+              <div className="overflow-y-auto max-h-64">
+                <table className="w-full text-sm">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {preview.rows.map((row, i) => (
+                      <tr key={row.date} className="bg-white dark:bg-gray-900">
+                        <td className="px-4 py-2 text-gray-400 dark:text-gray-500 text-xs w-10">{i + 1}</td>
+                        <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-mono text-xs">{row.date}</td>
+                        <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">{row.weight}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Footer row count */}
+              <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 text-center border-t border-gray-100 dark:border-gray-700">
+                {preview.total_rows} row{preview.total_rows !== 1 ? "s" : ""} — all will be imported
+              </div>
             </div>
 
             {/* Actions */}
