@@ -7,20 +7,29 @@
     // ----------------------------------------------------------------
 
     {
-      // Recommended for day-to-day development:
-      // 1. Starts Postgres + Keycloak via Podman (detached, waits for health)
-      // 2. Runs Alembic migrations
-      // 3. Starts native API + Vite dev server (hot-reload)
-      // 4. Opens the browser
-      "label": "Dev: Full stack (native API + Podman infra)",
-      "dependsOn": [
-        "Podman: Start infra",
-        "Alembic: Upgrade",
-        "Run API Server",
-        "Run Frontend Dev Server",
-        "Open Browser"
-      ],
-      "dependsOrder": "sequence",
+      // Single-terminal full-stack launcher via dev.sh + overmind.
+      // Runs in one terminal panel with colour-prefixed output per process.
+      //
+      // What dev.sh does:
+      //   1. podman-compose up postgres keycloak -d
+      //   2. Poll until Postgres + Keycloak are healthy
+      //   3. alembic upgrade head
+      //   4. overmind start  →  api + frontend in one multiplexed view
+      //
+      // Ctrl+C stops all processes cleanly.
+      // To attach to a single process: overmind connect api  (in another terminal)
+      "label": "Dev: Start",
+      "type": "shell",
+      "command": "./dev.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "isBackground": true,
       "group": {
         "kind": "build",
         "isDefault": true
