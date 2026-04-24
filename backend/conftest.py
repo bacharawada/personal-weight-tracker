@@ -1,7 +1,11 @@
 """Shared test fixtures for the Weight Tracker test suite.
 
-All fixtures use an **in-memory SQLite database** so that the real
-``weight_tracker.db`` is never touched during testing.
+All fixtures use an **in-memory SQLite database** so that neither a live
+PostgreSQL server nor the ``weight_tracker.db`` file is touched during
+testing.
+
+The ``store`` fixture is pre-seeded with 10 measurements assigned to a
+known test user (``TEST_USER_SUB``).
 """
 
 from __future__ import annotations
@@ -13,24 +17,31 @@ import pandas as pd
 import pytest
 import sqlalchemy as sa
 
-from db import WeightDataStore, measurements, metadata
+from db import WeightDataStore, measurements, metadata, users
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
+
+# Stable Keycloak sub used across all fixtures.
+TEST_USER_SUB = "test-user-sub-fixture"
 
 
 @pytest.fixture
 def engine() -> Engine:
     """In-memory SQLite engine with schema created.
 
+    Uses SQLite for fast, dependency-free test execution.  The schema is
+    identical to PostgreSQL; only server-default expressions differ
+    slightly but those are not exercised by unit tests.
+
     Returns:
         A ``sqlalchemy.engine.Engine`` backed by ``:memory:``.
     """
     eng = sa.create_engine("sqlite:///:memory:")
 
-    # Enable CHECK constraints in SQLite.
+    # Enable CHECK constraints and FK enforcement in SQLite.
     @sa.event.listens_for(eng, "connect")
-    def _enable_checks(dbapi_conn: object, _rec: object) -> None:
+    def _enable_pragma(dbapi_conn: object, _rec: object) -> None:
         cursor = dbapi_conn.cursor()  # type: ignore[union-attr]
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
@@ -41,7 +52,8 @@ def engine() -> Engine:
 
 @pytest.fixture
 def store(engine: Engine) -> WeightDataStore:
-    """WeightDataStore bound to the in-memory engine, pre-seeded with sample data.
+    """WeightDataStore bound to the in-memory engine, pre-seeded with
+    sample data for ``TEST_USER_SUB``.
 
     The sample data mirrors a realistic weight-loss trajectory with 10
     points over ~3 months to ensure analysis functions have enough data
@@ -51,6 +63,10 @@ def store(engine: Engine) -> WeightDataStore:
         A ``WeightDataStore`` instance.
     """
     ds = WeightDataStore(engine)
+
+    # Ensure the test user exists before inserting measurements.
+    user_id = ds.get_or_create_user(TEST_USER_SUB)
+
     sample_rows = [
         (datetime.date(2025, 6, 1), 183.5),
         (datetime.date(2025, 6, 15), 181.0),
@@ -66,7 +82,9 @@ def store(engine: Engine) -> WeightDataStore:
     with engine.begin() as conn:
         for date, weight in sample_rows:
             conn.execute(
-                measurements.insert().values(date=date, weight=weight)
+                measurements.insert().values(
+                    user_id=user_id, date=date, weight=weight
+                )
             )
     return ds
 

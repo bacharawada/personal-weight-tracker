@@ -6,6 +6,7 @@ static build for production serving.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -14,7 +15,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.deps import lifespan
-from api.routes import charts, exports, measurements, stats
+from api.routes import charts, exports, measurements, stats, users
 
 
 def create_app() -> FastAPI:
@@ -22,7 +23,7 @@ def create_app() -> FastAPI:
 
     Returns:
         A fully configured ``FastAPI`` instance with all routes
-        registered and CORS enabled for local development.
+        registered and CORS enabled.
     """
     app = FastAPI(
         title="Weight Tracker API",
@@ -30,10 +31,14 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS for local Vite dev server (port 5173).
+    # CORS origins from environment (comma-separated).
+    # Falls back to the Vite dev server for local development.
+    cors_origins_raw = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
+    cors_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()]
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
+        allow_origins=cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -43,10 +48,9 @@ def create_app() -> FastAPI:
     app.include_router(charts.router, prefix="/api")
     app.include_router(exports.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")
+    app.include_router(users.router, prefix="/api")
 
     # Serve React production build if the directory exists.
-    # Mount static assets at /assets, then catch all non-API routes
-    # and return index.html so client-side routing works on refresh.
     frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     if frontend_dist.is_dir():
         app.mount(

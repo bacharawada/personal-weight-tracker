@@ -81,6 +81,13 @@ logs/
 # SQLite database (created on first run)
 data/weight_tracker.db
 
+# Docker volumes (Postgres + Keycloak data persisted locally)
+.docker-volumes/
+
+# Alembic — keep migrations but ignore compiled artifacts
+backend/alembic/__pycache__/
+backend/alembic/versions/__pycache__/
+
 # Node.js
 frontend/node_modules/
 frontend/dist/

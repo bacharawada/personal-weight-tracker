@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
 from analysis import AnalysisConfig, fit_exponential_decay
-from api.deps import get_store
+from api.deps import get_current_user, get_store
 from viz import (
     PALETTES,
     build_derivative_figure,
@@ -29,17 +29,7 @@ def _parse_chart_params(
     palette: str = Query("Classic", description="Colour palette name"),
     dark: bool = Query(False, description="Dark mode"),
 ) -> dict:
-    """Parse and validate common chart query parameters.
-
-    Args:
-        smoothing: Rolling mean window size (3-10).
-        horizon: Extrapolation horizon in days.
-        palette: Palette name (must exist in PALETTES).
-        dark: Whether dark mode is active.
-
-    Returns:
-        Dict of validated parameters.
-    """
+    """Parse and validate common chart query parameters."""
     return {
         "smoothing": smoothing,
         "horizon": horizon,
@@ -51,18 +41,11 @@ def _parse_chart_params(
 @router.get("/weight")
 def get_weight_chart(
     params: dict = Depends(_parse_chart_params),
+    keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
 ) -> JSONResponse:
-    """Return the main weight progression chart as Plotly JSON.
-
-    Args:
-        params: Chart configuration parameters.
-        store: Injected data store.
-
-    Returns:
-        Plotly figure JSON with content-type ``application/json``.
-    """
-    df = store.get_all()
+    """Return the main weight progression chart as Plotly JSON."""
+    df = store.get_all(keycloak_sub)
     palette_obj = PALETTES.get(params["palette"], PALETTES["Classic"])
     config = AnalysisConfig(smoothing_window=params["smoothing"])
     fit_result = fit_exponential_decay(df, config) if not df.empty else None
@@ -81,18 +64,11 @@ def get_weight_chart(
 @router.get("/derivative")
 def get_derivative_chart(
     params: dict = Depends(_parse_chart_params),
+    keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
 ) -> JSONResponse:
-    """Return the derivative (rate of change) chart as Plotly JSON.
-
-    Args:
-        params: Chart configuration parameters.
-        store: Injected data store.
-
-    Returns:
-        Plotly figure JSON.
-    """
-    df = store.get_all()
+    """Return the derivative (rate of change) chart as Plotly JSON."""
+    df = store.get_all(keycloak_sub)
     palette_obj = PALETTES.get(params["palette"], PALETTES["Classic"])
     fig = build_derivative_figure(df, palette=palette_obj, dark=params["dark"])
     return JSONResponse(content=json.loads(fig.to_json()))
@@ -101,18 +77,11 @@ def get_derivative_chart(
 @router.get("/residuals")
 def get_residuals_chart(
     params: dict = Depends(_parse_chart_params),
+    keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
 ) -> JSONResponse:
-    """Return the residuals vs. model chart as Plotly JSON.
-
-    Args:
-        params: Chart configuration parameters.
-        store: Injected data store.
-
-    Returns:
-        Plotly figure JSON.
-    """
-    df = store.get_all()
+    """Return the residuals vs. model chart as Plotly JSON."""
+    df = store.get_all(keycloak_sub)
     palette_obj = PALETTES.get(params["palette"], PALETTES["Classic"])
     config = AnalysisConfig(smoothing_window=params["smoothing"])
     fit_result = fit_exponential_decay(df, config) if not df.empty else None
