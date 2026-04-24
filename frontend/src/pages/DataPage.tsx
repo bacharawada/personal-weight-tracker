@@ -347,6 +347,7 @@ export function DataPage() {
         </div> {/* end flex */}
         </div> {/* end max-w-4xl */}
       </div>
+    </PageTransition>
 
       {/* ── Add measurement modal ─────────────────────────── */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -439,7 +440,6 @@ export function DataPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </PageTransition>
   );
 }
 
