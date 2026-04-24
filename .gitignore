@@ -83,7 +83,8 @@ logs/
 # SQLite database (created on first run)
 data/weight_tracker.db
 
-# Docker volumes (Postgres + Keycloak data persisted locally)
+# Container volumes (Postgres + Keycloak data persisted locally)
+# Used by both Docker and Podman setups
 .docker-volumes/
 
 # Alembic — keep migrations but ignore compiled artifacts

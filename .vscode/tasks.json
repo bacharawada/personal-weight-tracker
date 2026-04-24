@@ -8,13 +8,13 @@
 
     {
       // Recommended for day-to-day development:
-      // 1. Starts Postgres + Keycloak in Docker (detached)
+      // 1. Starts Postgres + Keycloak via Podman (detached, waits for health)
       // 2. Runs Alembic migrations
       // 3. Starts native API + Vite dev server (hot-reload)
       // 4. Opens the browser
-      "label": "Dev: Full stack (native API + Docker infra)",
+      "label": "Dev: Full stack (native API + Podman infra)",
       "dependsOn": [
-        "Docker: Start infra",
+        "Podman: Start infra",
         "Alembic: Upgrade",
         "Run API Server",
         "Run Frontend Dev Server",
@@ -29,24 +29,28 @@
     },
 
     {
-      // Alternative: run everything inside Docker containers.
+      // Alternative: run everything inside Podman containers.
       // Less hot-reload friendly but mirrors production more closely.
-      "label": "Dev: Full stack (all in Docker)",
-      "dependsOn": ["Docker: Start all", "Open Browser"],
+      "label": "Dev: Full stack (all in Podman)",
+      "dependsOn": ["Podman: Start all", "Open Browser"],
       "dependsOrder": "sequence",
       "problemMatcher": []
     },
 
     // ----------------------------------------------------------------
-    // Docker tasks
+    // Podman tasks
     // ----------------------------------------------------------------
 
     {
       // Start only the infrastructure services (Postgres + Keycloak)
-      // detached, so you can still run the API + frontend natively.
-      "label": "Docker: Start infra",
+      // detached, then poll healthchecks before returning so that the
+      // next task (Alembic: Upgrade) only runs once Postgres is ready.
+      //
+      // Keycloak health is polled via its /health/ready HTTP endpoint
+      // because podman healthcheck run is not available for all images.
+      "label": "Podman: Start infra",
       "type": "shell",
-      "command": "docker compose up postgres keycloak -d --wait",
+      "command": "podman-compose up postgres keycloak -d && echo 'Waiting for Postgres...' && until podman healthcheck run $(podman-compose ps -q postgres 2>/dev/null || podman ps -qf name=postgres) 2>/dev/null | grep -q healthy; do sleep 2; done && echo 'Postgres healthy.' && echo 'Waiting for Keycloak...' && until curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; do sleep 3; done && echo 'Keycloak healthy.'",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -60,9 +64,9 @@
 
     {
       // Start all four services (postgres, keycloak, backend, frontend).
-      "label": "Docker: Start all",
+      "label": "Podman: Start all",
       "type": "shell",
-      "command": "docker compose up --build -d --wait",
+      "command": "podman-compose up --build -d && echo 'Waiting for Postgres...' && until podman healthcheck run $(podman ps -qf name=postgres) 2>/dev/null | grep -q healthy; do sleep 2; done && echo 'Postgres healthy.' && echo 'Waiting for Keycloak...' && until curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; do sleep 3; done && echo 'Keycloak healthy.'",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -75,9 +79,9 @@
     },
 
     {
-      "label": "Docker: Stop",
+      "label": "Podman: Stop",
       "type": "shell",
-      "command": "docker compose down",
+      "command": "podman-compose down",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -91,9 +95,9 @@
     {
       // Destroy containers AND volumes (wipes Postgres + Keycloak data).
       // Use when you want a completely clean slate.
-      "label": "Docker: Stop + wipe volumes",
+      "label": "Podman: Stop + wipe volumes",
       "type": "shell",
-      "command": "docker compose down -v && rm -rf .docker-volumes",
+      "command": "podman-compose down -v && rm -rf .docker-volumes",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -105,9 +109,9 @@
     },
 
     {
-      "label": "Docker: Logs",
+      "label": "Podman: Logs",
       "type": "shell",
-      "command": "docker compose logs -f",
+      "command": "podman-compose logs -f",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -125,7 +129,7 @@
 
     {
       // Runs the FastAPI server natively with hot-reload.
-      // Requires Postgres to be reachable (use "Docker: Start infra" first).
+      // Requires Postgres to be reachable (use "Podman: Start infra" first).
       // DATABASE_URL is read from .env via python-dotenv.
       "label": "Run API Server",
       "type": "shell",
@@ -221,7 +225,7 @@
     // ----------------------------------------------------------------
 
     {
-      // Tests use SQLite in-memory — no Docker or .env required.
+      // Tests use SQLite in-memory — no Podman or .env required.
       "label": "Run Tests",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
