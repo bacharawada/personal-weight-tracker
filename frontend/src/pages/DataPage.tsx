@@ -5,16 +5,21 @@ import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
 import { AddMeasurement } from "../components/forms/AddMeasurement";
 import { DeletePoint } from "../components/forms/DeletePoint";
+import { CsvImport } from "../components/onboarding/CsvImport";
 import { getMeasurements, updateMeasurement, exportCsvUrl } from "../lib/api";
-import type { Measurement } from "../lib/types";
+import type { CsvImportResult, Measurement } from "../lib/types";
 import { Spinner } from "../components/ui/Spinner";
-import { Check, Download, Pencil, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, FileUp, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "../components/ui/button";
 
 export function DataPage() {
-  const { refreshKey, bump, selectedPoint, setSelectedPoint, hasData } = useWeightTracker();
+  const { refreshKey, bump, selectedPoint, setSelectedPoint, hasData, accent } = useWeightTracker();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // CSV import panel state
+  const [csvOpen, setCsvOpen] = useState(false);
+  const [csvKey, setCsvKey] = useState(0); // bump to reset CsvImport state on close
 
   // Inline edit state
   const [editingDate, setEditingDate] = useState<string | null>(null);
@@ -87,6 +92,19 @@ export function DataPage() {
       if (e.key === "Escape") cancelEdit();
     },
     [saveEdit, cancelEdit]
+  );
+
+  const handleCsvComplete = useCallback(
+    (_result: CsvImportResult) => {
+      bump();
+      // Reset and collapse the panel after a short delay so the user
+      // can see the "Import complete" confirmation inside CsvImport.
+      setTimeout(() => {
+        setCsvOpen(false);
+        setCsvKey((k) => k + 1);
+      }, 1800);
+    },
+    [bump]
   );
 
   return (
@@ -261,6 +279,56 @@ export function DataPage() {
               selectedPoint={selectedPoint}
               onSuccess={() => { bump(); setSelectedPoint(null); }}
             />
+          </div>
+
+          {/* CSV import panel */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            {/* Header / toggle */}
+            <button
+              onClick={() => {
+                setCsvOpen((o) => {
+                  // Reset the inner component when closing
+                  if (o) setCsvKey((k) => k + 1);
+                  return !o;
+                });
+              }}
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                <FileUp size={16} className="text-gray-400 dark:text-gray-500" />
+                Import CSV
+              </div>
+              {csvOpen
+                ? <ChevronUp size={16} className="text-gray-400" />
+                : <ChevronDown size={16} className="text-gray-400" />
+              }
+            </button>
+
+            {/* Collapsible body */}
+            <AnimatePresence initial={false}>
+              {csvOpen && (
+                <motion.div
+                  key="csv-body"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-700 pt-4">
+                    <CsvImport
+                      key={csvKey}
+                      onComplete={handleCsvComplete}
+                      onBack={() => {
+                        setCsvOpen(false);
+                        setCsvKey((k) => k + 1);
+                      }}
+                      accent={accent}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
