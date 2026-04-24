@@ -101,12 +101,20 @@ echo "  ║     Weight Tracker — Dev         ║"
 echo "  ╚══════════════════════════════════╝"
 echo -e "${NC}"
 
-# ── 1. Start infra containers ────────────────────────────────
+# ── 1. Fix stale CNI config if needed ───────────────────────
+# podman 4.x + older podman-compose can leave a cniVersion "1.0.0" conflist
+# that causes warnings. Delete it so podman recreates it with 0.4.0.
+CNI_CONF="$HOME/.config/cni/net.d/weight_analysis_default.conflist"
+if [[ -f "$CNI_CONF" ]] && grep -q '"cniVersion": "1.0.0"' "$CNI_CONF" 2>/dev/null; then
+  rm -f "$CNI_CONF"
+fi
+
+# ── 2. Start infra containers ────────────────────────────────
 info "Starting Postgres + Keycloak..."
 suppress podman-compose up postgres keycloak -d
 log "Containers started."
 
-# ── 2. Wait for Postgres ─────────────────────────────────────
+# ── 3. Wait for Postgres ─────────────────────────────────────
 PG_CONTAINER=$(podman ps --format "{{.Names}}" 2>/dev/null | grep "postgres" | head -1)
 if [[ -z "$PG_CONTAINER" ]]; then
   err "Postgres container not found. Run: podman ps"
@@ -127,9 +135,9 @@ done
 spinner_stop
 log "Postgres is ready."
 
-# ── 3. Wait for Keycloak ─────────────────────────────────────
-spinner_start "Waiting for Keycloak (slow on first boot)..."
-RETRIES=60
+# ── 4. Wait for Keycloak ─────────────────────────────────────
+spinner_start "Waiting for Keycloak..."
+RETRIES=15
 until curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; do
   sleep 3
   RETRIES=$((RETRIES - 1))
@@ -143,14 +151,14 @@ done
 spinner_stop
 log "Keycloak is ready."
 
-# ── 4. Run Alembic migrations ────────────────────────────────
+# ── 5. Run Alembic migrations ────────────────────────────────
 spinner_start "Running Alembic migrations..."
 PYTHONPATH="$SCRIPT_DIR/backend" "$VENV/bin/alembic" \
   -c backend/alembic.ini upgrade head > /dev/null
 spinner_stop
 log "Migrations complete."
 
-# ── 5. Hand off to overmind ──────────────────────────────────
+# ── 6. Hand off to overmind ──────────────────────────────────
 echo ""
 info "Launching api + frontend via overmind  (Ctrl+C to stop all)"
 info "Attach to a single process:  overmind connect api"
