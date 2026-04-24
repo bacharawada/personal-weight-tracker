@@ -19,6 +19,7 @@ import type { CsvImportResult } from "../../lib/types";
 import { CsvImport } from "./CsvImport";
 import { AddMeasurement } from "../forms/AddMeasurement";
 import { Button } from "../ui/button";
+import { ActionCard } from "../ui/ActionCard";
 
 interface Props {
   /** Called once onboarding is fully complete (API flag set). */
@@ -117,13 +118,15 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
 
                 {/* Path selection */}
                 <div className="flex flex-col gap-3">
-                  <PathCard
+                  <ActionCard
+                    variant="onboarding"
                     icon={<FileUp className="w-5 h-5" />}
                     title="Import a CSV file"
                     description="Upload an existing export from a scale app or spreadsheet."
                     onClick={() => setStep("csv")}
                   />
-                  <PathCard
+                  <ActionCard
+                    variant="onboarding"
                     icon={<PenLine className="w-5 h-5" />}
                     title="Add measurements manually"
                     description="Enter your weight entries one by one."
@@ -263,51 +266,5 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
         </div>
       </motion.div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sub-component: path selection card
-// ---------------------------------------------------------------------------
-
-function PathCard({
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="
-        group flex items-start gap-4 p-4 rounded-xl text-left
-        border border-gray-200 dark:border-gray-700
-        hover:border-blue-300 dark:hover:border-blue-600
-        hover:bg-blue-50/50 dark:hover:bg-blue-950/20
-        transition-all duration-150
-      "
-    >
-      <div
-        className="flex-shrink-0 p-2 rounded-lg transition-colors"
-        style={{
-          backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)",
-          color: "var(--color-accent)",
-        }}
-      >
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-          {title}
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
-      </div>
-      <ArrowRight className="flex-shrink-0 w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-blue-400 transition-colors mt-0.5" />
-    </button>
   );
 }
