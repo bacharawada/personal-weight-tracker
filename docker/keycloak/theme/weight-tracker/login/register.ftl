@@ -28,7 +28,7 @@
                 <label for="firstName" class="wt-label">${msg("firstName")}</label>
                 <input type="text" id="firstName" name="firstName" class="wt-input"
                        autocomplete="given-name"
-                       value="${(register.formData.firstName!'')?html}"
+                       value="${(register.formData.firstName!'')}"
                        placeholder="Jane" />
                 <#if messagesPerField.existsError('firstName')>
                     <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('firstName'))?no_esc}</span>
@@ -39,7 +39,7 @@
                 <label for="lastName" class="wt-label">${msg("lastName")}</label>
                 <input type="text" id="lastName" name="lastName" class="wt-input"
                        autocomplete="family-name"
-                       value="${(register.formData.lastName!'')?html}"
+                       value="${(register.formData.lastName!'')}"
                        placeholder="Doe" />
                 <#if messagesPerField.existsError('lastName')>
                     <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('lastName'))?no_esc}</span>
@@ -51,7 +51,7 @@
                 <label for="email" class="wt-label">${msg("email")}</label>
                 <input type="email" id="email" name="email" class="wt-input"
                        autocomplete="email"
-                       value="${(register.formData.email!'')?html}"
+                       value="${(register.formData.email!'')}"
                        placeholder="you@example.com" />
                 <#if messagesPerField.existsError('email')>
                     <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('email'))?no_esc}</span>
@@ -64,7 +64,7 @@
                     <label for="username" class="wt-label">${msg("username")}</label>
                     <input type="text" id="username" name="username" class="wt-input"
                            autocomplete="username"
-                           value="${(register.formData.username!'')?html}"
+                           value="${(register.formData.username!'')}"
                            placeholder="${msg('username')}" />
                     <#if messagesPerField.existsError('username')>
                         <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('username'))?no_esc}</span>

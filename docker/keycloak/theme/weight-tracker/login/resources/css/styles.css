@@ -14,6 +14,8 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 :root {
@@ -49,6 +51,10 @@
   }
 }
 
+html, body {
+  height: 100%;
+}
+
 body,
 .weight-tracker-body {
   margin: 0;
@@ -66,8 +72,6 @@ body,
 
 /* ---- Layout ----------------------------------------------- */
 
-#kc-container,
-.login-pf-page,
 .weight-tracker-login {
   width: 100%;
   max-width: 420px;
@@ -81,8 +85,7 @@ body,
 
 /* ---- Logo / header ---------------------------------------- */
 
-#kc-header,
-#kc-header-wrapper {
+#kc-header {
   width: 100%;
   text-align: center;
 }
@@ -120,15 +123,33 @@ body,
 
 /* ---- Card ------------------------------------------------- */
 
-#kc-form,
-.weight-tracker-card,
-.card-pf {
+.weight-tracker-card {
   width: 100%;
   background: var(--wt-card-bg);
   border: 1px solid var(--wt-border);
   border-radius: var(--wt-radius);
   box-shadow: var(--wt-shadow);
   padding: 2rem;
+}
+
+/* ---- "Attempted username" display (OTP / step-up flows) --- */
+
+.kc-username-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+
+.kc-username-display label {
+  font-weight: 600;
+  color: var(--wt-text);
+  margin-bottom: 0;
+}
+
+.kc-username-display a {
+  font-size: 0.8rem;
 }
 
 /* ---- Form labels ------------------------------------------ */
@@ -185,6 +206,7 @@ input[type="password"]:focus {
 .btn-wt-primary,
 .btn,
 .btn-primary,
+.btn-default,
 input[type="submit"] {
   display: inline-flex;
   align-items: center;
@@ -229,7 +251,7 @@ input[type="submit"]:hover {
   background: var(--wt-bg);
 }
 
-/* ---- Social / IdP buttons (Zocial overrides) -------------- */
+/* ---- Social / IdP buttons --------------------------------- */
 
 #social-providers {
   margin-top: 1rem;
@@ -252,27 +274,30 @@ input[type="submit"]:hover {
   background: var(--wt-border);
 }
 
-.zocial-google,
-a.zocial.google {
-  background: var(--wt-card-bg) !important;
-  color: var(--wt-text) !important;
-  border: 1.5px solid var(--wt-border) !important;
-  border-radius: var(--wt-radius-sm) !important;
-  padding: 0.65rem 1.25rem !important;
-  font-size: 0.875rem !important;
-  font-weight: 500 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 0.6rem !important;
-  width: 100% !important;
-  transition: background 0.15s !important;
-  text-decoration: none !important;
+/* Google IdP button — styled as an outlined secondary button
+   with the multicolor Google logo (inline SVG in login.ftl). */
+.zocial-google {
+  background: var(--wt-card-bg);
+  color: var(--wt-text);
+  border: 1.5px solid var(--wt-border);
+  border-radius: var(--wt-radius-sm);
+  padding: 0.65rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  transition: background 0.15s;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
-.zocial-google:hover,
-a.zocial.google:hover {
-  background: var(--wt-bg) !important;
+.zocial-google:hover {
+  background: var(--wt-bg);
+  text-decoration: none;
 }
 
 /* ---- Divider ---------------------------------------------- */
@@ -296,7 +321,6 @@ a.zocial.google:hover {
 
 /* ---- Alerts / errors -------------------------------------- */
 
-#kc-content-wrapper .alert,
 .alert {
   border-radius: var(--wt-radius-sm);
   padding: 0.75rem 1rem;
@@ -357,14 +381,16 @@ a:hover {
 /* ---- Helpers / register link ------------------------------ */
 
 #kc-registration,
+#kc-info,
 .wt-footer-links {
   text-align: center;
   font-size: 0.8rem;
   color: var(--wt-text-muted);
-  margin-top: 1.25rem;
+  margin-top: 0.25rem;
 }
 
 #kc-registration a,
+#kc-info a,
 .wt-footer-links a {
   font-weight: 500;
 }
@@ -409,9 +435,7 @@ a:hover {
 /* ---- Responsive ------------------------------------------ */
 
 @media (max-width: 480px) {
-  #kc-form,
-  .weight-tracker-card,
-  .card-pf {
+  .weight-tracker-card {
     padding: 1.5rem 1.25rem;
   }
 }

@@ -64,7 +64,7 @@
                            class="wt-input"
                            autofocus
                            autocomplete="username email"
-                           value="${(login.username!'')?html}"
+                           value="${(login.username!'')}"
                            placeholder="<#if realm.loginWithEmailAllowed>you@example.com<#else>${msg('username')}</#if>"
                     />
                     <#if messagesPerField.existsError('username')>
