@@ -90,6 +90,21 @@ services:
       "
 
   # ----------------------------------------------------------------
+  # pgweb — lightweight PostgreSQL web UI
+  # Access at http://localhost:8081 (no login required in dev).
+  # ----------------------------------------------------------------
+  pgweb:
+    image: docker.io/sosedoff/pgweb:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------
   # Frontend — Vite dev server
   # In production, build with `npm run build` and serve via backend
   # or a dedicated nginx container.

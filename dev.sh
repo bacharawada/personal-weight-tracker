@@ -110,8 +110,8 @@ if [[ -f "$CNI_CONF" ]] && grep -q '"cniVersion": "1.0.0"' "$CNI_CONF" 2>/dev/nu
 fi
 
 # ── 2. Start infra containers ────────────────────────────────
-info "Starting Postgres + Keycloak..."
-suppress podman-compose up postgres keycloak -d
+info "Starting Postgres + Keycloak + pgweb..."
+suppress podman-compose up postgres keycloak pgweb -d
 log "Containers started."
 
 # ── 3. Wait for Postgres ─────────────────────────────────────
