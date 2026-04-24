@@ -11,6 +11,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { getMeasurements } from "../lib/api";
@@ -64,8 +65,18 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
   const [hasData, setHasData] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<SelectedPoint | null>(null);
 
-  // Keep dark param in sync with theme.
+  // Skip the dark-sync effect on the very first render: chartParams is already
+  // initialised with the correct isDark value above. Running it on mount would
+  // create a new chartParams object reference (even with identical values),
+  // changing chartRefreshKey and triggering spurious data fetches.
+  const darkSyncIsFirstRender = useRef(true);
   useEffect(() => {
+    if (darkSyncIsFirstRender.current) {
+      darkSyncIsFirstRender.current = false;
+      console.log("[WTC] dark-sync skipped on mount (isDark=%s)", isDark);
+      return;
+    }
+    console.log("[WTC] dark changed →", isDark, "— updating chartParams");
     setChartParams((prev) => ({ ...prev, dark: isDark }));
   }, [isDark]);
 
@@ -84,7 +95,9 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
       hash = (hash << 5) - hash + ch.charCodeAt(0);
       hash |= 0;
     }
-    return Math.abs(hash);
+    const key = Math.abs(hash);
+    console.log("[WTC] chartRefreshKey recomputed →", key, "| refreshKey=", refreshKey, "| params=", JSON.stringify(chartParams));
+    return key;
   }, [refreshKey, chartParams]);
 
   const accent = useMemo(
