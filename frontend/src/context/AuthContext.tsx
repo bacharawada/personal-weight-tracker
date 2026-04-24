@@ -19,6 +19,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { User, UserManager, WebStorageStateStore } from "oidc-client-ts";
 import { setTokenGetter } from "../lib/api";
 
@@ -91,19 +92,32 @@ function toAuthUser(oidcUser: User): AuthUser {
   };
 }
 
+// Module-level promise: prevents the OIDC callback from being processed twice.
+// React 18 StrictMode double-invokes effects in development, which would
+// cause signinRedirectCallback() to exchange the same authorization code
+// twice — the second attempt always fails with "Code not valid" (400).
+// By storing the promise, the second invocation can await the same result
+// instead of racing or discarding it.
+let callbackPromise: Promise<User> | null = null;
+
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, _setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
   // Keep a ref to the latest user for synchronous getAccessToken().
+  // Updated synchronously alongside state so the token is available
+  // immediately when child components mount and fire API calls.
   const userRef = useRef<AuthUser | null>(null);
 
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
+  const setUser = useCallback((u: AuthUser | null) => {
+    userRef.current = u;
+    _setUser(u);
+  }, []);
 
   // Register the token getter once so lib/api.ts can attach Bearer tokens.
   useEffect(() => {
@@ -114,25 +128,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function init() {
+      console.log("[Auth] init — pathname:", location.pathname);
       try {
         // If this is the OIDC redirect callback, finish the sign-in.
-        if (window.location.pathname === "/auth/callback") {
-          const oidcUser = await userManager.signinRedirectCallback();
+        // We store the promise at module level so that React 18 StrictMode's
+        // second effect invocation awaits the *same* token exchange instead
+        // of attempting a second one (authorization codes are single-use).
+        if (location.pathname === "/auth/callback") {
+          console.log("[Auth] Processing OIDC callback, existing promise:", !!callbackPromise);
+          if (!callbackPromise) {
+            callbackPromise = userManager.signinRedirectCallback();
+          }
+          const oidcUser = await callbackPromise;
+          console.log("[Auth] Token exchange complete, cancelled:", cancelled, "sub:", oidcUser.profile.sub);
           if (!cancelled) {
             setUser(toAuthUser(oidcUser));
-            // Navigate away from the callback URL to the original destination.
-            const returnTo = oidcUser.state as string | undefined;
-            window.history.replaceState({}, "", returnTo ?? "/");
+            setIsLoading(false);
+            // Navigate to the original destination using React Router
+            // (not history.replaceState, which doesn't trigger route changes).
+            const returnTo = (oidcUser.state as string | undefined) || "/";
+            // If the saved path was /login or /auth/callback, go to / instead.
+            const destination =
+              returnTo === "/login" || returnTo.startsWith("/auth/")
+                ? "/"
+                : returnTo;
+            console.log("[Auth] Navigating to:", destination);
+            navigate(destination, { replace: true });
           }
           return;
         }
 
         // Try to load an existing session.
+        console.log("[Auth] Loading existing session...");
         const oidcUser = await userManager.getUser();
+        console.log("[Auth] Cached user:", oidcUser ? "found (expired=" + oidcUser.expired + ")" : "none");
         if (!cancelled) {
           setUser(oidcUser && !oidcUser.expired ? toAuthUser(oidcUser) : null);
         }
-      } catch {
+      } catch (err) {
+        console.error("[Auth] Error during init:", err);
         if (!cancelled) setUser(null);
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -143,9 +177,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Keep state in sync when the token renews automatically.
     const handleUserLoaded = (oidcUser: User) => {
+      console.log("[Auth] Token renewed for:", oidcUser.profile.sub);
       setUser(toAuthUser(oidcUser));
     };
-    const handleUserUnloaded = () => setUser(null);
+    const handleUserUnloaded = () => {
+      console.log("[Auth] User unloaded");
+      setUser(null);
+    };
 
     userManager.events.addUserLoaded(handleUserLoaded);
     userManager.events.addUserUnloaded(handleUserUnloaded);
@@ -155,18 +193,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userManager.events.removeUserLoaded(handleUserLoaded);
       userManager.events.removeUserUnloaded(handleUserUnloaded);
     };
-  }, []);
+  }, [location.pathname, navigate]);
 
   const login = useCallback(async () => {
-    // Preserve the current path so we can return after login.
-    await userManager.signinRedirect({
-      state: window.location.pathname + window.location.search,
-    });
+    await userManager.signinRedirect({ state: "/" });
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
     await userManager.signinRedirect({
-      state: window.location.pathname + window.location.search,
+      state: "/",
       // Keycloak recognises kc_idp_hint to skip the login chooser and go
       // straight to the Google IdP.
       extraQueryParams: { kc_idp_hint: "google" },
