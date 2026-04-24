@@ -32,3 +32,9 @@ export interface ChartParams {
   palette: string;
   dark: boolean;
 }
+
+export interface UserProfile {
+  id: number;
+  keycloak_sub: string;
+  onboarding_completed: boolean;
+}
