@@ -46,8 +46,10 @@ services:
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
     volumes:
-      # Realm config is mounted into the Keycloak import directory.
+      # Realm config is auto-imported on first boot.
       - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      # Custom theme — mounted directly into Keycloak's themes directory.
+      - ./docker/keycloak/theme:/opt/keycloak/themes:ro
     ports:
       - "8080:8080"
     depends_on:
