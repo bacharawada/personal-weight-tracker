@@ -5,7 +5,7 @@ import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
 import { AddMeasurement } from "../components/forms/AddMeasurement";
 import { CsvImport } from "../components/onboarding/CsvImport";
-import { getMeasurements, updateMeasurement, deleteMeasurement, exportCsvUrl } from "../lib/api";
+import { getMeasurements, updateMeasurement, deleteMeasurement, deleteAllMeasurements, exportCsvUrl } from "../lib/api";
 import type { CsvImportResult, Measurement } from "../lib/types";
 import { Spinner } from "../components/ui/Spinner";
 import {
@@ -43,9 +43,13 @@ export function DataPage() {
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Delete confirmation state
+  // Single-row delete state
   const [deleteTarget, setDeleteTarget] = useState<Measurement | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Delete-all state
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -119,6 +123,19 @@ export function DataPage() {
     }
   }, [deleteTarget, bump]);
 
+  const handleDeleteAll = useCallback(async () => {
+    setDeletingAll(true);
+    try {
+      await deleteAllMeasurements();
+      setDeleteAllOpen(false);
+      bump();
+    } catch (err: unknown) {
+      console.error(err);
+    } finally {
+      setDeletingAll(false);
+    }
+  }, [bump]);
+
   const handleCsvComplete = useCallback(
     (_result: CsvImportResult) => {
       bump();
@@ -159,6 +176,16 @@ export function DataPage() {
             >
               <FileUp size={15} /> Import CSV
             </Button>
+
+            {hasData && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteAllOpen(true)}
+              >
+                <Trash2 size={15} /> Delete all
+              </Button>
+            )}
 
             <a
               href={hasData ? exportCsvUrl() : undefined}
@@ -362,7 +389,7 @@ export function DataPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete confirmation modal ─────────────────────── */}
+      {/* ── Delete single row confirmation modal ─────────── */}
       <Dialog
         open={!!deleteTarget}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
@@ -377,21 +404,35 @@ export function DataPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setDeleteTarget(null)}
-            >
+            <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
               <Trash2 size={14} />
               {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete all confirmation modal ─────────────────── */}
+      <Dialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete all measurements</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all{" "}
+              <strong>{measurements.length} measurement{measurements.length !== 1 ? "s" : ""}</strong>.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => setDeleteAllOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAll} disabled={deletingAll}>
+              <Trash2 size={14} />
+              {deletingAll ? "Deleting…" : "Delete all"}
             </Button>
           </div>
         </DialogContent>

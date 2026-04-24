@@ -121,6 +121,24 @@ def update_measurement(
 
 
 @router.delete(
+    "/measurements",
+    status_code=204,
+    summary="Delete all measurements for the current user",
+)
+def delete_all_measurements(
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> None:
+    """Delete every measurement belonging to the current user.
+
+    Args:
+        keycloak_sub: Injected from the auth dependency.
+        store: Injected data store.
+    """
+    store.remove_all(keycloak_sub)
+
+
+@router.delete(
     "/measurements/{date}",
     status_code=204,
     responses={404: {"description": "Measurement not found"}},

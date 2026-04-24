@@ -248,6 +248,21 @@ class WeightDataStore:
                 f"Weight {weight} kg is outside the allowed range (40-300 kg)"
             ) from exc
 
+    def remove_all(self, keycloak_sub: str) -> int:
+        """Delete every measurement belonging to *keycloak_sub*.
+
+        Args:
+            keycloak_sub: The ``sub`` claim from the Keycloak JWT.
+
+        Returns:
+            The number of rows deleted.
+        """
+        user_id = self.get_or_create_user(keycloak_sub)
+        stmt = measurements.delete().where(measurements.c.user_id == user_id)
+        with self._engine.begin() as conn:
+            result = conn.execute(stmt)
+        return result.rowcount
+
     def remove(self, keycloak_sub: str, date: datetime.date) -> None:
         """Delete the measurement for the given date and user.
 

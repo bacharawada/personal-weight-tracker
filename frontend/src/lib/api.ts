@@ -92,6 +92,17 @@ export async function deleteMeasurement(date: string): Promise<void> {
   }
 }
 
+export async function deleteAllMeasurements(): Promise<void> {
+  const res = await fetch(`${BASE}/measurements`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Stats, palettes, polling
 // ---------------------------------------------------------------------------
