@@ -106,7 +106,7 @@
       // Use when you want a completely clean slate.
       "label": "Podman: Stop + wipe volumes",
       "type": "shell",
-      "command": "podman-compose down -v && rm -rf .docker-volumes",
+      "command": "podman-compose down -v && podman unshare rm -rf ${HOME}/.local/share/weight-analysis/volumes",
       "options": {
         "cwd": "${workspaceFolder}"
       },

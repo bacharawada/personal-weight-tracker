@@ -83,8 +83,9 @@ logs/
 # SQLite database (created on first run)
 data/weight_tracker.db
 
-# Container volumes (Postgres + Keycloak data persisted locally)
-# Used by both Docker and Podman setups
+# Container volumes — stored on the Linux filesystem to support chmod
+# Default: ~/.local/share/weight-analysis/volumes (set via VOLUMES_DIR in .env)
+# Legacy path (NTFS-incompatible, no longer used):
 .docker-volumes/
 
 # Alembic — keep migrations but ignore compiled artifacts
