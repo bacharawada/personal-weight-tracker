@@ -9,16 +9,27 @@ import {
   BarChart2,
   ChevronLeft,
   ChevronRight,
+  CircleUser,
   Database,
   LayoutDashboard,
+  LogOut,
   Moon,
   Settings,
   Sun,
   TrendingDown,
 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
+import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/cn";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -29,8 +40,15 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   const { isDark, toggleTheme } = useWeightTracker();
+  const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+
+  // Derive a display name: prefer full name, fall back to email local part
+  const displayName =
+    user?.name ||
+    (user?.email ? user.email.split("@")[0] : "Account");
+  const displayEmail = user?.email ?? "";
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
@@ -170,6 +188,75 @@ export function AppShell() {
               )}
             </AnimatePresence>
           </Button>
+        </div>
+
+        {/* User profile */}
+        <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                title={collapsed ? `${displayName}${displayEmail ? ` — ${displayEmail}` : ""}` : undefined}
+                className={cn(
+                  "w-full overflow-hidden text-gray-700 dark:text-gray-300",
+                  collapsed
+                    ? "justify-center p-2 h-auto"
+                    : "justify-start gap-3 px-3 py-2 h-auto",
+                )}
+              >
+                {/* Icon */}
+                <CircleUser size={18} className="shrink-0" />
+
+                {/* Name + email — only when expanded */}
+                <AnimatePresence initial={false}>
+                  {!collapsed && (
+                    <motion.span
+                      key="user-info"
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={{ duration: 0.13 }}
+                      className="overflow-hidden whitespace-nowrap flex flex-col items-start min-w-0"
+                    >
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-[120px]">
+                        {displayName}
+                      </span>
+                      {displayEmail && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[120px]">
+                          {displayEmail}
+                        </span>
+                      )}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent side="right" align="end">
+              {/* User info header */}
+              <DropdownMenuLabel className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  {displayName}
+                </span>
+                {displayEmail && (
+                  <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
+                    {displayEmail}
+                  </span>
+                )}
+              </DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              {/* Sign out */}
+              <DropdownMenuItem
+                className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20"
+                onSelect={() => logout()}
+              >
+                <LogOut size={14} />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
