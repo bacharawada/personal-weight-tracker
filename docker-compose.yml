@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
     # start-dev with --import-realm auto-imports the realm JSON on
     # first startup if the realm does not yet exist.
-    command: start-dev --import-realm
+    command: start-dev --import-realm --health-enabled=true
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak

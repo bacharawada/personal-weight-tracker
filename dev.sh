@@ -137,7 +137,8 @@ log "Postgres is ready."
 
 # ── 4. Wait for Keycloak ─────────────────────────────────────
 spinner_start "Waiting for Keycloak..."
-RETRIES=15
+KC_READY=false
+RETRIES=40
 until curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; do
   sleep 3
   RETRIES=$((RETRIES - 1))
@@ -148,8 +149,11 @@ until curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; do
     break
   fi
 done
-spinner_stop
-log "Keycloak is ready."
+if [[ "$RETRIES" -gt 0 ]]; then
+  KC_READY=true
+  spinner_stop
+  log "Keycloak is ready."
+fi
 
 # ── 5. Run Alembic migrations ────────────────────────────────
 spinner_start "Running Alembic migrations..."
@@ -164,4 +168,12 @@ info "Launching api + frontend via overmind  (Ctrl+C to stop all)"
 info "Attach to a single process:  overmind connect api"
 echo ""
 
-VENV="$VENV" exec overmind start
+# OVERMIND_SOCKET must live on the Linux filesystem (tmpfs/ext4).
+# The project root is on an NTFS mount (/mnt/c/…) which doesn't support
+# Unix-domain sockets, causing "operation not supported".
+OVERMIND_SOCKET_DIR="/tmp/overmind-weight-analysis"
+mkdir -p "$OVERMIND_SOCKET_DIR"
+# Remove stale socket from a previous crashed/killed session.
+rm -f "$OVERMIND_SOCKET_DIR/overmind.sock"
+
+VENV="$VENV" OVERMIND_SOCKET="$OVERMIND_SOCKET_DIR/overmind.sock" exec overmind start
