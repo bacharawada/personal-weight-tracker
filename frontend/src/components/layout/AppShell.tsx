@@ -40,17 +40,23 @@ export function AppShell() {
       <aside
         className={cn(
           "flex flex-col shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-[width] duration-200 ease-in-out",
-          collapsed ? "w-14" : "w-52"
+          collapsed ? "w-14" : "w-52",
         )}
       >
         {/* Header */}
-        <div className={cn(
-          "flex items-center border-b border-gray-200 dark:border-gray-800 h-14 overflow-hidden",
-          collapsed ? "justify-center px-0" : "px-4 gap-2"
-        )}>
-          <BarChart2 size={20} style={{ color: accent }} className="shrink-0" />
-          <AnimatePresence initial={false}>
-            {!collapsed && (
+        <div
+          className={cn(
+            "flex items-center border-b border-gray-200 dark:border-gray-800 h-14 overflow-hidden",
+            collapsed ? "justify-center px-0" : "px-4 gap-2",
+          )}
+        >
+          {!collapsed && (
+            <AnimatePresence initial={false}>
+              <BarChart2
+                size={20}
+                style={{ color: accent }}
+                className="shrink-0"
+              />
               <motion.span
                 key="title"
                 initial={{ opacity: 0, width: 0 }}
@@ -62,13 +68,13 @@ export function AppShell() {
               >
                 Weight Tracker
               </motion.span>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+          )}
           <button
             onClick={() => setCollapsed((c) => !c)}
             className={cn(
               "p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0",
-              collapsed ? "" : "ml-auto"
+              collapsed ? "" : "ml-auto",
             )}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -90,7 +96,7 @@ export function AppShell() {
                   collapsed ? "justify-center p-2" : "gap-3 px-3 py-2",
                   isActive
                     ? "text-gray-900 dark:text-white"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800",
                 )
               }
             >
@@ -102,10 +108,17 @@ export function AppShell() {
                       layoutId="nav-active-pill"
                       className="absolute inset-0 rounded-lg"
                       style={{ backgroundColor: accentBg }}
-                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 35,
+                      }}
                     />
                   )}
-                  <span className="relative z-10 shrink-0" style={isActive ? { color: accent } : {}}>
+                  <span
+                    className="relative z-10 shrink-0"
+                    style={isActive ? { color: accent } : {}}
+                  >
                     <Icon size={18} />
                   </span>
                   <AnimatePresence initial={false}>
@@ -136,13 +149,14 @@ export function AppShell() {
             title={isDark ? "Light mode" : "Dark mode"}
             className={cn(
               "flex items-center rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors w-full overflow-hidden",
-              collapsed ? "justify-center p-2" : "gap-3 px-3 py-2"
+              collapsed ? "justify-center p-2" : "gap-3 px-3 py-2",
             )}
           >
-            {isDark
-              ? <Sun size={18} className="shrink-0" />
-              : <Moon size={18} className="shrink-0" />
-            }
+            {isDark ? (
+              <Sun size={18} className="shrink-0" />
+            ) : (
+              <Moon size={18} className="shrink-0" />
+            )}
             <AnimatePresence initial={false}>
               {!collapsed && (
                 <motion.span
