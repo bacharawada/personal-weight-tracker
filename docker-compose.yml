@@ -26,11 +26,15 @@ services:
   # ----------------------------------------------------------------
   # Keycloak — identity and access management
   # Uses Postgres as its backend store (production-grade setup).
+  # The realm-export.json is imported automatically on first boot
+  # via KC_IMPORT so the weight-tracker realm is pre-configured.
   # ----------------------------------------------------------------
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
     restart: unless-stopped
-    command: start-dev
+    # start-dev with --import-realm auto-imports the realm JSON on
+    # first startup if the realm does not yet exist.
+    command: start-dev --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
@@ -38,11 +42,12 @@ services:
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      # Allow the Keycloak admin console and token endpoint to work
-      # behind the Vite proxy during development.
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
+    volumes:
+      # Realm config is mounted into the Keycloak import directory.
+      - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     ports:
       - "8080:8080"
     depends_on:

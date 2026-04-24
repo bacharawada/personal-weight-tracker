@@ -68,22 +68,10 @@ def get_store() -> WeightDataStore:
 
 
 # ---------------------------------------------------------------------------
-# Authentication dependency stub
+# Authentication dependency
 # ---------------------------------------------------------------------------
-# Phase 1: Returns a fixed stub subject so the app boots without Keycloak.
-# Phase 2: This will be replaced by real JWT Bearer token validation.
+# Re-exported from api.auth so that tests can override via:
+#   app.dependency_overrides[api_deps.get_current_user] = lambda: "test-sub"
 # ---------------------------------------------------------------------------
 
-_STUB_USER_SUB = "dev-stub-user"
-
-
-def get_current_user() -> str:
-    """Return the authenticated user's Keycloak ``sub`` claim.
-
-    **Phase 1 stub**: always returns a fixed development subject so the
-    application can run end-to-end without a Keycloak instance.
-
-    Returns:
-        The Keycloak subject string (UUID in production, fixed string here).
-    """
-    return _STUB_USER_SUB
+from api.auth import get_current_user as get_current_user  # noqa: F401, E402
