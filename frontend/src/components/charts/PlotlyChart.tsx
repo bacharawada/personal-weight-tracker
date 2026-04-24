@@ -31,6 +31,7 @@ export function PlotlyChart({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    console.log("[PlotlyChart] fetching — refreshKey:", refreshKey);
     setLoading(true);
 
     fetchFigureRef.current()
