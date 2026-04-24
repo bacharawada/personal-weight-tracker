@@ -152,10 +152,8 @@ export function DataPage() {
   return (
     <PageTransition>
       <div className="p-8 space-y-6">
-        {/* Centered content wrapper */}
-        <div className="max-w-4xl mx-auto space-y-6">
 
-        {/* Header */}
+        {/* Header — full width, matching other pages */}
         <div className="flex items-center justify-between gap-4">
           <PageTitle
             title="Data"
@@ -190,7 +188,8 @@ export function DataPage() {
           </div>
         </div>
 
-        {/* Body: table + action cards side by side */}
+        {/* Body — centered, table + action cards side by side */}
+        <div className="max-w-4xl mx-auto">
         <div className="flex gap-5 items-start">
 
           {/* Table */}
@@ -345,6 +344,7 @@ export function DataPage() {
           </div>
 
         </div>
+        </div> {/* end flex */}
         </div> {/* end max-w-4xl */}
       </div>
 
