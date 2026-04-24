@@ -35,9 +35,6 @@ router = APIRouter(prefix="/imports", tags=["imports"])
 # Maximum file size accepted (5 MB — far more than any real weight log).
 _MAX_BYTES = 5 * 1024 * 1024
 
-# Number of preview rows sent back to the frontend.
-_PREVIEW_ROWS = 10
-
 # Candidate date formats tried in order.  First match wins.
 _DATE_FORMATS = [
     "%Y-%m-%d",   # ISO 8601
@@ -228,7 +225,7 @@ async def preview_csv(
         )
 
     return CsvPreviewOut(
-        rows=rows[:_PREVIEW_ROWS],
+        rows=rows,           # all valid rows — confirm step needs the full set
         total_rows=len(rows),
         detected_date_format=date_fmt,
         date_format_example=_fmt_to_example(date_fmt, df["date"]),

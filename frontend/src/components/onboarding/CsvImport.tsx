@@ -168,7 +168,7 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
               )}
             </div>
 
-            {/* Preview table */}
+            {/* Preview table — show first 10 rows as a sample */}
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800">
@@ -178,7 +178,7 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {preview.rows.map((row) => (
+                  {preview.rows.slice(0, 10).map((row) => (
                     <tr key={row.date} className="bg-white dark:bg-gray-900">
                       <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-mono text-xs">{row.date}</td>
                       <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">{row.weight}</td>
@@ -186,9 +186,9 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
                   ))}
                 </tbody>
               </table>
-              {preview.total_rows > preview.rows.length && (
+              {preview.total_rows > 10 && (
                 <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 text-center border-t border-gray-100 dark:border-gray-700">
-                  Showing first {preview.rows.length} of {preview.total_rows} rows
+                  Showing first 10 of {preview.total_rows} rows — all {preview.total_rows} will be imported
                 </div>
               )}
             </div>
