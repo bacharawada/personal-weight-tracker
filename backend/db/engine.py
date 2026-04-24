@@ -71,6 +71,14 @@ measurements = sa.Table(
         sa.Float,
         nullable=False,
     ),
+    # Tracks when this row was last written; used by /api/db-mtime so the
+    # frontend can detect real data changes instead of polling time.time().
+    sa.Column(
+        "updated_at",
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    ),
     sa.CheckConstraint("weight >= 40 AND weight <= 300", name="ck_weight_range"),
     # A user cannot have two measurements on the same date.
     sa.UniqueConstraint("user_id", "date", name="uq_user_date"),
