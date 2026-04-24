@@ -7,13 +7,12 @@ import { AddMeasurement } from "../components/forms/AddMeasurement";
 import { DeletePoint } from "../components/forms/DeletePoint";
 import { getMeasurements, updateMeasurement, exportCsvUrl } from "../lib/api";
 import type { Measurement } from "../lib/types";
-import { getPaletteAccent } from "../lib/palette";
 import { Spinner } from "../components/ui/Spinner";
 import { Check, Download, Pencil, Trash2, X } from "lucide-react";
+import { Button } from "../components/ui/button";
 
 export function DataPage() {
-  const { refreshKey, bump, selectedPoint, setSelectedPoint, hasData, chartParams } = useWeightTracker();
-  const accent = getPaletteAccent(chartParams.palette);
+  const { refreshKey, bump, selectedPoint, setSelectedPoint, hasData } = useWeightTracker();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,17 +97,15 @@ export function DataPage() {
           title="Data"
           subtitle={`${measurements.length} measurement${measurements.length !== 1 ? "s" : ""} recorded`}
         />
-        <a
-          href={hasData ? exportCsvUrl() : undefined}
-          download="measurements.csv"
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            hasData
-              ? "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              : "bg-gray-50 dark:bg-gray-800 text-gray-400 pointer-events-none"
-          }`}
-        >
-          <Download size={16} /> Export CSV
-        </a>
+        <Button variant="secondary" size="sm" asChild={hasData} disabled={!hasData}>
+          {hasData ? (
+            <a href={exportCsvUrl()} download="measurements.csv">
+              <Download size={16} /> Export CSV
+            </a>
+          ) : (
+            <span><Download size={16} /> Export CSV</span>
+          )}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -152,7 +149,7 @@ export function DataPage() {
                       }`}
                       style={
                         !isEditing && isSelected
-                          ? { backgroundColor: `${accent}18` }
+                          ? { backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }
                           : undefined
                       }
                     >
@@ -208,33 +205,38 @@ export function DataPage() {
                       <td className="px-4 py-2.5 text-right">
                         {isEditing ? (
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => saveEdit(m.date)}
                               disabled={saving}
                               title="Save"
-                              className="p-1.5 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 disabled:opacity-40 transition-colors"
+                              className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
                             >
                               <Check size={15} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={cancelEdit}
                               title="Cancel"
-                              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
                               <X size={15} />
-                            </button>
+                            </Button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-2">
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={(e) => startEdit(m, e)}
                               title="Edit weight"
-                              className="p-1.5 rounded-md text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400"
                             >
                               <Pencil size={14} />
-                            </button>
+                            </Button>
                             {isSelected && (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: accent }}>
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-accent)]">
                                 <Trash2 size={12} /> Selected
                               </span>
                             )}
