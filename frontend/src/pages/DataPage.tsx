@@ -160,20 +160,20 @@ export function DataPage() {
               <FileUp size={15} /> Import CSV
             </Button>
 
-            <Button
-              variant="secondary"
-              size="sm"
-              asChild={hasData}
-              disabled={!hasData}
+            <a
+              href={hasData ? exportCsvUrl() : undefined}
+              download={hasData ? "measurements.csv" : undefined}
+              aria-disabled={!hasData}
+              className={[
+                "inline-flex items-center gap-2 h-9 rounded-md px-3 text-sm font-medium",
+                "border border-input bg-background transition-colors",
+                hasData
+                  ? "hover:bg-muted dark:hover:bg-muted/50 text-foreground cursor-pointer"
+                  : "opacity-50 pointer-events-none text-foreground",
+              ].join(" ")}
             >
-              {hasData ? (
-                <a href={exportCsvUrl()} download="measurements.csv">
-                  <Download size={15} /> Export CSV
-                </a>
-              ) : (
-                <span><Download size={15} /> Export CSV</span>
-              )}
-            </Button>
+              <Download size={15} /> Export CSV
+            </a>
           </div>
         </div>
 
