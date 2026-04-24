@@ -150,6 +150,7 @@ export function DataPage() {
   );
 
   return (
+    <>
     <PageTransition>
       <div className="p-8 space-y-6">
 
@@ -440,6 +441,7 @@ export function DataPage() {
           </div>
         </DialogContent>
       </Dialog>
+    </>
   );
 }
 
