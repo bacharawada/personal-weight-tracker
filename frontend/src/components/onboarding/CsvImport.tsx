@@ -15,6 +15,8 @@ import { Upload, CheckCircle, AlertCircle, ChevronLeft, FileText } from "lucide-
 import { confirmCsvImport, previewCsv } from "../../lib/api";
 import type { CsvImportResult, CsvPreview } from "../../lib/types";
 import { Spinner } from "../ui/Spinner";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 
 interface Props {
   onComplete: (result: CsvImportResult) => void;
@@ -193,20 +195,21 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
 
             {/* Actions */}
             <div className="flex gap-3 justify-between">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => { setPreview(null); setStage("upload"); }}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" /> Choose another file
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={handleConfirm}
-                style={{ backgroundColor: accent }}
-                className="flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg text-white transition-opacity hover:opacity-90"
               >
                 <FileText className="w-4 h-4" />
                 Import {preview.total_rows} rows
-              </button>
+              </Button>
             </div>
           </motion.div>
         )}
@@ -261,40 +264,48 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
                 <p className="text-xs text-red-600 dark:text-red-500 mt-0.5">{error}</p>
               </div>
             </div>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => { setError(null); setStage("upload"); }}
-              className="self-start flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="self-start"
             >
               <ChevronLeft className="w-4 h-4" /> Try again
-            </button>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Back link (always shown except on done) */}
       {stage !== "done" && stage !== "importing" && stage !== "preview" && (
-        <button
+        <Button
+          variant="link"
+          size="sm"
           onClick={onBack}
-          className="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline transition-colors"
+          className="self-start text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0 h-auto"
         >
           Go back
-        </button>
+        </Button>
       )}
     </div>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Chip — metadata label+value badge shown in CSV preview
+// ---------------------------------------------------------------------------
+
 function Chip({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
   return (
-    <span className={`
-      inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-      ${warn
-        ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
+    <Badge
+      variant={warn ? "destructive" : "secondary"}
+      className={warn
+        ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-50"
+        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100"
       }
-    `}>
+    >
       <span className="text-gray-400 dark:text-gray-500">{label}:</span>
-      <span>{value}</span>
-    </span>
+      <span className="ml-1">{value}</span>
+    </Badge>
   );
 }

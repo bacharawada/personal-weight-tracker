@@ -18,6 +18,7 @@ import { completeOnboarding } from "../../lib/api";
 import type { CsvImportResult } from "../../lib/types";
 import { CsvImport } from "./CsvImport";
 import { AddMeasurement } from "../forms/AddMeasurement";
+import { Button } from "../ui/button";
 
 interface Props {
   /** Called once onboarding is fully complete (API flag set). */
@@ -78,7 +79,7 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
         <div className="h-1 bg-gray-100 dark:bg-gray-800">
           <motion.div
             className="h-full"
-            style={{ backgroundColor: accent }}
+            style={{ backgroundColor: "var(--color-accent)" }}
             animate={{
               width:
                 step === "welcome" ? "25%"
@@ -102,8 +103,8 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                 className="flex flex-col gap-6"
               >
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="p-3 rounded-xl" style={{ backgroundColor: `${accent}18` }}>
-                    <Scale className="w-8 h-8" style={{ color: accent }} />
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}>
+                    <Scale className="w-8 h-8" style={{ color: "var(--color-accent)" }} />
                   </div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">
                     Welcome to Weight Tracker
@@ -121,23 +122,23 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                     title="Import a CSV file"
                     description="Upload an existing export from a scale app or spreadsheet."
                     onClick={() => setStep("csv")}
-                    accent={accent}
                   />
                   <PathCard
                     icon={<PenLine className="w-5 h-5" />}
                     title="Add measurements manually"
                     description="Enter your weight entries one by one."
                     onClick={() => setStep("manual")}
-                    accent={accent}
                   />
                 </div>
 
-                <button
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={handleSkip}
-                  className="self-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline transition-colors"
+                  className="self-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   Skip for now — I'll add data later
-                </button>
+                </Button>
               </motion.div>
             )}
 
@@ -195,19 +196,20 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                 )}
 
                 <div className="flex gap-3 justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setStep("welcome")}
-                    className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   >
                     ← Back
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={handleManualDone}
-                    style={{ backgroundColor: accent }}
-                    className="flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg text-white transition-opacity hover:opacity-90"
                   >
                     Done <ArrowRight className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             )}
@@ -246,14 +248,15 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                   </p>
                 </div>
 
-                <button
+                <Button
+                  variant="primary"
+                  size="lg"
                   onClick={onComplete}
                   disabled={isFinishing}
-                  style={{ backgroundColor: accent }}
-                  className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-xl text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className="rounded-xl"
                 >
                   Go to dashboard <ArrowRight className="w-4 h-4" />
-                </button>
+                </Button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -272,13 +275,11 @@ function PathCard({
   title,
   description,
   onClick,
-  accent,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   onClick: () => void;
-  accent: string;
 }) {
   return (
     <button
@@ -293,7 +294,10 @@ function PathCard({
     >
       <div
         className="flex-shrink-0 p-2 rounded-lg transition-colors"
-        style={{ backgroundColor: `${accent}18`, color: accent }}
+        style={{
+          backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)",
+          color: "var(--color-accent)",
+        }}
       >
         {icon}
       </div>
