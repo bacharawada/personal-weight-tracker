@@ -159,24 +159,8 @@ export function DataPage() {
             subtitle={`${measurements.length} measurement${measurements.length !== 1 ? "s" : ""} recorded`}
           />
 
-          {/* Action buttons */}
+            {/* Right: export + delete all */}
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setAddOpen(true)}
-            >
-              <Plus size={15} /> Add entry
-            </Button>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setCsvOpen(true)}
-            >
-              <FileUp size={15} /> Import CSV
-            </Button>
-
             {hasData && (
               <Button
                 variant="destructive"
@@ -186,7 +170,6 @@ export function DataPage() {
                 <Trash2 size={15} /> Delete all
               </Button>
             )}
-
             <a
               href={hasData ? exportCsvUrl() : undefined}
               download={hasData ? "measurements.csv" : undefined}
@@ -204,145 +187,189 @@ export function DataPage() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          {loading ? (
-            <div className="p-12 flex justify-center">
-              <Spinner size={28} />
-            </div>
-          ) : measurements.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 dark:text-gray-500">
-              <p className="text-sm">No measurements yet.</p>
-              <button
-                onClick={() => setAddOpen(true)}
-                className="mt-2 text-sm font-medium underline underline-offset-2"
-                style={{ color: "var(--color-accent)" }}
+        {/* Body: table + action cards side by side */}
+        <div className="flex gap-6 items-start">
+
+          {/* Table — fixed reasonable width, not full bleed */}
+          <div className="flex-1 min-w-0 max-w-xl bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            {loading ? (
+              <div className="p-12 flex justify-center">
+                <Spinner size={28} />
+              </div>
+            ) : measurements.length === 0 ? (
+              <div className="p-12 text-center text-gray-400 dark:text-gray-500">
+                <p className="text-sm">No measurements yet.</p>
+                <button
+                  onClick={() => setAddOpen(true)}
+                  className="mt-2 text-sm font-medium underline underline-offset-2"
+                  style={{ color: "var(--color-accent)" }}
+                >
+                  Add your first one
+                </button>
+              </div>
+            ) : (
+              <motion.table
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                className="w-full text-sm"
               >
-                Add your first one
-              </button>
-            </div>
-          ) : (
-            <motion.table
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.25 }}
-              className="w-full text-sm"
-            >
-              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Weight (kg)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400 w-28">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {measurements.map((m) => {
-                  const isEditing = editingDate === m.date;
-
-                  return (
-                    <tr
-                      key={m.date}
-                      className={`group transition-colors ${
-                        isEditing ? "bg-yellow-50 dark:bg-yellow-950/20" : ""
-                      }`}
-                    >
-                      {/* Date */}
-                      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium">
-                        {m.date}
-                      </td>
-
-                      {/* Weight */}
-                      <td className="px-4 py-2 text-right">
-                        <AnimatePresence mode="wait">
+                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Weight (kg)</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400 w-24">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {measurements.map((m) => {
+                    const isEditing = editingDate === m.date;
+                    return (
+                      <tr
+                        key={m.date}
+                        className={`group transition-colors ${
+                          isEditing ? "bg-yellow-50 dark:bg-yellow-950/20" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium">
+                          {m.date}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <AnimatePresence mode="wait">
+                            {isEditing ? (
+                              <motion.div
+                                key="edit"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.1 }}
+                                className="flex flex-col items-end gap-1"
+                              >
+                                <input
+                                  ref={inputRef}
+                                  type="number"
+                                  value={editWeight}
+                                  onChange={(e) => { setEditWeight(e.target.value); setEditError(null); }}
+                                  onKeyDown={(e) => handleKeyDown(e, m.date)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  min={40} max={300} step={0.05}
+                                  className="w-28 text-right rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                />
+                                {editError && (
+                                  <span className="text-xs text-red-500">{editError}</span>
+                                )}
+                              </motion.div>
+                            ) : (
+                              <motion.span
+                                key="display"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.1 }}
+                                className="font-mono text-gray-900 dark:text-gray-100"
+                              >
+                                {m.weight.toFixed(2)}
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
                           {isEditing ? (
-                            <motion.div
-                              key="edit"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.1 }}
-                              className="flex flex-col items-end gap-1"
+                            <div
+                              className="flex items-center justify-end gap-1"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <input
-                                ref={inputRef}
-                                type="number"
-                                value={editWeight}
-                                onChange={(e) => { setEditWeight(e.target.value); setEditError(null); }}
-                                onKeyDown={(e) => handleKeyDown(e, m.date)}
-                                onClick={(e) => e.stopPropagation()}
-                                min={40} max={300} step={0.05}
-                                className="w-28 text-right rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                              />
-                              {editError && (
-                                <span className="text-xs text-red-500">{editError}</span>
-                              )}
-                            </motion.div>
+                              <Button
+                                variant="ghost" size="icon-sm"
+                                onClick={() => saveEdit(m.date)}
+                                disabled={saving}
+                                title="Save"
+                                className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
+                              >
+                                <Check size={15} />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon-sm"
+                                onClick={cancelEdit}
+                                title="Cancel"
+                              >
+                                <X size={15} />
+                              </Button>
+                            </div>
                           ) : (
-                            <motion.span
-                              key="display"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.1 }}
-                              className="font-mono text-gray-900 dark:text-gray-100"
-                            >
-                              {m.weight.toFixed(2)}
-                            </motion.span>
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost" size="icon-sm"
+                                onClick={(e) => startEdit(m, e)}
+                                title="Edit weight"
+                                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                              >
+                                <Pencil size={14} />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon-sm"
+                                onClick={(e) => { e.stopPropagation(); setDeleteTarget(m); }}
+                                title="Delete"
+                                className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
                           )}
-                        </AnimatePresence>
-                      </td>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </motion.table>
+            )}
+          </div>
 
-                      {/* Actions */}
-                      <td className="px-4 py-2.5 text-right">
-                        {isEditing ? (
-                          <div
-                            className="flex items-center justify-end gap-1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="ghost" size="icon-sm"
-                              onClick={() => saveEdit(m.date)}
-                              disabled={saving}
-                              title="Save"
-                              className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
-                            >
-                              <Check size={15} />
-                            </Button>
-                            <Button
-                              variant="ghost" size="icon-sm"
-                              onClick={cancelEdit}
-                              title="Cancel"
-                            >
-                              <X size={15} />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost" size="icon-sm"
-                              onClick={(e) => startEdit(m, e)}
-                              title="Edit weight"
-                              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                            >
-                              <Pencil size={14} />
-                            </Button>
-                            <Button
-                              variant="ghost" size="icon-sm"
-                              onClick={(e) => { e.stopPropagation(); setDeleteTarget(m); }}
-                              title="Delete"
-                              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </motion.table>
-          )}
+          {/* Action cards — Add entry + Import CSV */}
+          <div className="flex flex-col gap-4 w-64 shrink-0">
+            {/* Add entry card */}
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[var(--color-accent)] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer"
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}
+              >
+                <Plus size={20} style={{ color: "var(--color-accent)" }} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-[var(--color-accent)] transition-colors">
+                  Add entry
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  Log a new measurement
+                </p>
+              </div>
+            </button>
+
+            {/* Import CSV card */}
+            <button
+              onClick={() => setCsvOpen(true)}
+              className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[var(--color-accent)] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer"
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}
+              >
+                <FileUp size={20} style={{ color: "var(--color-accent)" }} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-[var(--color-accent)] transition-colors">
+                  Import CSV
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  Upload from a file
+                </p>
+              </div>
+            </button>
+          </div>
+
         </div>
       </div>
 
