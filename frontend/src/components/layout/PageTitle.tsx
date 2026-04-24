@@ -1,9 +1,8 @@
 /**
  * Page heading that uses the active palette's accent color.
+ * Color is driven by the --color-accent CSS variable set on <html>
+ * by WeightTrackerContext, so no context access is needed here.
  */
-
-import { useWeightTracker } from "../../context/WeightTrackerContext";
-import { getPaletteAccent } from "../../lib/palette";
 
 interface PageTitleProps {
   title: string;
@@ -11,14 +10,11 @@ interface PageTitleProps {
 }
 
 export function PageTitle({ title, subtitle }: PageTitleProps) {
-  const { chartParams } = useWeightTracker();
-  const accent = getPaletteAccent(chartParams.palette);
-
   return (
     <div>
       <h1
         className="text-2xl font-bold"
-        style={{ color: accent }}
+        style={{ color: "var(--color-accent)" }}
       >
         {title}
       </h1>

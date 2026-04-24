@@ -92,6 +92,13 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
     [chartParams.palette]
   );
 
+  // Keep the --color-accent CSS variable on <html> in sync with the chosen palette.
+  // This lets Tailwind's `bg-[var(--color-accent)]` and Button variant="primary"
+  // pick up the user's palette choice without per-component inline styles.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--color-accent", accent);
+  }, [accent]);
+
   const value = useMemo<WeightTrackerContextValue>(
     () => ({
       isDark,
