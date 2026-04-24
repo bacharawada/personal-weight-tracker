@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { addMeasurement } from "../../lib/api";
 import { Plus } from "lucide-react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
 interface AddMeasurementProps {
   onSuccess: () => void;
 }
 
 export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
-  const { accent } = useWeightTracker();
   const [date, setDate] = useState("");
   const [weight, setWeight] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -50,19 +51,21 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
         Add Measurement
       </h3>
       <form onSubmit={handleSubmit} className="space-y-2">
-        <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Date</label>
-          <input
+        <div className="space-y-1">
+          <Label htmlFor="add-date" className="text-xs text-muted-foreground">Date</Label>
+          <Input
+            id="add-date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             max={new Date().toISOString().split("T")[0]}
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm"
+            className="h-8 text-sm"
           />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Weight (kg)</label>
-          <input
+        <div className="space-y-1">
+          <Label htmlFor="add-weight" className="text-xs text-muted-foreground">Weight (kg)</Label>
+          <Input
+            id="add-weight"
             type="number"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
@@ -70,17 +73,18 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
             max={300}
             step={0.05}
             placeholder="e.g. 75.5"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm"
+            className="h-8 text-sm"
           />
         </div>
-        <button
+        <Button
           type="submit"
+          variant="primary"
+          size="sm"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-1.5 text-white rounded-md px-3 py-2 text-sm font-medium transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: accent }}
+          className="w-full"
         >
           <Plus size={14} /> {loading ? "Adding…" : "Add"}
-        </button>
+        </Button>
       </form>
 
       <AnimatePresence>
