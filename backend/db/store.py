@@ -102,6 +102,30 @@ class WeightDataStore:
 
     # -- queries -----------------------------------------------------------
 
+    def get_last_updated(self, keycloak_sub: str) -> float:
+        """Return the epoch timestamp of the most recent measurement write
+        for *keycloak_sub*, or 0.0 if no measurements exist.
+
+        Used by the ``/api/db-mtime`` endpoint so the frontend only
+        triggers a data refresh when something actually changed.
+
+        Args:
+            keycloak_sub: The ``sub`` claim from the Keycloak JWT.
+
+        Returns:
+            Unix timestamp (float) of the latest ``updated_at``, or 0.0.
+        """
+        user_id = self.get_or_create_user(keycloak_sub)
+        stmt = sa.select(sa.func.max(measurements.c.updated_at)).where(
+            measurements.c.user_id == user_id
+        )
+        with self._engine.connect() as conn:
+            result = conn.execute(stmt).scalar()
+        if result is None:
+            return 0.0
+        # result is a timezone-aware datetime; convert to a UTC epoch float.
+        return result.timestamp()
+
     def get_all(self, keycloak_sub: str) -> pd.DataFrame:
         """Return all measurements for *keycloak_sub* sorted by date ascending.
 
@@ -174,7 +198,10 @@ class WeightDataStore:
         """
         user_id = self.get_or_create_user(keycloak_sub)
         stmt = measurements.insert().values(
-            user_id=user_id, date=date, weight=weight
+            user_id=user_id,
+            date=date,
+            weight=weight,
+            updated_at=sa.func.now(),
         )
         try:
             with self._engine.begin() as conn:
@@ -209,7 +236,7 @@ class WeightDataStore:
             measurements.update()
             .where(measurements.c.user_id == user_id)
             .where(measurements.c.date == date)
-            .values(weight=weight)
+            .values(weight=weight, updated_at=sa.func.now())
         )
         try:
             with self._engine.begin() as conn:

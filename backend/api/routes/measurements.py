@@ -147,12 +147,14 @@ def list_palettes() -> dict:
 
 
 @router.get("/db-mtime", response_model=MtimeOut)
-def get_mtime() -> dict:
-    """Return a timestamp for cache-busting polls.
+def get_mtime(
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Return the epoch timestamp of the most recent measurement write.
 
-    In the PostgreSQL-backed version we no longer have a file mtime, so
-    we return the current epoch time to ensure the frontend always gets
-    a fresh value.
+    The frontend polls this endpoint and only triggers a full data refresh
+    when the value changes — i.e. when data has actually been written.
+    Returns 0.0 when the user has no measurements yet.
     """
-    import time
-    return {"mtime": time.time()}
+    return {"mtime": store.get_last_updated(keycloak_sub)}
