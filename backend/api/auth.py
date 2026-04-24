@@ -122,10 +122,20 @@ def _validate_token(token: str) -> str:
                 token,
                 key,
                 algorithms=["RS256"],
-                audience=_KEYCLOAK_CLIENT_ID,
                 issuer=_ISSUER,
-                options={"verify_aud": True},
+                # Keycloak access tokens set `aud` to "account" (the account
+                # service), not to the client ID.  The client ID appears in
+                # the `azp` (authorized party) claim instead.  We verify the
+                # issuer and signature which is sufficient; additionally check
+                # `azp` matches our client ID below.
+                options={"verify_aud": False},
             )
+            # Verify authorized party matches our client.
+            azp = payload.get("azp")
+            if azp and azp != _KEYCLOAK_CLIENT_ID:
+                raise JWTError(
+                    f"Token azp '{azp}' does not match client '{_KEYCLOAK_CLIENT_ID}'"
+                )
             sub = payload.get("sub")
             if not sub:
                 raise HTTPException(status_code=401, detail="Token missing sub claim")
