@@ -3,7 +3,7 @@
  *
  * Shown to unauthenticated users. Presents two entry points:
  *   - "Sign in" → redirects to Keycloak (standard login/register forms)
- *   - "Sign in with Google" → redirects straight to Google via Keycloak
+ *   - "Sign in with Google" → coming soon (disabled until IdP is configured)
  *
  * The actual credentials are handled by Keycloak; this page only
  * initiates the OIDC authorization code flow with PKCE.
@@ -17,17 +17,12 @@ import { Button } from "../components/ui/button";
 import { GoogleIcon } from "../components/ui/google-icon";
 
 export function LoginPage() {
-  const { login, loginWithGoogle } = useAuth();
-  const [isLoading, setIsLoading] = useState<"email" | "google" | null>(null);
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogin() {
-    setIsLoading("email");
+    setIsLoading(true);
     await login();
-  }
-
-  async function handleGoogleLogin() {
-    setIsLoading("google");
-    await loginWithGoogle();
   }
 
   return (
@@ -60,10 +55,10 @@ export function LoginPage() {
             variant="primary"
             size="lg"
             onClick={handleLogin}
-            disabled={isLoading !== null}
+            disabled={isLoading}
             className="w-full rounded-xl"
           >
-            {isLoading === "email" ? (
+            {isLoading ? (
               <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
               <LogIn className="w-4 h-4" />
@@ -78,21 +73,33 @@ export function LoginPage() {
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
 
-          {/* Google */}
-          <Button
-            variant="secondary"
-            size="lg"
-            onClick={handleGoogleLogin}
-            disabled={isLoading !== null}
-            className="w-full rounded-xl"
-          >
-            {isLoading === "google" ? (
-              <span className="w-4 h-4 border-2 border-gray-400/40 border-t-gray-500 rounded-full animate-spin" />
-            ) : (
+          {/* Google — disabled until IdP is configured in Keycloak */}
+          <div className="relative group">
+            <Button
+              variant="secondary"
+              size="lg"
+              disabled
+              className="w-full rounded-xl"
+              aria-label="Sign in with Google — coming soon"
+            >
               <GoogleIcon className="w-4 h-4" />
-            )}
-            Sign in with Google
-          </Button>
+              Sign in with Google
+            </Button>
+            {/* Tooltip */}
+            <div
+              role="tooltip"
+              className="absolute left-1/2 -translate-x-1/2 -bottom-9 px-2.5 py-1 rounded-md
+                         bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900
+                         text-xs whitespace-nowrap
+                         opacity-0 group-hover:opacity-100
+                         transition-opacity duration-150 pointer-events-none
+                         after:content-[''] after:absolute after:left-1/2 after:-translate-x-1/2
+                         after:-top-1 after:border-4 after:border-transparent
+                         after:border-b-gray-900 dark:after:border-b-gray-100"
+            >
+              Coming soon
+            </div>
+          </div>
         </div>
 
         {/* Footer note */}
