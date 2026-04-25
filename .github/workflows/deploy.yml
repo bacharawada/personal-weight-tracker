@@ -1,0 +1,121 @@
+# ============================================================
+# Weight Tracker — Production deployment pipeline
+#
+# Triggered on every push to main.
+#
+# Steps:
+#   1. Log in to Azure via OIDC (no long-lived secrets stored)
+#   2. Log in to Azure Container Registry
+#   3. Build the production Docker image (React + FastAPI)
+#   4. Push image to ACR with :latest and :<git-sha> tags
+#   5. Update the Container App to the new image revision
+#
+# Required GitHub Actions secrets (Settings → Secrets → Actions):
+#   AZURE_CLIENT_ID          Service principal / managed identity client ID
+#   AZURE_TENANT_ID          Azure tenant ID
+#   AZURE_SUBSCRIPTION_ID    Azure subscription ID
+#   ACR_LOGIN_SERVER         e.g. weighttrackercr.azurecr.io
+#   VITE_KEYCLOAK_URL        https://weighttracker-auth.bawada.fr
+#   VITE_KEYCLOAK_REALM      weight-tracker
+#   VITE_KEYCLOAK_CLIENT_ID  weight-tracker-frontend
+# ============================================================
+
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+  # Allow manual triggering from the GitHub Actions UI
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # Required for OIDC login to Azure
+  contents: read
+
+env:
+  RESOURCE_GROUP: weight-tracker-rg
+  CONTAINERAPP_NAME: weight-tracker
+  IMAGE_NAME: weight-tracker
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------
+      # 1. Checkout
+      # ----------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------
+      # 2. Log in to Azure via OIDC federated credentials
+      #    No client secret stored — uses GitHub's OIDC token.
+      # ----------------------------------------------------------
+      - name: Log in to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ----------------------------------------------------------
+      # 3. Log in to Azure Container Registry
+      # ----------------------------------------------------------
+      - name: Log in to ACR
+        run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+
+      # ----------------------------------------------------------
+      # 4. Build the production Docker image
+      #    VITE_* build args are baked into the JS bundle here.
+      # ----------------------------------------------------------
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
+          GIT_SHA="${{ github.sha }}"
+
+          docker build \
+            --build-arg VITE_KEYCLOAK_URL="${{ secrets.VITE_KEYCLOAK_URL }}" \
+            --build-arg VITE_KEYCLOAK_REALM="${{ secrets.VITE_KEYCLOAK_REALM }}" \
+            --build-arg VITE_KEYCLOAK_CLIENT_ID="${{ secrets.VITE_KEYCLOAK_CLIENT_ID }}" \
+            --tag "${IMAGE_TAG}:latest" \
+            --tag "${IMAGE_TAG}:${GIT_SHA}" \
+            .
+
+      # ----------------------------------------------------------
+      # 5. Push image to ACR
+      # ----------------------------------------------------------
+      - name: Push image to ACR
+        run: |
+          IMAGE_TAG="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
+          GIT_SHA="${{ github.sha }}"
+
+          docker push "${IMAGE_TAG}:latest"
+          docker push "${IMAGE_TAG}:${GIT_SHA}"
+
+      # ----------------------------------------------------------
+      # 6. Deploy new revision to Azure Container Apps
+      #    Uses the SHA-tagged image for precise rollback ability.
+      # ----------------------------------------------------------
+      - name: Deploy to Container Apps
+        run: |
+          IMAGE="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+          az containerapp update \
+            --name "${{ env.CONTAINERAPP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --image "$IMAGE"
+
+      # ----------------------------------------------------------
+      # 7. Print the app URL for easy access from the Actions log
+      # ----------------------------------------------------------
+      - name: Print deployed URL
+        run: |
+          FQDN=$(az containerapp show \
+            --name "${{ env.CONTAINERAPP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "Deployed to: https://$FQDN"
+          echo "Custom domain: https://weighttracker.bawada.fr"
