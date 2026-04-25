@@ -7,9 +7,11 @@ interface WeightChartProps {
   params: ChartParams;
   refreshKey: number;
   onPointClick: (point: { date: string; weight: number }) => void;
+  /** Override the chart container className (e.g. height). */
+  className?: string;
 }
 
-export function WeightChart({ params, refreshKey, onPointClick }: WeightChartProps) {
+export function WeightChart({ params, refreshKey, onPointClick, className }: WeightChartProps) {
   const fetchFigure = useCallback(() => getWeightChart(params), [params]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +30,7 @@ export function WeightChart({ params, refreshKey, onPointClick }: WeightChartPro
       fetchFigure={fetchFigure}
       refreshKey={refreshKey}
       onClick={handleClick}
-      className="h-[300px] md:flex-1 md:h-auto md:min-h-0"
+      className={className ?? "h-[300px] md:flex-1 md:h-auto md:min-h-0"}
     />
   );
 }
