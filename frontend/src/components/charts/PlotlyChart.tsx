@@ -10,6 +10,11 @@ interface PlotlyChartProps {
   className?: string;
 }
 
+/** Returns true when the viewport is narrower than the md breakpoint (768px). */
+function isMobile() {
+  return typeof window !== "undefined" && window.innerWidth < 768;
+}
+
 export function PlotlyChart({
   fetchFigure,
   refreshKey,
@@ -21,8 +26,6 @@ export function PlotlyChart({
 
   // Keep a ref to the latest fetchFigure so the effect closure always calls
   // the current version without needing fetchFigure in the dependency array.
-  // This prevents re-fetching whenever the parent re-renders and produces a
-  // new function reference (which happens on every render with inline arrows).
   const fetchFigureRef = useRef(fetchFigure);
   useLayoutEffect(() => {
     fetchFigureRef.current = fetchFigure;
@@ -34,6 +37,8 @@ export function PlotlyChart({
     console.log("[PlotlyChart] fetching — refreshKey:", refreshKey);
     setLoading(true);
 
+    const mobile = isMobile();
+
     fetchFigureRef.current()
       .then((fig: any) => {
         if (!containerRef.current) return;
@@ -44,9 +49,25 @@ export function PlotlyChart({
           {
             ...(fig.layout ?? {}),
             autosize: true,
-            margin: { l: 70, r: 40, t: 100, b: 60 },
+            // Tighter margins on mobile to maximise chart area
+            margin: mobile
+              ? { l: 45, r: 16, t: 48, b: 48 }
+              : { l: 70, r: 40, t: 100, b: 60 },
+            // Smaller font on mobile
+            font: {
+              ...(fig.layout?.font ?? {}),
+              size: mobile ? 10 : (fig.layout?.font?.size ?? 12),
+            },
+            // Simplify legend on mobile
+            legend: mobile
+              ? { orientation: "h", y: -0.2, font: { size: 10 } }
+              : (fig.layout?.legend ?? {}),
           },
-          { responsive: true, displayModeBar: true }
+          {
+            responsive: true,
+            // Hide the Plotly modebar (floating toolbar) on mobile — too cluttered
+            displayModeBar: !mobile,
+          }
         ).then((gd: Plotly.PlotlyHTMLElement) => {
           if (onClick) {
             gd.on("plotly_click", onClick);
