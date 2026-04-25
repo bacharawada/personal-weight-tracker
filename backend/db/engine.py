@@ -1,21 +1,27 @@
 """SQLAlchemy Core engine, table schema, and domain exceptions.
 
-Defines the ``measurements`` table, the engine factory, and the custom
-exceptions ``DuplicateDateError`` and ``NotFoundError``.  No other
-module in the application should construct SQL or perform file
-operations on the database directly.
+Defines the ``users`` and ``measurements`` tables, the engine factory,
+and the custom exceptions ``DuplicateDateError`` and ``NotFoundError``.
+
+The database backend is PostgreSQL, configured via the ``DATABASE_URL``
+environment variable (falls back to a local SQLite file for running
+tests without a live Postgres instance — see conftest.py).
 """
 
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
+from dotenv import load_dotenv
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
+
+# Load .env from the project root (no-op when env vars are already set,
+# e.g. inside Docker).
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Schema
@@ -23,21 +29,59 @@ if TYPE_CHECKING:
 
 metadata = sa.MetaData()
 
+# ``users`` stores the Keycloak subject (``sub`` JWT claim) and a flag
+# that tracks whether the user has completed the onboarding wizard.
+# We deliberately avoid storing PII (name, email) here — Keycloak owns
+# that data.
+users = sa.Table(
+    "users",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+    # Keycloak subject UUID — globally unique per user across realms.
+    sa.Column("keycloak_sub", sa.String(36), nullable=False, unique=True),
+    sa.Column(
+        "onboarding_completed",
+        sa.Boolean,
+        nullable=False,
+        server_default=sa.false(),
+    ),
+    sa.Column(
+        "created_at",
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    ),
+)
+
 measurements = sa.Table(
     "measurements",
     metadata,
     sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
-    sa.Column("date", sa.Date, nullable=False, unique=True),
+    # FK to users.id — every measurement belongs to exactly one user.
+    sa.Column(
+        "user_id",
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    ),
+    sa.Column("date", sa.Date, nullable=False),
     sa.Column(
         "weight",
         sa.Float,
         nullable=False,
-        # NOTE: SQLite honours CHECK constraints since 3.25. We enforce a
-        # sane physiological range at the DB level so invalid data can never
-        # slip in, regardless of the entry path (UI, script, raw SQL).
-        info={"check": "weight >= 40 AND weight <= 300"},
+    ),
+    # Tracks when this row was last written; used by /api/db-mtime so the
+    # frontend can detect real data changes instead of polling time.time().
+    sa.Column(
+        "updated_at",
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
     ),
     sa.CheckConstraint("weight >= 40 AND weight <= 300", name="ck_weight_range"),
+    # A user cannot have two measurements on the same date.
+    sa.UniqueConstraint("user_id", "date", name="uq_user_date"),
 )
 
 
@@ -51,66 +95,40 @@ class DuplicateDateError(Exception):
 
 
 class NotFoundError(Exception):
-    """Raised when attempting to delete a measurement that does not exist."""
+    """Raised when attempting to access a measurement that does not exist."""
 
 
 # ---------------------------------------------------------------------------
 # Engine factory
 # ---------------------------------------------------------------------------
 
-_DEFAULT_DB_PATH = Path("data") / "weight_tracker.db"
+# Environment variable name for the database connection string.
+_DATABASE_URL_ENV = "DATABASE_URL"
 
 
-def get_engine(db_path: str | Path | None = None) -> Engine:
-    """Create and return a SQLAlchemy engine for the weight tracker database.
+def get_engine(database_url: str | None = None) -> Engine:
+    """Create and return a SQLAlchemy engine.
+
+    The connection string is resolved in this order:
+    1. The ``database_url`` argument (explicit override, used in tests).
+    2. The ``DATABASE_URL`` environment variable (Docker / production).
 
     Args:
-        db_path: Path to the SQLite database file. When ``None`` the default
-            location ``data/weight_tracker.db`` (relative to the working
-            directory) is used.
+        database_url: Optional explicit connection URL.  When ``None``
+            the value of the ``DATABASE_URL`` environment variable is used.
 
     Returns:
-        A ``sqlalchemy.engine.Engine`` instance configured for SQLite.
+        A configured ``sqlalchemy.engine.Engine`` instance.
+
+    Raises:
+        RuntimeError: If no connection URL can be determined.
     """
-    if db_path is None:
-        db_path = _DEFAULT_DB_PATH
-    db_path = Path(db_path)
+    url = database_url or os.environ.get(_DATABASE_URL_ENV)
+    if not url:
+        raise RuntimeError(
+            "No database URL configured. "
+            "Set the DATABASE_URL environment variable or pass database_url explicitly."
+        )
 
-    # Ensure parent directory exists so SQLite can create the file.
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    url = f"sqlite:///{db_path}"
-    engine = sa.create_engine(
-        url,
-        # NOTE: check_same_thread=False is required when the SQLite
-        # connection is shared across Dash callback threads.
-        connect_args={"check_same_thread": False},
-    )
-
-    # Ensure CHECK constraints are enforced (SQLite requires PRAGMA).
-    @sa.event.listens_for(engine, "connect")
-    def _enable_foreign_keys(dbapi_conn: object, _connection_record: object) -> None:
-        cursor = dbapi_conn.cursor()  # type: ignore[union-attr]
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
+    engine = sa.create_engine(url, pool_pre_ping=True)
     return engine
-
-
-def get_db_mtime(db_path: str | Path | None = None) -> float:
-    """Return the modification time of the database file.
-
-    Args:
-        db_path: Path to the SQLite database file. Defaults to the
-            standard location.
-
-    Returns:
-        The file's ``st_mtime`` as a float, or ``0.0`` if the file does
-        not exist.
-    """
-    if db_path is None:
-        db_path = _DEFAULT_DB_PATH
-    try:
-        return os.path.getmtime(db_path)
-    except OSError:
-        return 0.0

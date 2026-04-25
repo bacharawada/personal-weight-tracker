@@ -1,0 +1,6 @@
+{
+  "python.defaultInterpreterPath": "${userHome}/.local/share/weight-analysis/venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": ["${workspaceFolder}/backend"],
+  "python.envFile": "${workspaceFolder}/.env"
+}

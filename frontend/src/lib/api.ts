@@ -1,24 +1,65 @@
-/** Typed API client for the Weight Tracker backend. */
+/** Typed API client for the Weight Tracker backend.
+ *
+ * All requests attach a Bearer token retrieved via the registered
+ * token getter (set by AuthProvider on mount).  When no getter is
+ * registered (e.g. tests) requests are sent without auth headers.
+ */
 
 import type {
   ChartParams,
+  CsvImportResult,
+  CsvPreview,
+  CsvPreviewRow,
   Measurement,
   MeasurementIn,
   Mtime,
   Palettes,
   Stats,
+  UserProfile,
 } from "./types";
 
 const BASE = "/api";
 
+// ---------------------------------------------------------------------------
+// Auth token injection
+// ---------------------------------------------------------------------------
+// AuthProvider calls setTokenGetter() on mount so every fetch gets the
+// latest access token without coupling this module to React.
+
+type TokenGetter = () => string | null;
+let _tokenGetter: TokenGetter | null = null;
+
+export function setTokenGetter(getter: TokenGetter): void {
+  _tokenGetter = getter;
+}
+
+function authHeaders(): Record<string, string> {
+  const token = _tokenGetter?.();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// ---------------------------------------------------------------------------
+// Core fetch wrapper
+// ---------------------------------------------------------------------------
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      ...authHeaders(),
+      ...(init?.headers ?? {}),
+    },
+  });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(body.detail || res.statusText);
   }
   return res.json();
 }
+
+// ---------------------------------------------------------------------------
+// Measurements
+// ---------------------------------------------------------------------------
 
 export async function getMeasurements(): Promise<Measurement[]> {
   return fetchJson<Measurement[]>(`${BASE}/measurements`);
@@ -41,12 +82,30 @@ export async function updateMeasurement(date: string, weight: number): Promise<M
 }
 
 export async function deleteMeasurement(date: string): Promise<void> {
-  const res = await fetch(`${BASE}/measurements/${date}`, { method: "DELETE" });
+  const res = await fetch(`${BASE}/measurements/${date}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(body.detail || res.statusText);
   }
 }
+
+export async function deleteAllMeasurements(): Promise<void> {
+  const res = await fetch(`${BASE}/measurements`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stats, palettes, polling
+// ---------------------------------------------------------------------------
 
 export async function getStats(): Promise<Stats> {
   return fetchJson<Stats>(`${BASE}/stats`);
@@ -59,6 +118,54 @@ export async function getDbMtime(): Promise<Mtime> {
 export async function getPalettes(): Promise<Palettes> {
   return fetchJson<Palettes>(`${BASE}/palettes`);
 }
+
+// ---------------------------------------------------------------------------
+// User profile
+// ---------------------------------------------------------------------------
+
+export async function getMe(): Promise<UserProfile> {
+  return fetchJson<UserProfile>(`${BASE}/me`);
+}
+
+export async function completeOnboarding(): Promise<UserProfile> {
+  return fetchJson<UserProfile>(`${BASE}/me/complete-onboarding`, {
+    method: "POST",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// CSV import
+// ---------------------------------------------------------------------------
+
+export async function previewCsv(file: File): Promise<CsvPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE}/imports/csv/preview`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+  return res.json();
+}
+
+export async function confirmCsvImport(
+  rows: CsvPreviewRow[],
+  dateFormat: string,
+): Promise<CsvImportResult> {
+  return fetchJson<CsvImportResult>(`${BASE}/imports/csv/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rows, date_format: dateFormat }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Charts
+// ---------------------------------------------------------------------------
 
 function chartQuery(params: ChartParams): string {
   const q = new URLSearchParams({
@@ -81,6 +188,11 @@ export async function getDerivativeChart(params: ChartParams): Promise<object> {
 export async function getResidualsChart(params: ChartParams): Promise<object> {
   return fetchJson<object>(`${BASE}/charts/residuals?${chartQuery(params)}`);
 }
+
+// ---------------------------------------------------------------------------
+// Export URLs (opened directly in the browser, token in query param not
+// feasible — user must be authenticated when the browser follows the link)
+// ---------------------------------------------------------------------------
 
 export function exportPngUrl(params: ChartParams): string {
   return `${BASE}/exports/png?${chartQuery(params)}`;

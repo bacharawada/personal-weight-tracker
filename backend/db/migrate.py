@@ -1,13 +1,13 @@
-"""One-time CSV to SQLite migration script.
+"""CSV to PostgreSQL migration / seed script.
 
-Reads ``data/weight_progression.csv``, validates and deduplicates rows,
-then seeds the ``measurements`` table in the SQLite database.  This
-script is **idempotent**: running it multiple times will not create
-duplicate rows thanks to ``INSERT OR IGNORE`` semantics.
+Reads a CSV file with ``date`` and ``weight`` columns, validates and
+deduplicates rows, then seeds the ``measurements`` table for a specific
+user.  This script is **idempotent**: running it multiple times will not
+create duplicate rows.
 
-Usage::
+Usage (one-off seed for the dev stub user)::
 
-    python backend/db/migrate.py
+    DATABASE_URL=postgresql+psycopg2://... python backend/db/migrate.py
 """
 
 from __future__ import annotations
@@ -18,23 +18,31 @@ from pathlib import Path
 import pandas as pd
 import sqlalchemy as sa
 
-from db.engine import get_engine, metadata
+from db.engine import get_engine, measurements, metadata
+from db.store import WeightDataStore
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 CSV_PATH = Path("data") / "weight_progression.csv"
+# Default user for the one-off CLI migration (matches the Phase 1 stub).
+DEFAULT_KEYCLOAK_SUB = "dev-stub-user"
 
 
-def run_migration(csv_path: Path | None = None, engine: sa.engine.Engine | None = None) -> dict[str, int]:
-    """Execute the CSV-to-SQLite migration.
+def run_migration(
+    csv_path: Path | None = None,
+    engine: sa.engine.Engine | None = None,
+    keycloak_sub: str = DEFAULT_KEYCLOAK_SUB,
+) -> dict[str, int]:
+    """Execute the CSV-to-database migration for *keycloak_sub*.
 
     Args:
         csv_path: Path to the seed CSV file.  Defaults to
             ``data/weight_progression.csv``.
-        engine: SQLAlchemy engine.  When ``None`` a default engine
-            pointing to ``data/weight_tracker.db`` is created.
+        engine: SQLAlchemy engine.  When ``None`` a default engine is
+            created from the ``DATABASE_URL`` environment variable.
+        keycloak_sub: Keycloak subject to own the imported measurements.
 
     Returns:
         A dict with keys ``rows_read``, ``rows_inserted``, and
@@ -72,24 +80,41 @@ def run_migration(csv_path: Path | None = None, engine: sa.engine.Engine | None 
     df = df.groupby("date", as_index=False)["weight"].mean()
     df = df.sort_values("date").reset_index(drop=True)
 
-    # --- 4. Ensure table exists --------------------------------------------
+    # --- 4. Ensure table exists and resolve user ---------------------------
     metadata.create_all(engine, checkfirst=True)
+    store = WeightDataStore(engine)
+    user_id = store.get_or_create_user(keycloak_sub)
 
-    # --- 5. Insert with INSERT OR IGNORE -----------------------------------
+    # --- 5. Insert (skip existing date+user combinations) ------------------
+    # Fetch the dates already stored for this user to avoid integrity errors.
     rows_inserted = 0
+    rows_skipped = 0
+
+    with engine.connect() as conn:
+        existing_dates = {
+            row[0]
+            for row in conn.execute(
+                sa.select(measurements.c.date).where(
+                    measurements.c.user_id == user_id
+                )
+            ).fetchall()
+        }
+
     with engine.begin() as conn:
         for _, row in df.iterrows():
-            stmt = sa.text(
-                "INSERT OR IGNORE INTO measurements (date, weight) "
-                "VALUES (:date, :weight)"
+            date_val = row["date"].date()
+            if date_val in existing_dates:
+                rows_skipped += 1
+                continue
+            conn.execute(
+                measurements.insert().values(
+                    user_id=user_id,
+                    date=date_val,
+                    weight=float(row["weight"]),
+                )
             )
-            result = conn.execute(
-                stmt,
-                {"date": row["date"].date().isoformat(), "weight": float(row["weight"])},
-            )
-            rows_inserted += result.rowcount
+            rows_inserted += 1
 
-    rows_skipped = len(df) - rows_inserted
     return {
         "rows_read": rows_read,
         "rows_inserted": rows_inserted,
@@ -99,7 +124,7 @@ def run_migration(csv_path: Path | None = None, engine: sa.engine.Engine | None 
 
 def main() -> None:
     """Entry point for the migration script."""
-    print("Weight Tracker — CSV to SQLite Migration")
+    print("Weight Tracker — CSV Migration")
     print("=" * 42)
 
     try:

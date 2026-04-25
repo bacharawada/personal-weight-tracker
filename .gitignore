@@ -55,8 +55,10 @@ coverage.xml
 .env.local
 .env.*.local
 
-# IDE
-.vscode/
+# IDE — ignore personal preferences but track shared dev config
+.vscode/*
+!.vscode/tasks.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -80,6 +82,15 @@ logs/
 
 # SQLite database (created on first run)
 data/weight_tracker.db
+
+# Container volumes — stored on the Linux filesystem to support chmod
+# Default: ~/.local/share/weight-analysis/volumes (set via VOLUMES_DIR in .env)
+# Legacy path (NTFS-incompatible, no longer used):
+.docker-volumes/
+
+# Alembic — keep migrations but ignore compiled artifacts
+backend/alembic/__pycache__/
+backend/alembic/versions/__pycache__/
 
 # Node.js
 frontend/node_modules/

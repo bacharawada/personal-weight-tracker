@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
 from analysis import AnalysisConfig, fit_exponential_decay
-from api.deps import get_store
+from api.deps import get_current_user, get_store
 from viz import PALETTES, build_weight_figure
 
 if TYPE_CHECKING:
@@ -24,21 +24,11 @@ def export_png(
     horizon: int = Query(56),
     palette: str = Query("Classic"),
     dark: bool = Query(False),
+    keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
 ) -> Response:
-    """Export the main weight chart as a PNG image.
-
-    Args:
-        smoothing: Rolling mean window size.
-        horizon: Extrapolation horizon in days.
-        palette: Colour palette name.
-        dark: Whether dark mode is active.
-        store: Injected data store.
-
-    Returns:
-        A PNG binary response with appropriate content headers.
-    """
-    df = store.get_all()
+    """Export the main weight chart as a PNG image for the current user."""
+    df = store.get_all(keycloak_sub)
     if df.empty:
         return Response(status_code=204)
 
@@ -68,17 +58,11 @@ def export_png(
 
 @router.get("/csv")
 def export_csv(
+    keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
 ) -> Response:
-    """Export all measurements as a CSV file.
-
-    Args:
-        store: Injected data store.
-
-    Returns:
-        A CSV text response with appropriate content headers.
-    """
-    df = store.get_all()
+    """Export all measurements as a CSV file for the current user."""
+    df = store.get_all(keycloak_sub)
     if df.empty:
         return Response(status_code=204)
 

@@ -11,6 +11,7 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
+    console.log("[StatsCards] fetching — refreshKey:", refreshKey);
     getStats().then(setStats).catch(console.error);
   }, [refreshKey]);
 

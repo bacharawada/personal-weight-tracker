@@ -2,6 +2,9 @@
 
 Uses FastAPI's ``TestClient`` with an in-memory SQLite database so the
 real ``weight_tracker.db`` is never touched.
+
+All tests run as a fixed test user (``TEST_USER_SUB``) injected via
+``dependency_overrides[get_current_user]``.
 """
 
 from __future__ import annotations
@@ -17,6 +20,9 @@ from db import WeightDataStore, measurements, metadata
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
+
+# Stable subject used for all test requests.
+TEST_USER_SUB = "test-api-user"
 
 
 def _make_engine_and_store(
@@ -49,8 +55,11 @@ def _make_engine_and_store(
         cursor.close()
 
     metadata.create_all(eng)
+    store = WeightDataStore(eng)
 
     if seed:
+        # Ensure the test user exists before inserting measurements.
+        user_id = store.get_or_create_user(TEST_USER_SUB)
         rows = [
             (datetime.date(2025, 6, 1), 183.5),
             (datetime.date(2025, 7, 1), 179.0),
@@ -60,16 +69,21 @@ def _make_engine_and_store(
         ]
         with eng.begin() as conn:
             for date, weight in rows:
-                conn.execute(measurements.insert().values(date=date, weight=weight))
+                conn.execute(
+                    measurements.insert().values(
+                        user_id=user_id, date=date, weight=weight
+                    )
+                )
 
-    return eng, WeightDataStore(eng)
+    return eng, store
 
 
 def _make_client(seed: bool = False) -> TestClient:
     """Create a TestClient wired to a fresh in-memory database.
 
     Builds a minimal FastAPI app (no lifespan) with the same routes,
-    injecting the test store via ``dependency_overrides``.
+    injecting the test store and a fixed auth user via
+    ``dependency_overrides``.
 
     Args:
         seed: Whether to insert sample rows.
@@ -82,6 +96,7 @@ def _make_client(seed: bool = False) -> TestClient:
 
     from api.routes import charts, exports, stats
     from api.routes import measurements as meas_routes
+    from api.routes import users as user_routes
 
     engine, store = _make_engine_and_store(seed=seed)
 
@@ -96,8 +111,11 @@ def _make_client(seed: bool = False) -> TestClient:
     app.include_router(charts.router, prefix="/api")
     app.include_router(exports.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")
+    app.include_router(user_routes.router, prefix="/api")
 
+    # Override both dependencies: store and current user.
     app.dependency_overrides[api_deps.get_store] = lambda: store
+    app.dependency_overrides[api_deps.get_current_user] = lambda: TEST_USER_SUB
 
     return TestClient(app)
 
@@ -298,3 +316,28 @@ class TestMiscEndpoints:
         r = client.get("/api/db-mtime")
         assert r.status_code == 200
         assert isinstance(r.json()["mtime"], float)
+
+
+# -----------------------------------------------------------------------
+# User profile
+# -----------------------------------------------------------------------
+
+
+class TestUserEndpoints:
+    """Tests for /api/me endpoints."""
+
+    def test_get_profile_creates_user(self) -> None:
+        """GET /api/me auto-creates user on first call."""
+        client = _make_client(seed=False)
+        r = client.get("/api/me")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["keycloak_sub"] == TEST_USER_SUB
+        assert data["onboarding_completed"] is False
+
+    def test_complete_onboarding(self) -> None:
+        """POST /api/me/complete-onboarding sets flag to true."""
+        client = _make_client(seed=False)
+        r = client.post("/api/me/complete-onboarding")
+        assert r.status_code == 200
+        assert r.json()["onboarding_completed"] is True

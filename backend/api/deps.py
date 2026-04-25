@@ -2,7 +2,11 @@
 
 Provides a shared ``WeightDataStore`` instance and engine that persist
 for the lifetime of the application.  The lifespan context manager
-ensures the database table exists on startup.
+ensures the database tables exist on startup.
+
+Authentication dependency (``get_current_user``) is defined here as a
+stub for Phase 1.  Phase 2 will replace it with real Keycloak JWT
+validation.
 """
 
 from __future__ import annotations
@@ -41,6 +45,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global _engine, _store  # noqa: PLW0603
     if _store is None:
         _engine = get_engine()
+        # create_all is idempotent and safe to run on every startup.
+        # In production with Alembic we rely on migrations; this call
+        # ensures the schema exists in dev/test without running alembic.
         metadata.create_all(_engine, checkfirst=True)
         _store = WeightDataStore(_engine)
     yield
@@ -58,3 +65,13 @@ def get_store() -> WeightDataStore:
     if _store is None:
         raise RuntimeError("Store not initialised — app lifespan has not started")
     return _store
+
+
+# ---------------------------------------------------------------------------
+# Authentication dependency
+# ---------------------------------------------------------------------------
+# Re-exported from api.auth so that tests can override via:
+#   app.dependency_overrides[api_deps.get_current_user] = lambda: "test-sub"
+# ---------------------------------------------------------------------------
+
+from api.auth import get_current_user as get_current_user  # noqa: F401, E402

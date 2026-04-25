@@ -7,6 +7,7 @@ import { Spinner } from "../components/ui/Spinner";
 import { getPalettes, exportPngUrl } from "../lib/api";
 import { getPaletteAccent } from "../lib/palette";
 import { Download, Moon, Sun } from "lucide-react";
+import { Button } from "../components/ui/button";
 
 const PALETTE_PREVIEWS: Record<string, string[]> = {
   Classic:    ["#2E6DB4", "#C97A0A", "#2CA02C"],
@@ -40,13 +41,10 @@ export function SettingsPage() {
                 Currently: {isDark ? "Dark" : "Light"}
               </p>
             </div>
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
+            <Button variant="secondary" size="sm" onClick={toggleTheme}>
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
               Switch to {isDark ? "Light" : "Dark"}
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -127,17 +125,15 @@ export function SettingsPage() {
                 PNG, 1200×700, with current palette and settings
               </p>
             </div>
-            <a
-              href={hasData ? exportPngUrl(chartParams) : undefined}
-              download="weight_chart.png"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                hasData
-                  ? "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  : "bg-gray-50 dark:bg-gray-800 text-gray-400 pointer-events-none"
-              }`}
-            >
-              <Download size={16} /> Export PNG
-            </a>
+            <Button variant="secondary" size="sm" asChild={hasData} disabled={!hasData}>
+              {hasData ? (
+                <a href={exportPngUrl(chartParams)} download="weight_chart.png">
+                  <Download size={16} /> Export PNG
+                </a>
+              ) : (
+                <span><Download size={16} /> Export PNG</span>
+              )}
+            </Button>
           </div>
         </div>
       </section>

@@ -77,6 +77,65 @@ class MtimeOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# User profile
+# ---------------------------------------------------------------------------
+
+
+class UserProfileOut(BaseModel):
+    """Response model for the current user's profile."""
+
+    id: int
+    keycloak_sub: str
+    onboarding_completed: bool
+
+
+# ---------------------------------------------------------------------------
+# CSV import
+# ---------------------------------------------------------------------------
+
+
+class CsvPreviewRow(BaseModel):
+    """A single parsed row in the CSV preview."""
+
+    date: str          # ISO 8601 string — validated on confirm
+    weight: float
+
+
+class CsvPreviewOut(BaseModel):
+    """Response from POST /api/imports/csv/preview.
+
+    Returns the first rows of the parsed file plus metadata the frontend
+    needs to let the user validate the detected date format.
+    """
+
+    rows: list[CsvPreviewRow]
+    total_rows: int
+    detected_date_format: str   # e.g. "%d/%m/%Y" or "%Y-%m-%d"
+    date_format_example: str    # human-readable example from the data
+    delimiter: str              # detected field delimiter
+    skipped_rows: int           # rows that could not be parsed
+
+
+class CsvConfirmIn(BaseModel):
+    """Request body for POST /api/imports/csv/confirm.
+
+    The frontend sends back the rows it wants to import (after the user
+    has reviewed the preview) together with the confirmed date format.
+    """
+
+    rows: list[CsvPreviewRow]
+    date_format: str            # confirmed by user (may differ from detected)
+
+
+class CsvImportResult(BaseModel):
+    """Response from POST /api/imports/csv/confirm."""
+
+    inserted: int
+    skipped_duplicates: int
+    skipped_invalid: int
+
+
+# ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
 
