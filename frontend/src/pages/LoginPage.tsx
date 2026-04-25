@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { LogIn, Scale } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -108,9 +109,16 @@ export function LoginPage() {
         </p>
       </motion.div>
 
-      {/* Attribution */}
-      <p className="mt-6 text-xs text-gray-400 dark:text-gray-600">
-        Weight Tracker &mdash; personal health dashboard
+      {/* Attribution + about link */}
+      <p className="mt-6 text-xs text-gray-400 dark:text-gray-600 flex items-center gap-2">
+        <span>Weight Tracker &mdash; personal health dashboard</span>
+        <span aria-hidden="true">&middot;</span>
+        <Link
+          to="/about"
+          className="underline underline-offset-2 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
+        >
+          About
+        </Link>
       </p>
     </div>
   );
