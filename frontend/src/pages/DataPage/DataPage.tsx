@@ -8,6 +8,7 @@ import { DataTable } from "../../components/ui/DataTable";
 import { exportCsvUrl } from "../../lib/api";
 import { useDataPage } from "../../hooks/useDataPage";
 import { MeasurementRow } from "./MeasurementRow";
+import { DataPageFAB } from "./DataPageFAB";
 import { AddMeasurementModal } from "./modals/AddMeasurementModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
 import { DeleteMeasurementModal } from "./modals/DeleteMeasurementModal";
@@ -38,7 +39,7 @@ export function DataPage() {
   return (
     <>
       <PageTransition>
-        <div className="h-full flex flex-col px-8 pt-8 pb-4 gap-6 min-h-0">
+        <div className="h-full flex flex-col px-4 pt-4 pb-4 md:px-8 md:pt-8 gap-4 md:gap-6 min-h-0">
 
           {/* Header */}
           <div className="flex items-center justify-between gap-4 shrink-0">
@@ -53,7 +54,8 @@ export function DataPage() {
                   size="sm"
                   onClick={() => setDeleteAllOpen(true)}
                 >
-                  <Trash2 size={15} /> Delete all
+                  <Trash2 size={15} />
+                  <span className="hidden sm:inline">Delete all</span>
                 </Button>
               )}
               <a
@@ -68,7 +70,8 @@ export function DataPage() {
                     : "opacity-50 pointer-events-none text-foreground",
                 ].join(" ")}
               >
-                <Download size={15} /> Export CSV
+                <Download size={15} />
+                <span className="hidden sm:inline">Export CSV</span>
               </a>
             </div>
           </div>
@@ -77,7 +80,7 @@ export function DataPage() {
           <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full">
             <div className="flex gap-5 h-full items-start">
 
-              {/* Table */}
+              {/* Table — full width on mobile, flex-1 on desktop */}
               <div className="flex-1 min-w-0 min-h-0 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 <DataTable
                   columns={TABLE_COLUMNS}
@@ -116,8 +119,8 @@ export function DataPage() {
                 </DataTable>
               </div>
 
-              {/* Action cards */}
-              <div className="flex flex-col gap-3 w-72 shrink-0">
+              {/* Action cards — desktop only */}
+              <div className="hidden md:flex flex-col gap-3 w-72 shrink-0">
                 <ActionCard
                   icon={<Plus size={18} />}
                   title="Add entry"
@@ -165,6 +168,12 @@ export function DataPage() {
         onConfirm={handleDeleteAll}
         loading={deletingAll}
         measurementCount={measurements.length}
+      />
+
+      {/* FAB — mobile only, positioned above bottom tab bar */}
+      <DataPageFAB
+        onAdd={() => setAddOpen(true)}
+        onImport={openCsvModal}
       />
     </>
   );
