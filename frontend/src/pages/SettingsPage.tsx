@@ -7,7 +7,8 @@ import { PageTitle } from "../components/layout/PageTitle";
 import { Spinner } from "../components/ui/Spinner";
 import { getPalettes, exportPngUrl } from "../lib/api";
 import { getPaletteAccent } from "../lib/palette";
-import { Download, Github, Globe, Moon, Sun } from "lucide-react";
+import { Download, Globe, Moon, Sun } from "lucide-react";
+import { GithubIcon } from "../components/ui/github-icon";
 import { Button } from "../components/ui/button";
 
 const APP_VERSION = "1.0.0";
@@ -168,7 +169,7 @@ export function SettingsPage() {
               rel="noopener noreferrer"
               className="flex items-center gap-3 group"
             >
-              <Github size={15} className="shrink-0 text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors" />
+              <GithubIcon className="shrink-0 w-[15px] h-[15px] text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors" />
               <span className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-100 transition-colors underline underline-offset-2 decoration-gray-300 dark:decoration-gray-600">
                 github.com/bacharawada
               </span>

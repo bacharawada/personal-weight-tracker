@@ -7,7 +7,8 @@
 
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
-import { BarChart2, ArrowLeft, Github, Globe } from "lucide-react";
+import { BarChart2, ArrowLeft, Globe } from "lucide-react";
+import { GithubIcon } from "../components/ui/github-icon";
 import { Button } from "../components/ui/button";
 
 const APP_VERSION = "1.0.0";
@@ -56,10 +57,7 @@ export function AboutPage() {
               rel="noopener noreferrer"
               className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors group"
             >
-              <Github
-                size={18}
-                className="shrink-0 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors"
-              />
+              <GithubIcon className="shrink-0 w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   @bacharawada
