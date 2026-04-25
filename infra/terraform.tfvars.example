@@ -1,0 +1,42 @@
+# ============================================================
+# Weight Tracker — Terraform variable values template
+#
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — never commit it.
+# ============================================================
+
+# Your Azure subscription ID.
+# Find it with: az account show --query id -o tsv
+subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Your GitHub repository in org/repo format.
+# Used to scope the OIDC federated credential to your repo's main branch.
+github_repo = "<your-github-username>/weight_analysis"
+
+# Optional overrides (defaults are fine for most cases)
+# resource_group_name  = "weight-tracker-rg"
+# location             = "francecentral"
+# acr_name             = "weighttrackercr"
+# storage_account_name = "wtkeycloakstorage"
+
+# -----------------------------------------------------------
+# App database — Neon project: weighttracker
+# -----------------------------------------------------------
+# From Neon dashboard → project → Connection string
+# Switch the driver dropdown to "SQLAlchemy" to get this format.
+database_url = "postgresql+psycopg2://<user>:<password>@<host>/weighttracker?sslmode=require"
+
+# -----------------------------------------------------------
+# Keycloak database — Neon project: weighttracker_keycloak
+# -----------------------------------------------------------
+# From Neon dashboard → project → Connection details
+# Build the JDBC URL manually from the host/user/password/dbname shown.
+kc_db_url      = "jdbc:postgresql://<host>/<dbname>?user=<user>&password=<password>&sslmode=require"
+kc_db_username = "<neon-username>"
+kc_db_password = "<neon-password>"
+
+# -----------------------------------------------------------
+# Keycloak admin
+# -----------------------------------------------------------
+keycloak_admin          = "admin"
+keycloak_admin_password = "<strong-password>"
