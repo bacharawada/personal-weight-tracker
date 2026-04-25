@@ -3,7 +3,7 @@
 # ============================================================
 
 resource "azurerm_container_app_environment" "main" {
-  name                = "weight-tracker-env"
+  name                = "cae-baw-weighttracker-prd"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
 }

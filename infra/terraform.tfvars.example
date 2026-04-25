@@ -13,11 +13,11 @@ subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 # Used to scope the OIDC federated credential to your repo's main branch.
 github_repo = "<your-github-username>/weight_analysis"
 
-# Optional overrides (defaults are fine for most cases)
-# resource_group_name  = "weight-tracker-rg"
+# Optional overrides (defaults follow Microsoft naming convention)
+# resource_group_name  = "rg-baw-weighttracker-prd"
 # location             = "francecentral"
-# acr_name             = "weighttrackercr"
-# storage_account_name = "wtkeycloakstorage"
+# acr_name             = "crbawweighttrackerprd"       # alphanumeric only — Azure constraint
+# storage_account_name = "stbawweighttrackerprd"       # alphanumeric only — Azure constraint
 
 # -----------------------------------------------------------
 # App database — Neon project: weighttracker

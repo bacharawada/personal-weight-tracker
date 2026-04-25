@@ -10,7 +10,7 @@
 # ============================================================
 
 resource "azurerm_container_app" "keycloak" {
-  name                         = "weight-tracker-keycloak"
+  name                         = "ca-baw-weighttracker-keycloak-prd"
   resource_group_name          = azurerm_resource_group.main.name
   container_app_environment_id = azurerm_container_app_environment.main.id
   revision_mode                = "Single"

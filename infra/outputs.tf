@@ -42,13 +42,13 @@ output "dns_instructions" {
     STEP 2 — Bind custom domains (run after DNS has propagated)
     ================================================================
     az containerapp hostname bind \
-      --name weight-tracker \
+      --name ca-baw-weighttracker-prd \
       --resource-group ${var.resource_group_name} \
       --hostname ${var.app_domain} \
       --validation-method CNAME
 
     az containerapp hostname bind \
-      --name weight-tracker-keycloak \
+      --name ca-baw-weighttracker-keycloak-prd \
       --resource-group ${var.resource_group_name} \
       --hostname ${var.keycloak_domain} \
       --validation-method CNAME

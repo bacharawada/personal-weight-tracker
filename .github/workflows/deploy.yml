@@ -14,7 +14,7 @@
 #   AZURE_CLIENT_ID          Service principal / managed identity client ID
 #   AZURE_TENANT_ID          Azure tenant ID
 #   AZURE_SUBSCRIPTION_ID    Azure subscription ID
-#   ACR_LOGIN_SERVER         e.g. weighttrackercr.azurecr.io
+#   ACR_LOGIN_SERVER         e.g. crbawweighttrackerprd.azurecr.io
 #   VITE_KEYCLOAK_URL        https://weighttracker-auth.bawada.fr
 #   VITE_KEYCLOAK_REALM      weight-tracker
 #   VITE_KEYCLOAK_CLIENT_ID  weight-tracker-frontend
@@ -34,9 +34,9 @@ permissions:
   contents: read
 
 env:
-  RESOURCE_GROUP: weight-tracker-rg
-  CONTAINERAPP_NAME: weight-tracker
-  IMAGE_NAME: weight-tracker
+  RESOURCE_GROUP: rg-baw-weighttracker-prd
+  CONTAINERAPP_NAME: ca-baw-weighttracker-prd
+  IMAGE_NAME: ca-baw-weighttracker-prd
 
 jobs:
   deploy:
@@ -65,7 +65,7 @@ jobs:
       # 3. Log in to Azure Container Registry
       # ----------------------------------------------------------
       - name: Log in to ACR
-        run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+        run: az acr login --name crbawweighttrackerprd
 
       # ----------------------------------------------------------
       # 4. Build the production Docker image

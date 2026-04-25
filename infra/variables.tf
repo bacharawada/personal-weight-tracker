@@ -22,7 +22,7 @@ variable "subscription_id" {
 variable "resource_group_name" {
   description = "Name of the Azure resource group"
   type        = string
-  default     = "weight-tracker-rg"
+  default     = "rg-baw-weighttracker-prd"
 }
 
 variable "location" {
@@ -32,15 +32,15 @@ variable "location" {
 }
 
 variable "acr_name" {
-  description = "Azure Container Registry name (globally unique, alphanumeric only)"
+  description = "Azure Container Registry name (globally unique, alphanumeric only — hyphens not allowed by Azure)"
   type        = string
-  default     = "weighttrackercr"
+  default     = "crbawweighttrackerprd"
 }
 
 variable "storage_account_name" {
-  description = "Storage account name for Keycloak config files (globally unique, 3-24 lowercase alphanumeric)"
+  description = "Storage account name for Keycloak config files (globally unique, 3-24 lowercase alphanumeric — hyphens not allowed by Azure)"
   type        = string
-  default     = "wtkeycloakstorage"
+  default     = "stbawweighttrackerprd"
 }
 
 # ------------------------------------------------------------
