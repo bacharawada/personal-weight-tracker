@@ -1,17 +1,15 @@
 # ============================================================
-# Weight Tracker — Production deployment pipeline
+# Weight Tracker — Web app deployment pipeline
 #
-# Triggered on every push to main.
+# Two sequential jobs:
+#   1. test    — runs pytest; blocks deploy if any test fails
+#   2. deploy  — builds Docker image, pushes to ACR, updates
+#                the Container App revision
 #
-# Steps:
-#   1. Log in to Azure via OIDC (no long-lived secrets stored)
-#   2. Log in to Azure Container Registry
-#   3. Build the production Docker image (React + FastAPI)
-#   4. Push image to ACR with :latest and :<git-sha> tags
-#   5. Update the Container App to the new image revision
+# Trigger: push to main, or manual (workflow_dispatch).
 #
-# Required GitHub Actions secrets (Settings → Secrets → Actions):
-#   AZURE_CLIENT_ID          Service principal / managed identity client ID
+# Required GitHub Actions secrets:
+#   AZURE_CLIENT_ID          Service principal client ID (OIDC)
 #   AZURE_TENANT_ID          Azure tenant ID
 #   AZURE_SUBSCRIPTION_ID    Azure subscription ID
 #   ACR_LOGIN_SERVER         e.g. crbawweighttrackerprd.azurecr.io
@@ -20,28 +18,61 @@
 #   VITE_KEYCLOAK_CLIENT_ID  weight-tracker-frontend
 # ============================================================
 
-name: Deploy to Azure Container Apps
+name: App — Test & Deploy
 
 on:
   push:
     branches:
       - main
-  # Allow manual triggering from the GitHub Actions UI
   workflow_dispatch:
 
 permissions:
-  id-token: write   # Required for OIDC login to Azure
+  id-token: write  # Required for OIDC login to Azure
   contents: read
 
 env:
-  RESOURCE_GROUP: rg-baw-weighttracker-prd
+  RESOURCE_GROUP:    rg-baw-weighttracker-prd
   CONTAINERAPP_NAME: ca-baw-weighttracker-prd
-  IMAGE_NAME: ca-baw-weighttracker-prd
+  IMAGE_NAME:        ca-baw-weighttracker-prd
 
 jobs:
+  # ------------------------------------------------------------
+  # Job 1: Test
+  # Runs the full pytest suite. Deploy is blocked until this
+  # passes — a failing test never reaches production.
+  # ------------------------------------------------------------
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Tests use in-memory SQLite — no real DB connection needed.
+      # PYTHONPATH matches pyproject.toml [tool.pytest.ini_options].
+      - name: Run pytest
+        env:
+          PYTHONPATH: backend
+        run: pytest
+
+  # ------------------------------------------------------------
+  # Job 2: Deploy
+  # Only runs after the test job succeeds.
+  # ------------------------------------------------------------
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       # ----------------------------------------------------------
@@ -51,14 +82,13 @@ jobs:
         uses: actions/checkout@v4
 
       # ----------------------------------------------------------
-      # 2. Log in to Azure via OIDC federated credentials
-      #    No client secret stored — uses GitHub's OIDC token.
+      # 2. Log in to Azure via OIDC
       # ----------------------------------------------------------
       - name: Log in to Azure (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # ----------------------------------------------------------
@@ -69,7 +99,7 @@ jobs:
 
       # ----------------------------------------------------------
       # 4. Build the production Docker image
-      #    VITE_* build args are baked into the JS bundle here.
+      #    VITE_* args are baked into the React JS bundle here.
       # ----------------------------------------------------------
       - name: Build Docker image
         run: |
@@ -86,6 +116,8 @@ jobs:
 
       # ----------------------------------------------------------
       # 5. Push image to ACR
+      #    Both :latest and :<git-sha> are pushed.
+      #    The SHA tag enables precise rollback to any revision.
       # ----------------------------------------------------------
       - name: Push image to ACR
         run: |
@@ -96,10 +128,11 @@ jobs:
           docker push "${IMAGE_TAG}:${GIT_SHA}"
 
       # ----------------------------------------------------------
-      # 6. Deploy new revision to Azure Container Apps
-      #    Uses the SHA-tagged image for precise rollback ability.
+      # 6. Deploy new revision to the Container App
+      #    Uses the SHA-tagged image so the revision is traceable
+      #    back to an exact commit.
       # ----------------------------------------------------------
-      - name: Deploy to Container Apps
+      - name: Deploy to Container App
         run: |
           IMAGE="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
 
@@ -109,7 +142,7 @@ jobs:
             --image "$IMAGE"
 
       # ----------------------------------------------------------
-      # 7. Print the app URL for easy access from the Actions log
+      # 7. Print deployed URL
       # ----------------------------------------------------------
       - name: Print deployed URL
         run: |

@@ -1,0 +1,81 @@
+# ============================================================
+# Weight Tracker — Database migration pipeline
+#
+# Runs Alembic migrations against the production Neon database.
+#
+# Trigger: manual only (workflow_dispatch).
+#          Migrations are irreversible operations — never fire
+#          automatically on a code push.
+#
+# The app's entrypoint.sh also runs migrations on container
+# startup, so this pipeline serves as a standalone way to:
+#   - Run migrations before a deploy
+#   - Check migration state independently
+#   - Recover from a failed startup migration
+#
+# Required GitHub Actions secrets:
+#   DATABASE_URL   Neon SQLAlchemy connection string
+#                  e.g. postgresql+psycopg2://user:pass@host/db?sslmode=require
+# ============================================================
+
+name: Database — Migrations
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Run Alembic migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------
+      # 1. Checkout
+      # ----------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------
+      # 2. Set up Python
+      # ----------------------------------------------------------
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # ----------------------------------------------------------
+      # 3. Install dependencies
+      # ----------------------------------------------------------
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ----------------------------------------------------------
+      # 4. Show current migration state (informational)
+      # ----------------------------------------------------------
+      - name: Show current migration state
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONPATH: backend
+        run: alembic -c backend/alembic.ini current
+
+      # ----------------------------------------------------------
+      # 5. Run migrations
+      # ----------------------------------------------------------
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONPATH: backend
+        run: alembic -c backend/alembic.ini upgrade head
+
+      # ----------------------------------------------------------
+      # 6. Confirm final state
+      # ----------------------------------------------------------
+      - name: Confirm migration state
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONPATH: backend
+        run: alembic -c backend/alembic.ini current
