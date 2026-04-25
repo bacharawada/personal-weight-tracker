@@ -32,7 +32,7 @@ export function ActionCard({
     <button
       onClick={onClick}
       className={[
-        "group flex items-center gap-4 w-full p-4 text-left transition-all duration-150 cursor-pointer",
+        "group flex items-center gap-4 w-full p-4 min-h-[60px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
         isOnboarding
           ? "items-start rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
           : "rounded-lg shadow-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[var(--color-accent)] hover:bg-blue-50/40 dark:hover:bg-[var(--color-accent)]/5",

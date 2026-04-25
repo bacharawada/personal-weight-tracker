@@ -69,12 +69,12 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+        className="w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[92vh] flex flex-col"
       >
         {/* Progress bar */}
         <div className="h-1 bg-gray-100 dark:bg-gray-800">
@@ -91,7 +91,7 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
           />
         </div>
 
-        <div className="p-8">
+        <div className="p-5 sm:p-8 overflow-y-auto flex-1">
           <AnimatePresence mode="wait">
             {/* ---- Welcome ---- */}
             {step === "welcome" && (
