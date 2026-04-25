@@ -126,13 +126,13 @@ export function MeasurementRow({
             </Button>
           </div>
         ) : (
-          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={(e) => onEditStart(m, e)}
               title="Edit weight"
-              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 min-w-[36px] min-h-[36px]"
             >
               <Pencil size={14} />
             </Button>
@@ -144,7 +144,7 @@ export function MeasurementRow({
                 onDeleteRequest(m);
               }}
               title="Delete"
-              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 min-w-[36px] min-h-[36px]"
             >
               <Trash2 size={14} />
             </Button>

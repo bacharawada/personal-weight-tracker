@@ -23,13 +23,13 @@ export function AnalysisPage() {
 
   return (
     <PageTransition>
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-4 md:space-y-8">
       <PageTitle title="Analysis" subtitle="Rate of change and residuals vs. exponential decay model" />
 
       {/* Controls row */}
-      <div className="flex flex-wrap gap-6 bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+      <div className="flex flex-wrap gap-4 md:gap-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-5">
         {/* Smoothing window */}
-        <div className="flex-1 min-w-48">
+        <div className="flex-1 min-w-full md:min-w-48">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Smoothing Window: <span className="font-bold">{chartParams.smoothing}</span>
           </label>
@@ -55,7 +55,7 @@ export function AnalysisPage() {
         </div>
 
         {/* Extrapolation horizon */}
-        <div className="flex-1 min-w-64">
+        <div className="flex-1 min-w-full md:min-w-64">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Extrapolation Horizon
           </label>
@@ -64,7 +64,7 @@ export function AnalysisPage() {
               <button
                 key={opt.value}
                 onClick={() => setChartParams({ ...chartParams, horizon: opt.value })}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                className={`px-3 py-2 md:py-1.5 rounded-md text-sm font-medium transition-colors ${
                   chartParams.horizon !== opt.value
                     ? "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                     : "text-white"
@@ -82,7 +82,7 @@ export function AnalysisPage() {
         </div>
       </div>
 
-      <WeightChart params={chartParams} refreshKey={refreshKey} onPointClick={handlePointClick} />
+      <WeightChart params={chartParams} refreshKey={refreshKey} onPointClick={handlePointClick} className="h-[260px] md:h-[380px]" />
       <DerivativeChart params={chartParams} refreshKey={refreshKey} />
       <ResidualsChart params={chartParams} refreshKey={refreshKey} />
     </div>

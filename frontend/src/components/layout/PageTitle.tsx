@@ -13,7 +13,7 @@ export function PageTitle({ title, subtitle }: PageTitleProps) {
   return (
     <div>
       <h1
-        className="text-2xl font-bold"
+        className="text-xl md:text-2xl font-bold"
         style={{ color: "var(--color-accent)" }}
       >
         {title}

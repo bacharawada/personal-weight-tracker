@@ -55,7 +55,7 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
     : null;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
       {[0, 1, 2, 3, 4].map((i) => (
         <div
           key={i}
@@ -91,8 +91,8 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: i * 0.05 }}
               >
-                <p className="text-sm text-gray-500 dark:text-gray-400">{cards[i].label}</p>
-                <p className={`text-xl font-bold ${cards[i].color}`}>{cards[i].value}</p>
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 leading-tight">{cards[i].label}</p>
+                <p className={`text-base md:text-xl font-bold leading-tight mt-0.5 ${cards[i].color}`}>{cards[i].value}</p>
               </motion.div>
             )}
           </AnimatePresence>

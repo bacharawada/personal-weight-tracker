@@ -17,7 +17,7 @@ export function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col h-full p-8 gap-8">
+      <div className="flex flex-col h-full p-4 md:p-8 gap-4 md:gap-8">
         <PageTitle title="Dashboard" subtitle="Overview of your weight progression" />
 
         <StatsCards refreshKey={refreshKey} />

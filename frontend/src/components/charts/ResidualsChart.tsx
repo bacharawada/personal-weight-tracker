@@ -15,7 +15,7 @@ export function ResidualsChart({ params, refreshKey }: ResidualsChartProps) {
     <PlotlyChart
       fetchFigure={fetchFigure}
       refreshKey={refreshKey}
-      className="h-[380px]"
+      className="h-[260px] md:h-[380px]"
     />
   );
 }
