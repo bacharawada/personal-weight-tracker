@@ -8,6 +8,7 @@ import { AnalysisPage } from "./pages/AnalysisPage";
 import { DataPage } from "./pages/DataPage/DataPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
+import { AboutPage } from "./pages/AboutPage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { SilentRenewPage } from "./pages/SilentRenewPage";
 
@@ -22,6 +23,7 @@ export default function App() {
         <Routes>
           {/* Public routes — no auth required */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/auth/silent-renew" element={<SilentRenewPage />} />
 
