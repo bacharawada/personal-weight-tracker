@@ -27,21 +27,21 @@ export function SettingsPage() {
 
   return (
     <PageTransition>
-    <div className="p-6 space-y-8 max-w-2xl">
+    <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-w-2xl">
       <PageTitle title="Settings" subtitle="Customize the appearance and export your data" />
 
       {/* Theme */}
       <section>
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Appearance</h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Theme</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 Currently: {isDark ? "Dark" : "Light"}
               </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={toggleTheme}>
+            <Button variant="secondary" size="sm" onClick={toggleTheme} className="shrink-0">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
               Switch to {isDark ? "Light" : "Dark"}
             </Button>
@@ -78,7 +78,7 @@ export function SettingsPage() {
                 <button
                   key={name}
                   onClick={() => setChartParams({ ...chartParams, palette: name })}
-                  className={`flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-colors ${
+                  className={`flex items-center gap-3 p-3 min-h-[52px] rounded-lg border-2 text-left transition-colors ${
                     isActive
                       ? ""
                       : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
@@ -118,7 +118,7 @@ export function SettingsPage() {
       <section>
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Export</h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Weight Chart</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
