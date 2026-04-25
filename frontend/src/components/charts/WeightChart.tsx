@@ -28,7 +28,7 @@ export function WeightChart({ params, refreshKey, onPointClick }: WeightChartPro
       fetchFigure={fetchFigure}
       refreshKey={refreshKey}
       onClick={handleClick}
-      className="flex-1 min-h-0"
+      className="h-[300px] md:flex-1 md:h-auto md:min-h-0"
     />
   );
 }
