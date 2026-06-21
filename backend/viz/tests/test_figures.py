@@ -9,7 +9,11 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 
-from analysis import FitResult, fit_exponential_decay
+from analysis import (
+    MODEL_EXP,
+    MODEL_LINEAR,
+    build_model_curve,
+)
 from viz import (
     PALETTES,
     PaletteConfig,
@@ -27,7 +31,7 @@ class TestBuildWeightFigure:
     """Tests for ``build_weight_figure()``."""
 
     def test_returns_figure(self, sample_df: pd.DataFrame) -> None:
-        """build_weight_figure() returns a plotly Figure."""
+        """build_weight_figure() returns a plotly Figure with no curves."""
         fig = build_weight_figure(sample_df)
         assert isinstance(fig, go.Figure)
 
@@ -38,21 +42,34 @@ class TestBuildWeightFigure:
         assert any("Raw" in n for n in names)
         assert any("Rolling" in n for n in names)
 
-    def test_with_fit(self, sample_df: pd.DataFrame) -> None:
-        """Weight figure includes fit trace when fit succeeds."""
-        fit_result = fit_exponential_decay(sample_df)
-        fig = build_weight_figure(sample_df, fit_result=fit_result)
+    def test_with_exp_curve(self, sample_df: pd.DataFrame) -> None:
+        """Weight figure includes the exp curve when supplied."""
+        curve = build_model_curve(sample_df, MODEL_EXP, extrapolation_days=0)
+        fig = build_weight_figure(sample_df, model_curves=[curve])
         names = [t.name for t in fig.data if t.name]
-        assert any("Exp" in n for n in names)
+        assert any("decay" in n.lower() for n in names)
 
-    def test_with_extrapolation(self, sample_df: pd.DataFrame) -> None:
-        """Weight figure includes extrapolation trace."""
-        fit_result = fit_exponential_decay(sample_df)
-        fig = build_weight_figure(
-            sample_df, fit_result=fit_result, extrapolation_days=90
-        )
+    def test_two_curves_do_not_crash(self, sample_df: pd.DataFrame) -> None:
+        """Overlaying both models produces a valid figure."""
+        curves = [
+            build_model_curve(sample_df, MODEL_EXP, extrapolation_days=60),
+            build_model_curve(sample_df, MODEL_LINEAR, extrapolation_days=60),
+        ]
+        fig = build_weight_figure(sample_df, model_curves=curves)
         names = [t.name for t in fig.data if t.name]
-        assert any("Extrapol" in n for n in names)
+        assert any("decay" in n.lower() for n in names)
+        assert any("trend" in n.lower() for n in names)
+
+    def test_band_traces_present_when_shown(self, sample_df: pd.DataFrame) -> None:
+        """A band adds filled traces beyond the centre lines."""
+        curve = build_model_curve(
+            sample_df, MODEL_EXP, extrapolation_days=60, with_band=True
+        )
+        with_band = build_weight_figure(sample_df, model_curves=[curve], show_band=True)
+        without_band = build_weight_figure(
+            sample_df, model_curves=[curve], show_band=False
+        )
+        assert len(with_band.data) > len(without_band.data)
 
     def test_axis_labels(self, sample_df: pd.DataFrame) -> None:
         """X and Y axis labels are set and non-empty."""
@@ -122,28 +139,40 @@ class TestBuildResidualsFigure:
 
     def test_returns_figure(self, sample_df: pd.DataFrame) -> None:
         """build_residuals_figure() returns a plotly Figure."""
-        fit_result = fit_exponential_decay(sample_df)
-        fig = build_residuals_figure(sample_df, fit_result=fit_result)
+        curve = build_model_curve(sample_df, MODEL_EXP)
+        fig = build_residuals_figure(sample_df, model_curves=[curve])
         assert isinstance(fig, go.Figure)
 
-    def test_no_fit_shows_message(self, sample_df: pd.DataFrame) -> None:
-        """Residuals figure shows message when no fit is available."""
-        fig = build_residuals_figure(sample_df, fit_result=None)
+    def test_no_curve_shows_message(self, sample_df: pd.DataFrame) -> None:
+        """Residuals figure shows message when no curve is available."""
+        fig = build_residuals_figure(sample_df, model_curves=None)
         assert isinstance(fig, go.Figure)
         # Should have annotation about unavailability.
         assert len(fig.layout.annotations) > 0
 
+    def test_two_models_two_traces(self, sample_df: pd.DataFrame) -> None:
+        """Each successful model contributes its own residual trace."""
+        curves = [
+            build_model_curve(sample_df, MODEL_EXP),
+            build_model_curve(sample_df, MODEL_LINEAR),
+        ]
+        fig = build_residuals_figure(sample_df, model_curves=curves)
+        residual_traces = [t for t in fig.data if t.name and "residuals" in t.name.lower()]
+        assert len(residual_traces) == 2
+
     def test_axis_labels(self, sample_df: pd.DataFrame) -> None:
         """X and Y axis labels are set and non-empty."""
-        fit_result = fit_exponential_decay(sample_df)
-        fig = build_residuals_figure(sample_df, fit_result=fit_result)
+        curve = build_model_curve(sample_df, MODEL_EXP)
+        fig = build_residuals_figure(sample_df, model_curves=[curve])
         assert fig.layout.xaxis.title.text
         assert fig.layout.yaxis.title.text
 
-    def test_failed_fit(self, sample_df: pd.DataFrame) -> None:
-        """Residuals figure handles failed fit gracefully."""
-        bad_result = FitResult(success=False)
-        fig = build_residuals_figure(sample_df, fit_result=bad_result)
+    def test_failed_curve(self, sample_df: pd.DataFrame) -> None:
+        """Residuals figure handles a failed curve gracefully."""
+        from analysis import ModelCurve
+
+        bad_curve = ModelCurve(kind=MODEL_EXP, success=False)
+        fig = build_residuals_figure(sample_df, model_curves=[bad_curve])
         assert isinstance(fig, go.Figure)
 
 

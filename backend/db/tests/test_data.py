@@ -223,6 +223,54 @@ class TestUserProfile:
         profile = s.get_user_profile("onboard-test-user")
         assert profile["onboarding_completed"] is True
 
+    def test_profile_defaults(self, engine: sa.engine.Engine) -> None:
+        """New users have null profile fields and a 'kg' unit preference."""
+        s = WeightDataStore(engine)
+        profile = s.get_user_profile("profile-defaults-user")
+        assert profile["height_cm"] is None
+        assert profile["goal_weight"] is None
+        assert profile["target_date"] is None
+        assert profile["unit_preference"] == "kg"
+
+    def test_update_profile(self, engine: sa.engine.Engine) -> None:
+        """update_profile() persists supplied fields."""
+        import datetime
+
+        s = WeightDataStore(engine)
+        s.update_profile(
+            "profile-update-user",
+            {
+                "height_cm": 175.0,
+                "goal_weight": 70.0,
+                "target_date": datetime.date(2026, 12, 31),
+                "unit_preference": "lb",
+            },
+        )
+        profile = s.get_user_profile("profile-update-user")
+        assert profile["height_cm"] == 175.0
+        assert profile["goal_weight"] == 70.0
+        assert profile["target_date"] == datetime.date(2026, 12, 31)
+        assert profile["unit_preference"] == "lb"
+
+    def test_update_profile_partial(self, engine: sa.engine.Engine) -> None:
+        """update_profile() leaves unspecified fields untouched."""
+        s = WeightDataStore(engine)
+        s.update_profile("partial-user", {"goal_weight": 80.0})
+        s.update_profile("partial-user", {"unit_preference": "lb"})
+        profile = s.get_user_profile("partial-user")
+        assert profile["goal_weight"] == 80.0
+        assert profile["unit_preference"] == "lb"
+
+    def test_update_profile_ignores_unknown_keys(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """update_profile() silently drops keys outside the allowed set."""
+        s = WeightDataStore(engine)
+        s.update_profile("safe-user", {"id": 999, "goal_weight": 65.0})
+        profile = s.get_user_profile("safe-user")
+        assert profile["goal_weight"] == 65.0
+        assert profile["id"] != 999
+
 
 # -----------------------------------------------------------------------
 # Migration

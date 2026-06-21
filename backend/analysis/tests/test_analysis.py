@@ -9,14 +9,22 @@ import numpy as np
 import pandas as pd
 
 from analysis import (
+    MODEL_EXP,
+    MODEL_LINEAR,
+    AnalysisConfig,
     FitResult,
+    build_model_curve,
     compute_derivative,
     compute_rolling_mean,
     compute_summary_stats,
     detect_deviations,
     exp_decay,
+    exp_decay_band,
     extrapolate_fit,
     fit_exponential_decay,
+    fit_recent_trend,
+    project_goal,
+    trend_curve,
 )
 
 # -----------------------------------------------------------------------
@@ -222,3 +230,263 @@ class TestSummaryStats:
         stats = compute_summary_stats(df)
         assert stats.total_loss_kg == 0.0
         assert stats.days_tracked == 0
+        assert stats.latest_weight is None
+
+    def test_latest_weight(self, sample_df: pd.DataFrame) -> None:
+        """Latest weight equals the most recent measurement."""
+        stats = compute_summary_stats(sample_df)
+        assert stats.latest_weight == 167.0
+
+
+# -----------------------------------------------------------------------
+# Goal projection
+# -----------------------------------------------------------------------
+
+
+class TestGoalProjection:
+    """Tests for ``project_goal()`` (recency-weighted linear trend)."""
+
+    def test_no_goal(self, sample_df: pd.DataFrame) -> None:
+        """A ``None`` goal reports has_goal=False."""
+        proj = project_goal(sample_df, goal_weight=None)
+        assert proj.has_goal is False
+        assert proj.reachable is None
+
+    def test_empty_data(self) -> None:
+        """No measurements yields an unknown projection."""
+        df = pd.DataFrame(columns=["date", "weight"])
+        proj = project_goal(df, goal_weight=70.0)
+        assert proj.has_goal is True
+        assert proj.predicted_date is None
+
+    def test_already_reached(self, sample_df: pd.DataFrame) -> None:
+        """A goal above the latest weight is already reached."""
+        proj = project_goal(sample_df, goal_weight=200.0)
+        assert proj.already_reached is True
+        assert proj.reachable is True
+        assert proj.days_remaining == 0
+
+    def test_reachable_goal(self, sample_df: pd.DataFrame) -> None:
+        """A goal within the horizon on a downward trend is reachable."""
+        proj = project_goal(sample_df, goal_weight=160.0)
+        assert proj.reachable is True
+        assert proj.predicted_date is not None
+        assert proj.days_remaining is not None and proj.days_remaining > 0
+        assert proj.trend_per_week is not None and proj.trend_per_week < 0
+
+    def test_too_far_beyond_horizon(self, sample_df: pd.DataFrame) -> None:
+        """A goal more than ~2 years out is not reliably projectable.
+
+        A linear trend has no floor, so rather than claim any low weight is
+        reachable given enough time, the projection reports ``reachable=None``.
+        """
+        proj = project_goal(sample_df, goal_weight=40.0)
+        assert proj.reachable is None
+        assert proj.predicted_date is None
+        assert "too far" in proj.reason.lower()
+
+    def test_not_trending_down(self) -> None:
+        """A flat trend below the goal is unreachable (no downward slope)."""
+        df = pd.DataFrame(
+            {
+                "date": pd.date_range("2025-06-01", periods=8, freq="7D"),
+                "weight": [80.0] * 8,
+            }
+        )
+        proj = project_goal(df, goal_weight=70.0)
+        assert proj.reachable is False
+        assert proj.predicted_date is None
+
+    def test_insufficient_data(self) -> None:
+        """Fewer than three points yields an unknown projection (no crash)."""
+        df = pd.DataFrame(
+            {"date": pd.date_range("2025-06-01", periods=2, freq="7D"), "weight": [90.0, 89.0]}
+        )
+        proj = project_goal(df, goal_weight=80.0)
+        assert proj.has_goal is True
+        assert proj.reachable is None
+
+    def test_date_range_ordered_for_noisy_data(self) -> None:
+        """The optimistic/pessimistic bounds bracket the central estimate."""
+        weights = [100.0, 99.2, 98.9, 98.0, 97.6, 96.7, 96.5, 95.6, 95.1, 94.2, 93.9, 93.0]
+        df = pd.DataFrame(
+            {"date": pd.date_range("2025-06-01", periods=len(weights), freq="7D"), "weight": weights}
+        )
+        proj = project_goal(df, goal_weight=88.0)
+        assert proj.reachable is True
+        assert proj.predicted_date is not None
+        assert proj.predicted_date_optimistic is not None
+        assert proj.predicted_date_optimistic <= proj.predicted_date
+        if proj.predicted_date_pessimistic is not None:
+            assert proj.predicted_date_pessimistic >= proj.predicted_date
+
+    def test_on_track_vs_behind(self, sample_df: pd.DataFrame) -> None:
+        """Target dates flip the on_track flag around the predicted date."""
+        import datetime
+
+        far = project_goal(
+            sample_df, goal_weight=160.0, target_date=datetime.date(2030, 1, 1)
+        )
+        near = project_goal(
+            sample_df, goal_weight=160.0, target_date=datetime.date(2025, 10, 16)
+        )
+        assert far.on_track is True
+        assert near.on_track is False
+        assert near.days_ahead_behind is not None and near.days_ahead_behind > 0
+
+
+# -----------------------------------------------------------------------
+# Hardened exponential fit (bounds, recency, covariance, band)
+# -----------------------------------------------------------------------
+
+
+class TestHardenedExpFit:
+    """Tests for the bounded, recency-weighted exponential fit."""
+
+    def test_params_within_bounds(self, sample_df: pd.DataFrame) -> None:
+        """Fitted parameters stay inside the configured bounds."""
+        config = AnalysisConfig()
+        result = fit_exponential_decay(sample_df, config)
+        assert result.success
+        lower, upper = config.fit_bounds
+        for value, lo, hi in zip(result.params, lower, upper, strict=True):
+            assert lo <= value <= hi
+
+    def test_covariance_populated(self, sample_df: pd.DataFrame) -> None:
+        """A successful fit exposes a finite covariance and per-param std."""
+        result = fit_exponential_decay(sample_df)
+        assert result.success
+        assert result.pcov.shape == (3, 3)
+        assert np.all(np.isfinite(result.pcov))
+        assert result.param_std is not None
+        assert all(s >= 0 for s in result.param_std)
+
+    def test_recency_weighting_changes_fit(self, sample_df: pd.DataFrame) -> None:
+        """Disabling recency weighting yields different parameters."""
+        weighted = fit_exponential_decay(sample_df, AnalysisConfig(recency_halflife_days=20.0))
+        equal = fit_exponential_decay(sample_df, AnalysisConfig(recency_halflife_days=None))
+        assert weighted.success and equal.success
+        assert weighted.params != equal.params
+
+    def test_warning_on_non_decaying_series(self) -> None:
+        """A flat series sets a warning but still succeeds gracefully."""
+        df = pd.DataFrame(
+            {
+                "date": pd.date_range("2025-01-01", periods=12, freq="7D"),
+                "weight": [80.0] * 12,
+            }
+        )
+        result = fit_exponential_decay(df)
+        if result.success:
+            assert result.warning != ""
+
+    def test_band_ordered(self, sample_df: pd.DataFrame) -> None:
+        """The Monte-Carlo band has y_low <= y_high everywhere."""
+        result = fit_exponential_decay(sample_df)
+        assert result.success
+        x = np.linspace(0.0, 200.0, 50)
+        y_low, y_high = exp_decay_band(x, result.params, result.pcov)
+        assert len(y_low) == len(x)
+        assert np.all(y_low <= y_high)
+
+    def test_band_empty_on_bad_pcov(self, sample_df: pd.DataFrame) -> None:
+        """A non-finite covariance yields empty band arrays."""
+        x = np.linspace(0.0, 100.0, 10)
+        bad = np.full((3, 3), np.nan)
+        y_low, y_high = exp_decay_band(x, (30.0, 0.003, 150.0), bad)
+        assert len(y_low) == 0
+        assert len(y_high) == 0
+
+
+# -----------------------------------------------------------------------
+# Linear trend curve
+# -----------------------------------------------------------------------
+
+
+class TestTrendCurve:
+    """Tests for ``trend_curve()``."""
+
+    def test_band_brackets_centre(self, sample_df: pd.DataFrame) -> None:
+        """The slow/fast band brackets the centre line away from the anchor."""
+        import datetime
+
+        fit = fit_recent_trend(sample_df)
+        assert fit.success
+        x, y, y_low, y_high = trend_curve(
+            fit,
+            first_date=datetime.date(2025, 6, 1),
+            last_date=datetime.date(2025, 10, 15),
+            horizon_days=90,
+        )
+        assert len(x) > 0
+        lo = np.minimum(y_low, y_high)
+        hi = np.maximum(y_low, y_high)
+        assert np.all(lo <= y + 1e-9)
+        assert np.all(y <= hi + 1e-9)
+
+    def test_failed_fit_returns_empty(self) -> None:
+        """A failed trend fit produces empty arrays."""
+        import datetime
+
+        from analysis import TrendFit
+
+        x, y, y_low, y_high = trend_curve(
+            TrendFit(success=False),
+            first_date=datetime.date(2025, 6, 1),
+            last_date=datetime.date(2025, 10, 1),
+            horizon_days=30,
+        )
+        assert len(x) == 0
+
+
+# -----------------------------------------------------------------------
+# Unified model abstraction
+# -----------------------------------------------------------------------
+
+
+class TestBuildModelCurve:
+    """Tests for ``build_model_curve()``."""
+
+    def test_exp_curve_with_band(self, sample_df: pd.DataFrame) -> None:
+        """The exp model produces in-sample, extrapolation, and band arrays."""
+        curve = build_model_curve(
+            sample_df, MODEL_EXP, extrapolation_days=60, with_band=True
+        )
+        assert curve.success
+        assert curve.kind == MODEL_EXP
+        assert len(curve.x_fit) > 0
+        assert len(curve.x_extra) > 0
+        assert len(curve.y_extra_low) == len(curve.x_extra)
+        assert curve.hline_y is not None
+
+    def test_linear_curve_with_band(self, sample_df: pd.DataFrame) -> None:
+        """The linear model produces a curve, extrapolation, and band."""
+        curve = build_model_curve(
+            sample_df, MODEL_LINEAR, extrapolation_days=60, with_band=True
+        )
+        assert curve.success
+        assert curve.kind == MODEL_LINEAR
+        assert len(curve.x_fit) > 0
+        assert len(curve.x_extra) > 0
+        assert len(curve.y_extra_low) == len(curve.x_extra)
+        assert curve.hline_y is None
+
+    def test_band_absent_when_not_requested(self, sample_df: pd.DataFrame) -> None:
+        """No band arrays are produced when with_band is False."""
+        curve = build_model_curve(
+            sample_df, MODEL_EXP, extrapolation_days=60, with_band=False
+        )
+        assert curve.success
+        assert len(curve.y_extra_low) == 0
+
+    def test_unknown_kind_fails_gracefully(self, sample_df: pd.DataFrame) -> None:
+        """An unknown model kind returns a failed curve, no exception."""
+        curve = build_model_curve(sample_df, "bogus")
+        assert not curve.success
+        assert "Unknown" in curve.error_message
+
+    def test_empty_df_fails_gracefully(self) -> None:
+        """An empty DataFrame returns a failed curve."""
+        df = pd.DataFrame(columns=["date", "weight"])
+        curve = build_model_curve(df, MODEL_EXP)
+        assert not curve.success

@@ -94,7 +94,7 @@ def _make_client(seed: bool = False) -> TestClient:
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
-    from api.routes import charts, exports, stats
+    from api.routes import charts, exports, goal, stats
     from api.routes import measurements as meas_routes
     from api.routes import users as user_routes
 
@@ -111,6 +111,7 @@ def _make_client(seed: bool = False) -> TestClient:
     app.include_router(charts.router, prefix="/api")
     app.include_router(exports.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")
+    app.include_router(goal.router, prefix="/api")
     app.include_router(user_routes.router, prefix="/api")
 
     # Override both dependencies: store and current user.
@@ -271,6 +272,37 @@ class TestChartEndpoints:
         r = client.get("/api/charts/weight")
         assert r.status_code == 200
 
+    def test_chart_both_models_with_band(self) -> None:
+        """Selecting both models with a band returns a valid figure."""
+        client = _make_client(seed=True)
+        r = client.get("/api/charts/weight?models=exp,linear&band=true")
+        assert r.status_code == 200
+        data = r.json()["data"]
+        # Raw + rolling + (per model: in-sample, 2 band traces, projection).
+        assert len(data) >= 4
+
+    def test_chart_no_models(self) -> None:
+        """An empty models list draws raw + rolling only (no overlay)."""
+        client = _make_client(seed=True)
+        r = client.get("/api/charts/weight?models=")
+        assert r.status_code == 200
+        names = [t.get("name") for t in r.json()["data"]]
+        assert "Raw measurements" in names
+        assert not any(name and "decay" in name.lower() for name in names)
+
+    def test_chart_unknown_model_dropped(self) -> None:
+        """Unknown model identifiers are ignored, not errors."""
+        client = _make_client(seed=True)
+        r = client.get("/api/charts/weight?models=exp,bogus")
+        assert r.status_code == 200
+
+    def test_residuals_two_models(self) -> None:
+        """Residuals endpoint accepts multiple models."""
+        client = _make_client(seed=True)
+        r = client.get("/api/charts/residuals?models=exp,linear")
+        assert r.status_code == 200
+        assert "data" in r.json()
+
 
 # -----------------------------------------------------------------------
 # Exports
@@ -341,3 +373,96 @@ class TestUserEndpoints:
         r = client.post("/api/me/complete-onboarding")
         assert r.status_code == 200
         assert r.json()["onboarding_completed"] is True
+
+    def test_profile_defaults(self) -> None:
+        """A fresh profile exposes the new fields with sensible defaults."""
+        client = _make_client(seed=False)
+        data = client.get("/api/me").json()
+        assert data["height_cm"] is None
+        assert data["goal_weight"] is None
+        assert data["target_date"] is None
+        assert data["unit_preference"] == "kg"
+
+    def test_patch_profile_updates_fields(self) -> None:
+        """PATCH /api/me persists profile fields."""
+        client = _make_client(seed=False)
+        r = client.patch(
+            "/api/me",
+            json={
+                "height_cm": 180.0,
+                "goal_weight": 75.0,
+                "target_date": "2026-12-31",
+                "unit_preference": "lb",
+            },
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["height_cm"] == 180.0
+        assert data["goal_weight"] == 75.0
+        assert data["target_date"] == "2026-12-31"
+        assert data["unit_preference"] == "lb"
+
+    def test_patch_profile_partial(self) -> None:
+        """PATCH /api/me only touches the fields supplied."""
+        client = _make_client(seed=False)
+        client.patch("/api/me", json={"goal_weight": 80.0})
+        client.patch("/api/me", json={"unit_preference": "lb"})
+        data = client.get("/api/me").json()
+        assert data["goal_weight"] == 80.0  # preserved across the second patch
+        assert data["unit_preference"] == "lb"
+
+    def test_patch_profile_rejects_out_of_range(self) -> None:
+        """PATCH /api/me validates the weight/height ranges."""
+        client = _make_client(seed=False)
+        r = client.patch("/api/me", json={"goal_weight": 10.0})
+        assert r.status_code == 422
+
+    def test_patch_profile_rejects_bad_unit(self) -> None:
+        """PATCH /api/me rejects an unknown unit preference."""
+        client = _make_client(seed=False)
+        r = client.patch("/api/me", json={"unit_preference": "stone"})
+        assert r.status_code == 422
+
+
+# -----------------------------------------------------------------------
+# Goal projection
+# -----------------------------------------------------------------------
+
+
+class TestGoalEndpoint:
+    """Tests for /api/goal endpoint."""
+
+    def test_no_goal_set(self) -> None:
+        """Without a goal, the projection reports has_goal=False."""
+        client = _make_client(seed=True)
+        data = client.get("/api/goal").json()
+        assert data["has_goal"] is False
+        assert data["reachable"] is None
+
+    def test_reachable_goal_returns_date(self) -> None:
+        """A goal below the trend yields a predicted date."""
+        client = _make_client(seed=True)
+        client.patch("/api/me", json={"goal_weight": 160.0})
+        data = client.get("/api/goal").json()
+        assert data["has_goal"] is True
+        assert data["reachable"] is True
+        assert data["predicted_date"] is not None
+
+    def test_already_reached(self) -> None:
+        """A goal above the current weight is already reached."""
+        client = _make_client(seed=True)
+        client.patch("/api/me", json={"goal_weight": 200.0})
+        data = client.get("/api/goal").json()
+        assert data["already_reached"] is True
+        assert data["days_remaining"] == 0
+
+    def test_on_track_with_target_date(self) -> None:
+        """A generous target date is reported as on track."""
+        client = _make_client(seed=True)
+        client.patch(
+            "/api/me",
+            json={"goal_weight": 160.0, "target_date": "2030-01-01"},
+        )
+        data = client.get("/api/goal").json()
+        assert data["on_track"] is True
+        assert data["days_ahead_behind"] <= 0
