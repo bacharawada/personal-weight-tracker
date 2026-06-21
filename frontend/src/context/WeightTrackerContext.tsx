@@ -8,15 +8,17 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { getMeasurements } from "../lib/api";
+import { getMe, getMeasurements, updateProfile } from "../lib/api";
 import { getPaletteAccent } from "../lib/palette";
-import type { ChartParams } from "../lib/types";
+import type { ChartParams, UserProfile, UserProfileUpdate } from "../lib/types";
+import { WeightUnit } from "../lib/types";
 import { usePolling } from "../hooks/usePolling";
 import { useTheme } from "../hooks/useTheme";
 
@@ -44,6 +46,11 @@ interface WeightTrackerContextValue {
   // Dataset state
   hasData: boolean;
 
+  // User profile (height, goal, units)
+  profile: UserProfile | null;
+  unit: WeightUnit;
+  saveProfile: (patch: UserProfileUpdate) => Promise<void>;
+
   // Point selection (for deletion)
   selectedPoint: SelectedPoint | null;
   setSelectedPoint: (point: SelectedPoint | null) => void;
@@ -60,9 +67,13 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
     horizon: 56,
     palette: "Classic",
     dark: isDark,
+    showExp: true,
+    showLinear: false,
+    showBand: true,
   });
 
   const [hasData, setHasData] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<SelectedPoint | null>(null);
 
   // Skip the dark-sync effect on the very first render: chartParams is already
@@ -86,6 +97,26 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
       .then((m) => setHasData(m.length > 0))
       .catch(() => setHasData(false));
   }, [refreshKey]);
+
+  // Load the user profile (height, goal, unit preference).
+  useEffect(() => {
+    getMe()
+      .then(setProfile)
+      .catch(() => setProfile(null));
+  }, [refreshKey]);
+
+  const saveProfile = useCallback(
+    async (patch: UserProfileUpdate) => {
+      const updated = await updateProfile(patch);
+      setProfile(updated);
+      // Bump so the weight chart (which draws the goal line server-side
+      // from the profile) and the goal card refetch.
+      bump();
+    },
+    [bump],
+  );
+
+  const unit = profile?.unit_preference ?? WeightUnit.Kg;
 
   // Stable numeric key from refreshKey + chartParams for chart refetches.
   const chartRefreshKey = useMemo(() => {
@@ -125,10 +156,25 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
       refreshKey: chartRefreshKey,
       bump,
       hasData,
+      profile,
+      unit,
+      saveProfile,
       selectedPoint,
       setSelectedPoint,
     }),
-    [isDark, toggle, chartParams, accent, chartRefreshKey, bump, hasData, selectedPoint]
+    [
+      isDark,
+      toggle,
+      chartParams,
+      accent,
+      chartRefreshKey,
+      bump,
+      hasData,
+      profile,
+      unit,
+      saveProfile,
+      selectedPoint,
+    ]
   );
 
   return (

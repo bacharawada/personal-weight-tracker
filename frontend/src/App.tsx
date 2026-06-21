@@ -7,6 +7,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { DataPage } from "./pages/DataPage/DataPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { LoginPage } from "./pages/LoginPage";
 import { AboutPage } from "./pages/AboutPage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
@@ -40,6 +41,7 @@ export default function App() {
               <Route path="analysis" element={<AnalysisPage />} />
               <Route path="data" element={<DataPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
             </Route>
           </Route>
         </Routes>
