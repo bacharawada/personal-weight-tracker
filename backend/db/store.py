@@ -67,7 +67,9 @@ class WeightDataStore:
             keycloak_sub: The ``sub`` claim from the Keycloak JWT.
 
         Returns:
-            Dict with keys ``id``, ``keycloak_sub``, ``onboarding_completed``.
+            Dict with keys ``id``, ``keycloak_sub``, ``onboarding_completed``,
+            ``height_cm``, ``goal_weight``, ``target_date``, and
+            ``unit_preference``.
         """
         user_id = self.get_or_create_user(keycloak_sub)
         with self._engine.connect() as conn:
@@ -76,6 +78,10 @@ class WeightDataStore:
                     users.c.id,
                     users.c.keycloak_sub,
                     users.c.onboarding_completed,
+                    users.c.height_cm,
+                    users.c.goal_weight,
+                    users.c.target_date,
+                    users.c.unit_preference,
                 ).where(users.c.id == user_id)
             ).fetchone()
         if row is None:
@@ -84,7 +90,33 @@ class WeightDataStore:
             "id": row[0],
             "keycloak_sub": row[1],
             "onboarding_completed": row[2],
+            "height_cm": row[3],
+            "goal_weight": row[4],
+            "target_date": row[5],
+            "unit_preference": row[6],
         }
+
+    def update_profile(self, keycloak_sub: str, fields: dict) -> None:
+        """Update profile fields for *keycloak_sub*.
+
+        Only the keys present in *fields* are written, so callers can
+        perform partial (PATCH-style) updates. Allowed keys: ``height_cm``,
+        ``goal_weight``, ``target_date``, ``unit_preference``. A ``None``
+        value clears the corresponding column.
+
+        Args:
+            keycloak_sub: The ``sub`` claim from the Keycloak JWT.
+            fields: Mapping of column names to new values.
+        """
+        allowed = {"height_cm", "goal_weight", "target_date", "unit_preference"}
+        values = {k: v for k, v in fields.items() if k in allowed}
+        if not values:
+            return
+        user_id = self.get_or_create_user(keycloak_sub)
+        with self._engine.begin() as conn:
+            conn.execute(
+                users.update().where(users.c.id == user_id).values(**values)
+            )
 
     def complete_onboarding(self, keycloak_sub: str) -> None:
         """Mark onboarding as completed for *keycloak_sub*.

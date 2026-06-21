@@ -45,11 +45,38 @@ users = sa.Table(
         nullable=False,
         server_default=sa.false(),
     ),
+    # -- Profile (all optional; populated via onboarding or settings) ------
+    # Height in centimetres, used to compute BMI on the frontend.
+    sa.Column("height_cm", sa.Float, nullable=True),
+    # Target weight in kilograms (canonical unit; display conversion is a
+    # frontend concern).
+    sa.Column("goal_weight", sa.Float, nullable=True),
+    # Optional date by which the user aims to reach goal_weight.
+    sa.Column("target_date", sa.Date, nullable=True),
+    # Preferred display unit for weights: 'kg' or 'lb'. Storage stays kg.
+    sa.Column(
+        "unit_preference",
+        sa.String(3),
+        nullable=False,
+        server_default="kg",
+    ),
     sa.Column(
         "created_at",
         sa.DateTime(timezone=True),
         nullable=False,
         server_default=sa.func.now(),
+    ),
+    sa.CheckConstraint(
+        "height_cm IS NULL OR (height_cm >= 50 AND height_cm <= 300)",
+        name="ck_height_range",
+    ),
+    sa.CheckConstraint(
+        "goal_weight IS NULL OR (goal_weight >= 40 AND goal_weight <= 300)",
+        name="ck_goal_weight_range",
+    ),
+    sa.CheckConstraint(
+        "unit_preference IN ('kg', 'lb')",
+        name="ck_unit_preference",
     ),
 )
 
