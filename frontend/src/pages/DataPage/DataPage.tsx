@@ -13,15 +13,15 @@ import { AddMeasurementModal } from "./modals/AddMeasurementModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
 import { DeleteMeasurementModal } from "./modals/DeleteMeasurementModal";
 import { DeleteAllModal } from "./modals/DeleteAllModal";
-
-const TABLE_COLUMNS = [
-  { label: "Date", align: "left" as const },
-  { label: "Weight (kg)", align: "right" as const },
-  { label: "Actions", align: "right" as const, className: "w-24" },
-];
+import { unitLabel } from "../../lib/units";
 
 export function DataPage() {
-  const { bump, accent, hasData } = useWeightTracker();
+  const { bump, accent, hasData, unit } = useWeightTracker();
+  const tableColumns = [
+    { label: "Date", align: "left" as const },
+    { label: `Weight (${unitLabel(unit)})`, align: "right" as const },
+    { label: "Actions", align: "right" as const, className: "w-24" },
+  ];
   const {
     measurements,
     loading,
@@ -83,7 +83,7 @@ export function DataPage() {
               {/* Table — full width on mobile, flex-1 on desktop */}
               <div className="flex-1 min-w-0 min-h-0 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 <DataTable
-                  columns={TABLE_COLUMNS}
+                  columns={tableColumns}
                   loading={loading}
                   empty={
                     <>
@@ -102,6 +102,7 @@ export function DataPage() {
                     <MeasurementRow
                       key={m.date}
                       measurement={m}
+                      unit={unit}
                       isEditing={editingDate === m.date}
                       editWeight={editWeight}
                       editError={editError}

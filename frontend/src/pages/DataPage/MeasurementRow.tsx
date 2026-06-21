@@ -9,10 +9,12 @@ import type { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
-import type { Measurement } from "../../lib/types";
+import type { Measurement, WeightUnit } from "../../lib/types";
+import { kgToDisplay, weightBounds } from "../../lib/units";
 
 interface MeasurementRowProps {
   measurement: Measurement;
+  unit: WeightUnit;
   isEditing: boolean;
   editWeight: string;
   editError: string | null;
@@ -29,6 +31,7 @@ interface MeasurementRowProps {
 
 export function MeasurementRow({
   measurement: m,
+  unit,
   isEditing,
   editWeight,
   editError,
@@ -42,6 +45,7 @@ export function MeasurementRow({
   onErrorClear,
   onDeleteRequest,
 }: MeasurementRowProps) {
+  const bounds = weightBounds(unit);
   return (
     <tr
       className={`group transition-colors ${
@@ -75,8 +79,8 @@ export function MeasurementRow({
                 }}
                 onKeyDown={(e) => onKeyDown(e, m.date)}
                 onClick={(e) => e.stopPropagation()}
-                min={40}
-                max={300}
+                min={bounds.min}
+                max={bounds.max}
                 step={0.05}
                 className="w-28 text-right rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
               />
@@ -93,7 +97,7 @@ export function MeasurementRow({
               transition={{ duration: 0.1 }}
               className="font-mono text-gray-900 dark:text-gray-100"
             >
-              {m.weight.toFixed(2)}
+              {kgToDisplay(m.weight, unit).toFixed(2)}
             </motion.span>
           )}
         </AnimatePresence>

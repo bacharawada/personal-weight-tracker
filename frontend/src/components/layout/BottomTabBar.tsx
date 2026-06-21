@@ -5,7 +5,7 @@
  * for navigation on phones. Shows 4 nav tabs + a profile/actions button.
  */
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   Database,
@@ -16,6 +16,7 @@ import {
   Sun,
   TrendingDown,
   CircleUser,
+  UserCog,
 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { useAuth } from "../../context/AuthContext";
@@ -39,6 +40,7 @@ const NAV_ITEMS = [
 export function BottomTabBar() {
   const { isDark, toggleTheme } = useWeightTracker();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const displayName =
     user?.name || (user?.email ? user.email.split("@")[0] : "Account");
@@ -105,6 +107,10 @@ export function BottomTabBar() {
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate("/profile")}>
+              <UserCog size={14} />
+              Profile &amp; goal
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={toggleTheme}>
               {isDark ? <Sun size={14} /> : <Moon size={14} />}
               {isDark ? "Light mode" : "Dark mode"}

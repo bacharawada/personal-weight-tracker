@@ -24,7 +24,7 @@ export function AnalysisPage() {
   return (
     <PageTransition>
     <div className="p-4 md:p-8 space-y-4 md:space-y-8">
-      <PageTitle title="Analysis" subtitle="Rate of change and residuals vs. exponential decay model" />
+      <PageTitle title="Analysis" subtitle="Rate of change and residuals vs. your selected prediction models" />
 
       {/* Controls row */}
       <div className="flex flex-wrap gap-4 md:gap-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-5">
@@ -78,6 +78,48 @@ export function AnalysisPage() {
                 {opt.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Prediction models */}
+        <div className="flex-1 min-w-full md:min-w-56">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Prediction Models
+          </label>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={chartParams.showExp}
+                onChange={(e) =>
+                  setChartParams({ ...chartParams, showExp: e.target.checked })
+                }
+                style={{ accentColor: accent }}
+              />
+              Exponential decay
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={chartParams.showLinear}
+                onChange={(e) =>
+                  setChartParams({ ...chartParams, showLinear: e.target.checked })
+                }
+                style={{ accentColor: accent }}
+              />
+              Linear trend
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={chartParams.showBand}
+                onChange={(e) =>
+                  setChartParams({ ...chartParams, showBand: e.target.checked })
+                }
+                style={{ accentColor: accent }}
+              />
+              Show uncertainty band
+            </label>
           </div>
         </div>
       </div>

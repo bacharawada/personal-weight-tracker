@@ -5,16 +5,22 @@ import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useWeightTracker } from "../../context/WeightTrackerContext";
+import { displayToKg, unitLabel, weightBounds } from "../../lib/units";
 
 interface AddMeasurementProps {
   onSuccess: () => void;
 }
 
 export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
+  const { unit } = useWeightTracker();
   const [date, setDate] = useState("");
   const [weight, setWeight] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const u = unitLabel(unit);
+  const bounds = weightBounds(unit);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,16 +29,20 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
       return;
     }
 
-    const w = parseFloat(weight);
-    if (isNaN(w) || w < 40 || w > 300) {
-      setFeedback({ type: "error", msg: "Weight must be between 40 and 300 kg." });
+    const entered = parseFloat(weight);
+    if (isNaN(entered) || entered < bounds.min || entered > bounds.max) {
+      setFeedback({
+        type: "error",
+        msg: `Weight must be between ${bounds.min.toFixed(0)} and ${bounds.max.toFixed(0)} ${u}.`,
+      });
       return;
     }
 
+    const w = displayToKg(entered, unit);
     setLoading(true);
     try {
       await addMeasurement({ date, weight: w });
-      setFeedback({ type: "success", msg: `Added: ${date} — ${w} kg` });
+      setFeedback({ type: "success", msg: `Added: ${date} — ${entered} ${u}` });
       setDate("");
       setWeight("");
       onSuccess();
@@ -63,16 +73,16 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="add-weight" className="text-xs text-muted-foreground">Weight (kg)</Label>
+          <Label htmlFor="add-weight" className="text-xs text-muted-foreground">Weight ({u})</Label>
           <Input
             id="add-weight"
             type="number"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            min={40}
-            max={300}
+            min={bounds.min}
+            max={bounds.max}
             step={0.05}
-            placeholder="e.g. 75.5"
+            placeholder={u === "lb" ? "e.g. 165" : "e.g. 75.5"}
             className="h-8 text-sm"
           />
         </div>

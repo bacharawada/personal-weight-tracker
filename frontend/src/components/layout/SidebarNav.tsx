@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   BarChart2,
   ChevronLeft,
@@ -20,6 +20,7 @@ import {
   Settings,
   Sun,
   TrendingDown,
+  UserCog,
 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { useAuth } from "../../context/AuthContext";
@@ -44,6 +45,7 @@ const NAV_ITEMS = [
 export function SidebarNav() {
   const { isDark, toggleTheme } = useWeightTracker();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
   const displayName =
@@ -240,6 +242,11 @@ export function SidebarNav() {
                 </span>
               )}
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate("/profile")}>
+              <UserCog size={14} />
+              Profile &amp; goal
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20"

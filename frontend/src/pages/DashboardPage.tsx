@@ -3,6 +3,7 @@ import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
 import { StatsCards } from "../components/layout/StatsCards";
+import { GoalCard } from "../components/dashboard/GoalCard";
 import { WeightChart } from "../components/charts/WeightChart";
 
 export function DashboardPage() {
@@ -21,6 +22,8 @@ export function DashboardPage() {
         <PageTitle title="Dashboard" subtitle="Overview of your weight progression" />
 
         <StatsCards refreshKey={refreshKey} />
+
+        <GoalCard refreshKey={refreshKey} />
 
         <WeightChart
           params={chartParams}
