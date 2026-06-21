@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
-from analysis import AnalysisConfig, fit_exponential_decay
+from analysis import MODEL_EXP, MODEL_LINEAR, AnalysisConfig, build_model_curve
 from api.deps import get_current_user, get_store
 from viz import PALETTES, build_weight_figure
 
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 
+_VALID_MODELS = (MODEL_EXP, MODEL_LINEAR)
+
 
 @router.get("/png")
 def export_png(
@@ -24,6 +26,8 @@ def export_png(
     horizon: int = Query(56),
     palette: str = Query("Classic"),
     dark: bool = Query(False),
+    models: str = Query("exp"),
+    band: bool = Query(True),
     keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
 ) -> Response:
@@ -34,15 +38,22 @@ def export_png(
 
     palette_obj = PALETTES.get(palette, PALETTES["Classic"])
     config = AnalysisConfig(smoothing_window=smoothing)
-    fit_result = fit_exponential_decay(df, config)
+    requested = {m.strip() for m in models.split(",") if m.strip()}
+    selected = [m for m in _VALID_MODELS if m in requested]
+    model_curves = [
+        build_model_curve(
+            df, kind, config=config, extrapolation_days=horizon, with_band=band
+        )
+        for kind in selected
+    ]
 
     fig = build_weight_figure(
         df,
-        fit_result=fit_result,
+        model_curves=model_curves,
         palette=palette_obj,
         dark=dark,
         smoothing_window=smoothing,
-        extrapolation_days=horizon,
+        show_band=band,
     )
 
     buf = io.BytesIO()

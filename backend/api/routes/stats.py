@@ -39,4 +39,5 @@ def get_stats(
         "current_trend": stats.current_trend,
         "days_tracked": stats.days_tracked,
         "measurement_count": len(df),
+        "latest_weight": stats.latest_weight,
     }

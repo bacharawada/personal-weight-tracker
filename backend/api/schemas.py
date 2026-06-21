@@ -7,6 +7,7 @@ route handlers stay thin and type-safe.
 from __future__ import annotations
 
 import datetime  # noqa: TC003 — Pydantic needs this at runtime for field validation
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -52,6 +53,28 @@ class StatsOut(BaseModel):
     current_trend: float
     days_tracked: int
     measurement_count: int
+    latest_weight: float | None
+
+
+# ---------------------------------------------------------------------------
+# Goal projection
+# ---------------------------------------------------------------------------
+
+
+class GoalProjectionOut(BaseModel):
+    """Response model for the goal projection (/api/goal)."""
+
+    has_goal: bool
+    reachable: bool | None
+    predicted_date: datetime.date | None
+    predicted_date_optimistic: datetime.date | None
+    predicted_date_pessimistic: datetime.date | None
+    days_remaining: int | None
+    already_reached: bool
+    on_track: bool | None
+    days_ahead_behind: int | None
+    trend_per_week: float | None
+    reason: str
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +110,23 @@ class UserProfileOut(BaseModel):
     id: int
     keycloak_sub: str
     onboarding_completed: bool
+    height_cm: float | None
+    goal_weight: float | None
+    target_date: datetime.date | None
+    unit_preference: Literal["kg", "lb"]
+
+
+class UserProfileUpdate(BaseModel):
+    """Request body for PATCH /api/me — all fields optional (partial update).
+
+    Fields omitted from the request are left unchanged; sending an explicit
+    ``null`` clears the corresponding value.
+    """
+
+    height_cm: float | None = Field(default=None, ge=50.0, le=300.0)
+    goal_weight: float | None = Field(default=None, ge=40.0, le=300.0)
+    target_date: datetime.date | None = None
+    unit_preference: Literal["kg", "lb"] | None = None
 
 
 # ---------------------------------------------------------------------------

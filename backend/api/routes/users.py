@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends
 
 from api.deps import get_current_user, get_store
-from api.schemas import UserProfileOut
+from api.schemas import UserProfileOut, UserProfileUpdate
 
 if TYPE_CHECKING:
     from db import WeightDataStore
@@ -32,6 +32,29 @@ def get_profile(
     Returns:
         User profile dict.
     """
+    return store.get_user_profile(keycloak_sub)
+
+
+@router.patch("/me", response_model=UserProfileOut)
+def update_profile(
+    payload: UserProfileUpdate,
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Partially update the current user's profile.
+
+    Only the fields present in the request body are modified; an explicit
+    ``null`` clears that field.
+
+    Args:
+        payload: Partial profile fields to update.
+        keycloak_sub: Injected from the auth dependency.
+        store: Injected data store.
+
+    Returns:
+        The updated user profile dict.
+    """
+    store.update_profile(keycloak_sub, payload.model_dump(exclude_unset=True))
     return store.get_user_profile(keycloak_sub)
 
 
