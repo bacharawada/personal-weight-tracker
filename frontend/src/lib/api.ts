@@ -10,12 +10,14 @@ import type {
   CsvImportResult,
   CsvPreview,
   CsvPreviewRow,
+  GoalProjection,
   Measurement,
   MeasurementIn,
   Mtime,
   Palettes,
   Stats,
   UserProfile,
+  UserProfileUpdate,
 } from "./types";
 
 const BASE = "/api";
@@ -127,10 +129,26 @@ export async function getMe(): Promise<UserProfile> {
   return fetchJson<UserProfile>(`${BASE}/me`);
 }
 
+export async function updateProfile(patch: UserProfileUpdate): Promise<UserProfile> {
+  return fetchJson<UserProfile>(`${BASE}/me`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+}
+
 export async function completeOnboarding(): Promise<UserProfile> {
   return fetchJson<UserProfile>(`${BASE}/me/complete-onboarding`, {
     method: "POST",
   });
+}
+
+// ---------------------------------------------------------------------------
+// Goal projection
+// ---------------------------------------------------------------------------
+
+export async function getGoal(): Promise<GoalProjection> {
+  return fetchJson<GoalProjection>(`${BASE}/goal`);
 }
 
 // ---------------------------------------------------------------------------
@@ -168,11 +186,17 @@ export async function confirmCsvImport(
 // ---------------------------------------------------------------------------
 
 function chartQuery(params: ChartParams): string {
+  const models = [
+    ...(params.showExp ? ["exp"] : []),
+    ...(params.showLinear ? ["linear"] : []),
+  ].join(",");
   const q = new URLSearchParams({
     smoothing: String(params.smoothing),
     horizon: String(params.horizon),
     palette: params.palette,
     dark: String(params.dark),
+    models,
+    band: String(params.showBand),
   });
   return q.toString();
 }
