@@ -19,12 +19,15 @@ class SummaryStats:
         avg_loss_per_week: Mean weekly loss over the entire period.
         current_trend: Rolling-mean slope over the last 4 weeks (kg/week).
         days_tracked: Elapsed calendar days from first to last measurement (inclusive).
+        latest_weight: Most recent measured weight in kg, or ``None`` when
+            there is no data (used to compute BMI on the frontend).
     """
 
     total_loss_kg: float
     avg_loss_per_week: float
     current_trend: float
     days_tracked: int
+    latest_weight: float | None
 
 
 def compute_summary_stats(df: pd.DataFrame) -> SummaryStats:
@@ -43,6 +46,7 @@ def compute_summary_stats(df: pd.DataFrame) -> SummaryStats:
             avg_loss_per_week=0.0,
             current_trend=0.0,
             days_tracked=0,
+            latest_weight=None,
         )
 
     dates = pd.to_datetime(df["date"])
@@ -79,4 +83,5 @@ def compute_summary_stats(df: pd.DataFrame) -> SummaryStats:
         # first and last measurement, not the count of measurements.
         # Use (last - first).days + 1 to include both endpoints.
         days_tracked=int(total_days) + 1,
+        latest_weight=float(weights[-1]),
     )
