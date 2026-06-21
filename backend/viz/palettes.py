@@ -22,6 +22,8 @@ class PaletteConfig:
         raw: Colour for raw data points and line.
         smoothed: Colour for the rolling-mean (smoothed) line.
         fit: Colour for the exponential-decay fit curve.
+        fit_linear: Colour for the linear-trend model curve.
+        band: Colour for model uncertainty bands (drawn at low opacity).
         derivative: Colour for negative derivative bars.
         derivative_pos: Colour for positive derivative bars.
         derivative_smooth: Colour for the smoothed derivative line.
@@ -34,6 +36,8 @@ class PaletteConfig:
     raw: str
     smoothed: str
     fit: str
+    fit_linear: str
+    band: str
     derivative: str
     derivative_pos: str
     derivative_smooth: str
@@ -48,6 +52,8 @@ PALETTES: dict[str, PaletteConfig] = {
         raw="#2E6DB4",
         smoothed="#C97A0A",
         fit="#2CA02C",
+        fit_linear="#9467BD",
+        band="#94A3B8",
         derivative="#1E8C5E",
         derivative_pos="#E07070",
         derivative_smooth="#136644",
@@ -60,6 +66,8 @@ PALETTES: dict[str, PaletteConfig] = {
         raw="#00897B",
         smoothed="#26A69A",
         fit="#004D40",
+        fit_linear="#5E35B1",
+        band="#80CBC4",
         derivative="#00695C",
         derivative_pos="#EF5350",
         derivative_smooth="#00796B",
@@ -72,6 +80,8 @@ PALETTES: dict[str, PaletteConfig] = {
         raw="#E65100",
         smoothed="#FF8F00",
         fit="#BF360C",
+        fit_linear="#6A1B9A",
+        band="#FFCC80",
         derivative="#D84315",
         derivative_pos="#C62828",
         derivative_smooth="#A1887F",
@@ -84,6 +94,8 @@ PALETTES: dict[str, PaletteConfig] = {
         raw="#424242",
         smoothed="#757575",
         fit="#1565C0",
+        fit_linear="#6D4C41",
+        band="#BDBDBD",
         derivative="#616161",
         derivative_pos="#EF5350",
         derivative_smooth="#9E9E9E",
@@ -96,6 +108,8 @@ PALETTES: dict[str, PaletteConfig] = {
         raw="#2E7D32",
         smoothed="#558B2F",
         fit="#33691E",
+        fit_linear="#6A1B9A",
+        band="#A5D6A7",
         derivative="#388E3C",
         derivative_pos="#D84315",
         derivative_smooth="#1B5E20",

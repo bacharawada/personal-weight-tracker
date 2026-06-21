@@ -11,17 +11,45 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from analysis import (
-    FitResult,
+    MODEL_EXP,
+    ModelCurve,
     compute_derivative,
     compute_rolling_mean,
-    detect_deviations,
-    extrapolate_fit,
 )
 from viz.palettes import PALETTES, PaletteConfig
 
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
+
+
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    """Convert a ``#RRGGBB`` colour to a Plotly ``rgba(...)`` string.
+
+    Args:
+        hex_color: Hex colour string (with or without leading ``#``).
+        alpha: Opacity in the range [0, 1].
+
+    Returns:
+        An ``rgba(r, g, b, a)`` string.
+    """
+    h = hex_color.lstrip("#")
+    r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
+def _curve_color(curve: ModelCurve, palette: PaletteConfig) -> str:
+    """Return the palette colour for a model curve.
+
+    Args:
+        curve: The model curve.
+        palette: Active colour palette.
+
+    Returns:
+        The exp-fit colour for the exponential model, the linear-trend colour
+        otherwise.
+    """
+    return palette.fit if curve.kind == MODEL_EXP else palette.fit_linear
 
 
 def _plotly_template(dark: bool) -> str:
@@ -61,32 +89,161 @@ def _title(text: str, color: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _draw_deviation_zones(
+    fig: go.Figure,
+    df: pd.DataFrame,
+    exp_curve: ModelCurve,
+    palette: PaletteConfig,
+) -> None:
+    """Shade plateau / acceleration zones from the exponential fit residuals.
+
+    Args:
+        fig: Figure to mutate.
+        df: DataFrame with a ``date`` column (rows align with the residuals).
+        exp_curve: A successful exponential ``ModelCurve``.
+        palette: Active colour palette.
+    """
+    residuals = exp_curve.residuals
+    if exp_curve.std_residuals <= 0 or len(residuals) != len(df):
+        return
+
+    threshold = 0.5 * exp_curve.std_residuals
+    dates = pd.to_datetime(df["date"]).reset_index(drop=True)
+    for i, residual in enumerate(residuals):
+        if residual > threshold:
+            color = palette.residual_above
+        elif residual < -threshold:
+            color = palette.residual_below
+        else:
+            continue
+        row_date = dates.iloc[i]
+        fig.add_vrect(
+            x0=row_date - pd.Timedelta(days=3),
+            x1=row_date + pd.Timedelta(days=3),
+            fillcolor=color,
+            opacity=0.08,
+            line_width=0,
+            layer="below",
+        )
+
+
+def _draw_model_curve(
+    fig: go.Figure,
+    curve: ModelCurve,
+    first_date: pd.Timestamp,
+    palette: PaletteConfig,
+    show_band: bool,
+) -> None:
+    """Draw one model's in-sample line, extrapolation, band and asymptote.
+
+    Args:
+        fig: Figure to mutate.
+        curve: A successful ``ModelCurve``.
+        first_date: Date of the first measurement (x-origin for day offsets).
+        palette: Active colour palette.
+        show_band: Whether to render the uncertainty band.
+    """
+    color = _curve_color(curve, palette)
+
+    # -- In-sample line ----------------------------------------------------
+    fit_dates = first_date + pd.to_timedelta(curve.x_fit, unit="D")
+    fig.add_trace(
+        go.Scatter(
+            x=fit_dates,
+            y=curve.y_fit,
+            mode="lines",
+            name=curve.legend_label,
+            line=dict(color=color, width=1.8),
+        )
+    )
+
+    # -- Uncertainty band over the extrapolation --------------------------
+    has_band = show_band and len(curve.y_extra_low) > 0 and len(curve.y_extra) > 0
+    if has_band:
+        band_dates = first_date + pd.to_timedelta(curve.x_extra, unit="D")
+        fig.add_trace(
+            go.Scatter(
+                x=band_dates,
+                y=curve.y_extra_low,
+                mode="lines",
+                line=dict(width=0),
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=band_dates,
+                y=curve.y_extra_high,
+                mode="lines",
+                line=dict(width=0),
+                fill="tonexty",
+                fillcolor=_hex_to_rgba(palette.band, 0.18),
+                name=f"{curve.legend_label} band",
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+    # -- Extrapolation (dashed centre line) -------------------------------
+    if len(curve.x_extra) > 0:
+        extra_dates = first_date + pd.to_timedelta(curve.x_extra, unit="D")
+        fig.add_trace(
+            go.Scatter(
+                x=extra_dates,
+                y=curve.y_extra,
+                mode="lines",
+                name=f"{curve.legend_label} \u2014 projection",
+                line=dict(color=color, width=1.8, dash="dash"),
+                opacity=0.6,
+                showlegend=False,
+            )
+        )
+
+    # -- Asymptote annotation (exp only) ----------------------------------
+    if curve.hline_y is not None:
+        fig.add_hline(
+            y=curve.hline_y,
+            line_dash="dash",
+            line_color=color,
+            opacity=0.5,
+            annotation_text=curve.hline_label,
+            annotation_position="top left",
+        )
+
+
 def build_weight_figure(
     df: pd.DataFrame,
-    fit_result: FitResult | None = None,
+    model_curves: list[ModelCurve] | None = None,
     palette: PaletteConfig | None = None,
     dark: bool = False,
     smoothing_window: int = 5,
-    extrapolation_days: int = 0,
+    goal_weight: float | None = None,
+    show_band: bool = True,
 ) -> go.Figure:
     """Build the main weight-progression figure.
 
-    Includes raw data, rolling mean, exponential-decay fit (with optional
-    extrapolation), deviation zones, and an asymptote annotation.
+    Includes raw data, rolling mean, any number of selected prediction-model
+    overlays (each with an optional extrapolation and uncertainty band),
+    deviation zones from the exponential model, and an optional goal line.
 
     Args:
         df: DataFrame with ``date`` and ``weight`` columns.
-        fit_result: Optional fit result from ``fit_exponential_decay()``.
+        model_curves: Prediction-model overlays to draw. Empty / ``None``
+            renders raw data and the rolling mean only.
         palette: Colour palette.  Defaults to ``Classic``.
         dark: Whether dark mode is active.
         smoothing_window: Window size for the rolling mean.
-        extrapolation_days: Number of days to extrapolate beyond data.
+        goal_weight: Optional target weight (kg) drawn as a horizontal
+            reference line.
+        show_band: Whether to render each model's uncertainty band.
 
     Returns:
         A ``plotly.graph_objects.Figure``.
     """
     if palette is None:
         palette = PALETTES["Classic"]
+    curves = [c for c in (model_curves or []) if c.success]
 
     fig = go.Figure()
     template = _plotly_template(dark)
@@ -112,30 +269,12 @@ def build_weight_figure(
         return fig
 
     dates = pd.to_datetime(df["date"])
+    first_date = dates.iloc[0]
 
-    # -- Deviation zones ---------------------------------------------------
-    if fit_result and fit_result.success:
-        dev_df = detect_deviations(df, fit_result)
-        for _, row in dev_df.iterrows():
-            row_date = pd.to_datetime(row["date"])
-            if row["plateau"]:
-                fig.add_vrect(
-                    x0=row_date - pd.Timedelta(days=3),
-                    x1=row_date + pd.Timedelta(days=3),
-                    fillcolor=palette.residual_above,
-                    opacity=0.08,
-                    line_width=0,
-                    layer="below",
-                )
-            if row["accel"]:
-                fig.add_vrect(
-                    x0=row_date - pd.Timedelta(days=3),
-                    x1=row_date + pd.Timedelta(days=3),
-                    fillcolor=palette.residual_below,
-                    opacity=0.08,
-                    line_width=0,
-                    layer="below",
-                )
+    # -- Deviation zones (from the exponential model when selected) --------
+    exp_curve = next((c for c in curves if c.kind == MODEL_EXP), None)
+    if exp_curve is not None:
+        _draw_deviation_zones(fig, df, exp_curve, palette)
 
     # -- Raw data ----------------------------------------------------------
     fig.add_trace(
@@ -162,54 +301,34 @@ def build_weight_figure(
         )
     )
 
-    # -- Exponential-decay fit (solid over data) ---------------------------
-    if fit_result and fit_result.success:
-        first_date = dates.iloc[0]
-        fit_dates = first_date + pd.to_timedelta(fit_result.x_fit, unit="D")
-        fig.add_trace(
-            go.Scatter(
-                x=fit_dates,
-                y=fit_result.y_fit,
-                mode="lines",
-                name=(
-                    f"Exp. decay fit (a={fit_result.params[0]:.1f}, "
-                    f"\u03bb={fit_result.params[1] * 365:.2f}/yr)"
-                ),
-                line=dict(color=palette.fit, width=1.8),
-            )
+    # -- Model overlays ----------------------------------------------------
+    for curve in curves:
+        _draw_model_curve(fig, curve, first_date, palette, show_band)
+
+    # -- Model warnings ----------------------------------------------------
+    warnings = [c.warning for c in curves if c.warning]
+    if warnings:
+        fig.add_annotation(
+            text="\u26a0 " + " ".join(warnings),
+            xref="paper",
+            yref="paper",
+            x=0,
+            y=-0.18,
+            showarrow=False,
+            xanchor="left",
+            font=dict(size=11, color=palette.residual_above),
         )
 
-        # -- Extrapolation (dashed) ----------------------------------------
-        if extrapolation_days > 0:
-            last_date = dates.iloc[-1].date()
-            x_extra, y_extra = extrapolate_fit(
-                fit_result,
-                last_date=last_date,
-                first_date=dates.iloc[0].date(),
-                horizon_days=extrapolation_days,
-            )
-            if len(x_extra) > 0:
-                extra_dates = first_date + pd.to_timedelta(x_extra, unit="D")
-                fig.add_trace(
-                    go.Scatter(
-                        x=extra_dates,
-                        y=y_extra,
-                        mode="lines",
-                        name="Extrapolation",
-                        line=dict(color=palette.fit, width=1.8, dash="dash"),
-                        opacity=0.6,
-                    )
-                )
-
-        # -- Asymptote annotation ------------------------------------------
-        c_value = fit_result.params[2]
+    # -- Goal line ---------------------------------------------------------
+    if goal_weight is not None:
         fig.add_hline(
-            y=c_value,
-            line_dash="dash",
-            line_color=palette.fit,
-            opacity=0.5,
-            annotation_text=f"Predicted equilibrium: ~{c_value:.1f} kg",
-            annotation_position="top left",
+            y=goal_weight,
+            line_dash="dot",
+            line_color=palette.accent,
+            line_width=2,
+            opacity=0.8,
+            annotation_text=f"Goal: {goal_weight:.1f} kg",
+            annotation_position="bottom right",
         )
 
     # -- Layout ------------------------------------------------------------
@@ -325,15 +444,18 @@ def build_derivative_figure(
 
 def build_residuals_figure(
     df: pd.DataFrame,
-    fit_result: FitResult | None = None,
+    model_curves: list[ModelCurve] | None = None,
     palette: PaletteConfig | None = None,
     dark: bool = False,
 ) -> go.Figure:
-    """Build the residuals-vs-model chart.
+    """Build the residuals-vs-model chart for every selected model.
+
+    Each successful model contributes one residual line (coloured per model).
+    The \u00b11\u03c3 reference band is drawn from the first successful model.
 
     Args:
         df: DataFrame with ``date`` and ``weight`` columns.
-        fit_result: Result from ``fit_exponential_decay()``.
+        model_curves: Prediction-model overlays whose residuals to plot.
         palette: Colour palette.  Defaults to ``Classic``.
         dark: Whether dark mode is active.
 
@@ -342,11 +464,16 @@ def build_residuals_figure(
     """
     if palette is None:
         palette = PALETTES["Classic"]
+    curves = [
+        c
+        for c in (model_curves or [])
+        if c.success and len(c.residuals) == len(df)
+    ]
 
     fig = go.Figure()
     template = _plotly_template(dark)
 
-    if fit_result is None or not fit_result.success or df.empty:
+    if df.empty or not curves:
         fig.update_layout(
             template=template,
             title=_title("Residuals vs. Model", palette.accent),
@@ -354,7 +481,7 @@ def build_residuals_figure(
             yaxis_title="Residual (kg)",
             annotations=[
                 dict(
-                    text="Residuals unavailable (fit failed or no data)",
+                    text="Residuals unavailable (no model fit or no data)",
                     xref="paper",
                     yref="paper",
                     x=0.5,
@@ -367,58 +494,28 @@ def build_residuals_figure(
         return fig
 
     dates = pd.to_datetime(df["date"])
-    residuals = fit_result.residuals
-    pos_mask = residuals >= 0
-    neg_mask = residuals < 0
 
-    # Above model (plateau zones)
-    fig.add_trace(
-        go.Scatter(
-            x=dates[pos_mask],
-            y=residuals[pos_mask],
-            mode="markers",
-            name="Above model (plateau)",
-            marker=dict(color=palette.residual_above, size=8),
-            fill="tozeroy",
-            fillcolor=palette.residual_above,
-            opacity=0.4,
+    for curve in curves:
+        color = _curve_color(curve, palette)
+        fig.add_trace(
+            go.Scatter(
+                x=dates,
+                y=curve.residuals,
+                mode="lines+markers",
+                name=f"{curve.legend_label} residuals",
+                line=dict(color=color, width=1.4),
+                marker=dict(color=color, size=6),
+            )
         )
-    )
 
-    # Below model (acceleration zones)
-    fig.add_trace(
-        go.Scatter(
-            x=dates[neg_mask],
-            y=residuals[neg_mask],
-            mode="markers",
-            name="Below model (acceleration)",
-            marker=dict(color=palette.residual_below, size=8),
-            fill="tozeroy",
-            fillcolor=palette.residual_below,
-            opacity=0.4,
-        )
-    )
+    fig.add_hline(y=0, line_dash="dash", line_color="grey", opacity=0.7)
 
-    # Connecting line
-    fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=residuals,
-            mode="lines",
-            name="Residuals",
-            line=dict(color="grey", width=1),
-            opacity=0.5,
-            showlegend=False,
-        )
-    )
-
-    fig.add_hline(y=0, line_dash="dash", line_color=palette.fit, opacity=0.7)
-
-    # +/- 1 sigma band
-    if fit_result.std_residuals > 0:
+    # \u00b11\u03c3 band from the first model.
+    first = curves[0]
+    if first.std_residuals > 0:
         fig.add_hrect(
-            y0=-fit_result.std_residuals,
-            y1=fit_result.std_residuals,
+            y0=-first.std_residuals,
+            y1=first.std_residuals,
             fillcolor="grey",
             opacity=0.05,
             line_width=0,
@@ -428,7 +525,7 @@ def build_residuals_figure(
 
     fig.update_layout(
         template=template,
-        title=_title("Residuals vs. Exponential Decay Model", palette.accent),
+        title=_title("Residuals vs. Model", palette.accent),
         xaxis_title="Date",
         yaxis_title="Residual (kg)",
         hovermode="x unified",
