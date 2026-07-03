@@ -23,10 +23,6 @@ export interface Mtime {
   mtime: number;
 }
 
-export interface Palettes {
-  names: string[];
-}
-
 export interface ChartParams {
   smoothing: number;
   horizon: number;
@@ -45,6 +41,125 @@ export const WeightUnit = {
   Lb: "lb",
 } as const;
 export type WeightUnit = (typeof WeightUnit)[keyof typeof WeightUnit];
+
+export const ModelId = {
+  Exp: "exp",
+  Linear: "linear",
+} as const;
+export type ModelId = (typeof ModelId)[keyof typeof ModelId];
+
+export const ZoneKind = {
+  Plateau: "plateau",
+  Acceleration: "acceleration",
+} as const;
+export type ZoneKind = (typeof ZoneKind)[keyof typeof ZoneKind];
+
+// ---------------------------------------------------------------------------
+// Chart data series (raw numbers — the frontend renders them as custom SVG)
+// ---------------------------------------------------------------------------
+
+export interface ChartPoint {
+  date: string;
+  value: number;
+}
+
+export interface ChartBandPoint {
+  date: string;
+  lower: number;
+  upper: number;
+}
+
+/** Fitted-parameter diagnostics for one prediction model (kg / kg-per-week). */
+export interface ModelDiagnostics {
+  n_points: number;
+  residual_std: number;
+  // Exponential decay: w(t) = a·e^(−b·t) + c
+  a: number | null;
+  b: number | null;
+  c: number | null;
+  a_std: number | null;
+  b_std: number | null;
+  c_std: number | null;
+  half_life_days: number | null;
+  current_rate_per_week: number | null;
+  // Theil–Sen linear trend
+  slope_per_week: number | null;
+  slope_low_per_week: number | null;
+  slope_high_per_week: number | null;
+  window_days: number | null;
+  used_fallback: boolean | null;
+}
+
+export interface ModelSeries {
+  id: ModelId;
+  label: string;
+  fit: ChartPoint[];
+  projection: ChartPoint[];
+  band: ChartBandPoint[];
+  asymptote: number | null;
+  asymptote_label: string;
+  warning: string;
+  diagnostics: ModelDiagnostics | null;
+}
+
+export interface DeviationZone {
+  start: string;
+  end: string;
+  kind: ZoneKind;
+}
+
+export interface WeightChartData {
+  raw: ChartPoint[];
+  smoothed: ChartPoint[];
+  smoothing_window: number;
+  models: ModelSeries[];
+  zones: DeviationZone[];
+  goal_weight: number | null;
+}
+
+export interface RatePoint {
+  date: string;
+  rate: number;
+}
+
+export interface DerivativeChartData {
+  bars: RatePoint[];
+  smoothed: ChartPoint[];
+}
+
+export interface ResidualSeries {
+  id: ModelId;
+  label: string;
+  points: ChartPoint[];
+}
+
+export interface ResidualsChartData {
+  series: ResidualSeries[];
+  sigma: number;
+}
+
+// Manual axis-scale overrides. A `null` field means "auto" (derive from data).
+export interface DateAxisConfig {
+  min: string | null; // ISO date (inclusive lower bound)
+  max: string | null; // ISO date (inclusive upper bound)
+  stepDays: number | null; // tick spacing in days
+}
+
+export interface ValueAxisConfig {
+  min: number | null;
+  max: number | null;
+  step: number | null; // tick spacing in axis units
+}
+
+export interface ChartAxes {
+  x: DateAxisConfig;
+  y: ValueAxisConfig;
+}
+
+export const AUTO_AXES: ChartAxes = {
+  x: { min: null, max: null, stepDays: null },
+  y: { min: null, max: null, step: null },
+};
 
 export interface UserProfile {
   id: number;
