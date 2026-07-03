@@ -1,10 +1,17 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
 import { WeightChart } from "../components/charts/WeightChart";
 import { DerivativeChart } from "../components/charts/DerivativeChart";
 import { ResidualsChart } from "../components/charts/ResidualsChart";
+import { AxisControls } from "../components/charts/AxisControls";
+import { ChartExplainer } from "../components/charts/ChartExplainer";
+import { ModelStatsStrip } from "../components/charts/ModelStatsStrip";
+import { WeightChartExplainer } from "../components/charts/explainers/WeightChartExplainer";
+import { DerivativeChartExplainer } from "../components/charts/explainers/DerivativeChartExplainer";
+import { ResidualsChartExplainer } from "../components/charts/explainers/ResidualsChartExplainer";
+import { AUTO_AXES, type ChartAxes, type WeightChartData } from "../lib/types";
 
 const HORIZON_OPTIONS = [
   { label: "4 weeks", value: 28 },
@@ -14,7 +21,9 @@ const HORIZON_OPTIONS = [
 ];
 
 export function AnalysisPage() {
-  const { chartParams, setChartParams, refreshKey, setSelectedPoint, accent } = useWeightTracker();
+  const { chartParams, setChartParams, refreshKey, setSelectedPoint, accent, unit } = useWeightTracker();
+  const [axes, setAxes] = useState<ChartAxes>(AUTO_AXES);
+  const [weightData, setWeightData] = useState<WeightChartData | null>(null);
 
   const handlePointClick = useCallback(
     (point: { date: string; weight: number }) => setSelectedPoint(point),
@@ -124,9 +133,31 @@ export function AnalysisPage() {
         </div>
       </div>
 
-      <WeightChart params={chartParams} refreshKey={refreshKey} onPointClick={handlePointClick} className="h-[260px] md:h-[380px]" />
+      <AxisControls axes={axes} onChange={setAxes} />
+
+      <ModelStatsStrip models={weightData?.models ?? []} unit={unit} />
+
+      <WeightChart
+        params={chartParams}
+        refreshKey={refreshKey}
+        onPointClick={handlePointClick}
+        axes={axes}
+        className="h-[260px] md:h-[380px]"
+        onDataLoaded={setWeightData}
+      />
+      <ChartExplainer title="How this chart works — smoothing and prediction models">
+        <WeightChartExplainer data={weightData} params={chartParams} unit={unit} />
+      </ChartExplainer>
+
       <DerivativeChart params={chartParams} refreshKey={refreshKey} />
+      <ChartExplainer title="How this chart works — rate of change">
+        <DerivativeChartExplainer unit={unit} />
+      </ChartExplainer>
+
       <ResidualsChart params={chartParams} refreshKey={refreshKey} />
+      <ChartExplainer title="How this chart works — residuals and deviation zones">
+        <ResidualsChartExplainer />
+      </ChartExplainer>
     </div>
     </PageTransition>
   );
