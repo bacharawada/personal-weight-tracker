@@ -69,6 +69,9 @@ class TrendFit:
             measurement date (a de-noised "current weight").
         last_date: Date of the most recent measurement used.
         n_points: Number of points the trend was fit over.
+        window_days: The configured recent-window length (``TrendConfig.window_days``).
+        used_fallback: ``True`` when the recent window held too few points and
+            the fit fell back to all available data.
         error_message: Why the fit failed (empty on success).
     """
 
@@ -79,6 +82,8 @@ class TrendFit:
     level_at_last: float = 0.0
     last_date: datetime.date | None = None
     n_points: int = 0
+    window_days: int = 0
+    used_fallback: bool = False
     error_message: str = ""
 
 
@@ -109,7 +114,8 @@ def fit_recent_trend(
     # is too sparse to fit a meaningful trend.
     cutoff = last_ts - pd.Timedelta(days=config.window_days)
     window_mask = dates >= cutoff
-    if int(window_mask.sum()) >= config.min_window_points:
+    used_fallback = int(window_mask.sum()) < config.min_window_points
+    if not used_fallback:
         window = df[window_mask]
         window_dates = dates[window_mask]
     else:
@@ -146,6 +152,8 @@ def fit_recent_trend(
         level_at_last=level_at_last,
         last_date=last_ts.date(),
         n_points=len(weights),
+        window_days=config.window_days,
+        used_fallback=used_fallback,
     )
 
 

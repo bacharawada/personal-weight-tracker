@@ -37,6 +37,52 @@ MODEL_EXP = "exp"
 MODEL_LINEAR = "linear"
 
 
+@dataclass(frozen=True)
+class ModelDiagnostics:
+    """Fitted-parameter diagnostics for one prediction model.
+
+    All weights are in kg and all rates in kg/week; fields that do not apply
+    to a model kind are ``None`` (e.g. ``half_life_days`` for the linear
+    trend). Intended for the UI's methodology explainers and stat cards.
+
+    Attributes:
+        n_points: Number of measurements the model was fit over.
+        residual_std: Standard deviation of the fit residuals (kg).
+        a: Exp-decay amplitude parameter.
+        b: Exp-decay rate parameter (1/day).
+        c: Exp-decay asymptote — predicted equilibrium weight (kg).
+        a_std: One-sigma standard error on ``a`` (``None`` when unusable).
+        b_std: One-sigma standard error on ``b``.
+        c_std: One-sigma standard error on ``c``.
+        half_life_days: ``ln(2) / b`` — days for the remaining gap to the
+            equilibrium to halve.
+        current_rate_per_week: Instantaneous model slope at the latest
+            measurement, ``-a·b·e^(-b·t_last) × 7`` (kg/week).
+        slope_per_week: Theil-Sen slope (kg/week).
+        slope_low_per_week: Lower (faster-loss) confidence bound on the slope.
+        slope_high_per_week: Upper (slower-loss) confidence bound on the slope.
+        window_days: Configured recent-window length the trend targets.
+        used_fallback: ``True`` when the window was too sparse and the trend
+            fell back to all available data.
+    """
+
+    n_points: int
+    residual_std: float
+    a: float | None = None
+    b: float | None = None
+    c: float | None = None
+    a_std: float | None = None
+    b_std: float | None = None
+    c_std: float | None = None
+    half_life_days: float | None = None
+    current_rate_per_week: float | None = None
+    slope_per_week: float | None = None
+    slope_low_per_week: float | None = None
+    slope_high_per_week: float | None = None
+    window_days: int | None = None
+    used_fallback: bool | None = None
+
+
 @dataclass
 class ModelCurve:
     """A predictive model reduced to a drawable, model-agnostic shape.
@@ -59,6 +105,8 @@ class ModelCurve:
         hline_label: Annotation text for the horizontal reference.
         warning: Non-fatal diagnostic to surface in the UI (empty if none).
         error_message: Why the fit failed (empty on success).
+        diagnostics: Fitted-parameter diagnostics for the UI's methodology
+            explainers (``None`` when the fit failed).
     """
 
     kind: str
@@ -76,6 +124,7 @@ class ModelCurve:
     hline_label: str = ""
     warning: str = ""
     error_message: str = ""
+    diagnostics: ModelDiagnostics | None = None
 
 
 def _build_exp_curve(
@@ -114,6 +163,25 @@ def _build_exp_curve(
         if with_band and len(x_extra) > 0:
             y_low, y_high = exp_decay_band(x_extra, fit.params, fit.pcov)
 
+    a, b, c = fit.params
+    t_last = float((pd.Timestamp(last_date) - pd.Timestamp(first_date)).days)
+    # b is bounded strictly positive by AnalysisConfig.fit_bounds.
+    half_life_days = float(np.log(2.0) / b)
+    current_rate_per_week = float(-a * b * np.exp(-b * t_last) * 7.0)
+    param_std = fit.param_std or (None, None, None)
+    diagnostics = ModelDiagnostics(
+        n_points=len(df),
+        residual_std=fit.std_residuals,
+        a=a,
+        b=b,
+        c=c,
+        a_std=param_std[0],
+        b_std=param_std[1],
+        c_std=param_std[2],
+        half_life_days=half_life_days,
+        current_rate_per_week=current_rate_per_week,
+    )
+
     return ModelCurve(
         kind=MODEL_EXP,
         success=True,
@@ -131,6 +199,7 @@ def _build_exp_curve(
         hline_y=fit.params[2],
         hline_label=f"Predicted equilibrium: ~{fit.params[2]:.1f} kg",
         warning=fit.warning,
+        diagnostics=diagnostics,
     )
 
 
@@ -176,6 +245,16 @@ def _build_linear_curve(
     residuals = weights - predicted
     std_res = float(residuals.std()) if len(residuals) > 1 else 0.0
 
+    diagnostics = ModelDiagnostics(
+        n_points=fit.n_points,
+        residual_std=std_res,
+        slope_per_week=fit.slope_per_day * 7.0,
+        slope_low_per_week=fit.slope_per_day_low * 7.0,
+        slope_high_per_week=fit.slope_per_day_high * 7.0,
+        window_days=fit.window_days,
+        used_fallback=fit.used_fallback,
+    )
+
     return ModelCurve(
         kind=MODEL_LINEAR,
         success=True,
@@ -190,6 +269,7 @@ def _build_linear_curve(
         legend_label=f"Linear trend ({fit.slope_per_day * 7:.2f} kg/wk)",
         hline_y=None,
         hline_label="",
+        diagnostics=diagnostics,
     )
 
 

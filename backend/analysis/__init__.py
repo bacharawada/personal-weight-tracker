@@ -23,6 +23,7 @@ from analysis.models import (
     MODEL_EXP,
     MODEL_LINEAR,
     ModelCurve,
+    ModelDiagnostics,
     build_model_curve,
 )
 from analysis.smoothing import compute_rolling_mean
@@ -36,6 +37,7 @@ __all__ = [
     "FitResult",
     "GoalProjection",
     "ModelCurve",
+    "ModelDiagnostics",
     "SummaryStats",
     "TrendConfig",
     "TrendFit",

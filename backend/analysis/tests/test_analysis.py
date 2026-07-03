@@ -5,6 +5,8 @@ All tests use deterministic sample data — no database interaction.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pandas as pd
 
@@ -13,6 +15,7 @@ from analysis import (
     MODEL_LINEAR,
     AnalysisConfig,
     FitResult,
+    TrendConfig,
     build_model_curve,
     compute_derivative,
     compute_rolling_mean,
@@ -440,6 +443,37 @@ class TestTrendCurve:
 
 
 # -----------------------------------------------------------------------
+# Recent-window bookkeeping
+# -----------------------------------------------------------------------
+
+
+class TestRecentTrendWindow:
+    """Tests for the window fields reported by ``fit_recent_trend()``."""
+
+    def test_window_fields_populated(self, sample_df: pd.DataFrame) -> None:
+        """A dense recent window reports the configured length, no fallback."""
+        fit = fit_recent_trend(sample_df)
+        assert fit.success
+        assert fit.window_days == TrendConfig().window_days
+        assert fit.used_fallback is False
+
+    def test_fallback_when_window_sparse(self) -> None:
+        """Too few points inside the window falls back to all data."""
+        df = pd.DataFrame(
+            {
+                "date": pd.to_datetime(
+                    ["2025-01-01", "2025-03-01", "2025-05-01", "2025-07-01"]
+                ),
+                "weight": [90.0, 88.0, 86.0, 84.0],
+            }
+        )
+        fit = fit_recent_trend(df)
+        assert fit.success
+        assert fit.used_fallback is True
+        assert fit.n_points == 4
+
+
+# -----------------------------------------------------------------------
 # Unified model abstraction
 # -----------------------------------------------------------------------
 
@@ -485,8 +519,39 @@ class TestBuildModelCurve:
         assert not curve.success
         assert "Unknown" in curve.error_message
 
+    def test_exp_diagnostics(self, sample_df: pd.DataFrame) -> None:
+        """The exp model exposes its fitted parameters and derived values."""
+        curve = build_model_curve(sample_df, MODEL_EXP)
+        assert curve.success
+        diag = curve.diagnostics
+        assert diag is not None
+        assert diag.n_points == len(sample_df)
+        assert diag.a is not None and diag.b is not None and diag.c is not None
+        assert diag.half_life_days is not None
+        assert math.isclose(diag.half_life_days, math.log(2.0) / diag.b)
+        assert diag.current_rate_per_week is not None
+        assert diag.current_rate_per_week < 0  # sample data trends down
+        assert diag.slope_per_week is None  # linear-only field
+
+    def test_linear_diagnostics(self, sample_df: pd.DataFrame) -> None:
+        """The linear model exposes its slope, CI bounds, and window info."""
+        curve = build_model_curve(sample_df, MODEL_LINEAR)
+        assert curve.success
+        diag = curve.diagnostics
+        assert diag is not None
+        assert diag.slope_per_week is not None and diag.slope_per_week < 0
+        assert diag.slope_low_per_week is not None
+        assert diag.slope_high_per_week is not None
+        assert (
+            diag.slope_low_per_week <= diag.slope_per_week <= diag.slope_high_per_week
+        )
+        assert diag.window_days == TrendConfig().window_days
+        assert diag.used_fallback is False
+        assert diag.half_life_days is None  # exp-only field
+
     def test_empty_df_fails_gracefully(self) -> None:
-        """An empty DataFrame returns a failed curve."""
+        """An empty DataFrame returns a failed curve without diagnostics."""
         df = pd.DataFrame(columns=["date", "weight"])
         curve = build_model_curve(df, MODEL_EXP)
         assert not curve.success
+        assert curve.diagnostics is None

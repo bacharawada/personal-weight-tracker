@@ -238,32 +238,37 @@ class TestChartEndpoints:
     """Tests for /api/charts/* endpoints."""
 
     def test_weight_chart(self) -> None:
-        """GET /api/charts/weight returns Plotly JSON with data key."""
+        """GET /api/charts/weight returns the weight data series."""
         client = _make_client(seed=True)
         r = client.get("/api/charts/weight")
         assert r.status_code == 200
-        assert "data" in r.json()
+        body = r.json()
+        assert {"raw", "smoothed", "models", "zones", "goal_weight"} <= set(body)
+        assert len(body["raw"]) > 0
+        assert {"date", "value"} <= set(body["raw"][0])
 
     def test_derivative_chart(self) -> None:
-        """GET /api/charts/derivative returns Plotly JSON."""
+        """GET /api/charts/derivative returns bars and a smoothed series."""
         client = _make_client(seed=True)
         r = client.get("/api/charts/derivative")
         assert r.status_code == 200
-        assert "data" in r.json()
+        body = r.json()
+        assert "bars" in body
+        assert "smoothed" in body
 
     def test_residuals_chart(self) -> None:
-        """GET /api/charts/residuals returns Plotly JSON."""
+        """GET /api/charts/residuals returns residual series."""
         client = _make_client(seed=True)
         r = client.get("/api/charts/residuals")
         assert r.status_code == 200
-        assert "data" in r.json()
+        body = r.json()
+        assert "series" in body
+        assert "sigma" in body
 
     def test_chart_with_params(self) -> None:
-        """Chart endpoints accept smoothing, horizon, palette, dark params."""
+        """Chart endpoints accept smoothing, horizon, models and band params."""
         client = _make_client(seed=True)
-        r = client.get(
-            "/api/charts/weight?smoothing=7&horizon=90&palette=Teal&dark=true"
-        )
+        r = client.get("/api/charts/weight?smoothing=7&horizon=90&band=false")
         assert r.status_code == 200
 
     def test_chart_empty_db(self) -> None:
@@ -271,37 +276,52 @@ class TestChartEndpoints:
         client = _make_client(seed=False)
         r = client.get("/api/charts/weight")
         assert r.status_code == 200
+        assert r.json()["raw"] == []
 
     def test_chart_both_models_with_band(self) -> None:
-        """Selecting both models with a band returns a valid figure."""
+        """Selecting both models with a band returns two model series + bands."""
         client = _make_client(seed=True)
         r = client.get("/api/charts/weight?models=exp,linear&band=true")
         assert r.status_code == 200
-        data = r.json()["data"]
-        # Raw + rolling + (per model: in-sample, 2 band traces, projection).
-        assert len(data) >= 4
+        models = r.json()["models"]
+        assert {m["id"] for m in models} == {"exp", "linear"}
+        assert any(len(m["band"]) > 0 for m in models)
+
+    def test_chart_model_diagnostics(self) -> None:
+        """Each model series carries fitted-parameter diagnostics."""
+        client = _make_client(seed=True)
+        r = client.get("/api/charts/weight?models=exp,linear")
+        assert r.status_code == 200
+        by_id = {m["id"]: m["diagnostics"] for m in r.json()["models"]}
+        assert by_id["exp"] is not None
+        assert by_id["exp"]["c"] is not None
+        assert by_id["exp"]["half_life_days"] is not None
+        assert by_id["linear"] is not None
+        assert by_id["linear"]["slope_per_week"] is not None
+        assert by_id["linear"]["window_days"] is not None
 
     def test_chart_no_models(self) -> None:
         """An empty models list draws raw + rolling only (no overlay)."""
         client = _make_client(seed=True)
         r = client.get("/api/charts/weight?models=")
         assert r.status_code == 200
-        names = [t.get("name") for t in r.json()["data"]]
-        assert "Raw measurements" in names
-        assert not any(name and "decay" in name.lower() for name in names)
+        body = r.json()
+        assert len(body["raw"]) > 0
+        assert body["models"] == []
 
     def test_chart_unknown_model_dropped(self) -> None:
         """Unknown model identifiers are ignored, not errors."""
         client = _make_client(seed=True)
         r = client.get("/api/charts/weight?models=exp,bogus")
         assert r.status_code == 200
+        assert {m["id"] for m in r.json()["models"]} == {"exp"}
 
     def test_residuals_two_models(self) -> None:
         """Residuals endpoint accepts multiple models."""
         client = _make_client(seed=True)
         r = client.get("/api/charts/residuals?models=exp,linear")
         assert r.status_code == 200
-        assert "data" in r.json()
+        assert len(r.json()["series"]) == 2
 
 
 # -----------------------------------------------------------------------
@@ -328,19 +348,12 @@ class TestExportEndpoints:
 
 
 # -----------------------------------------------------------------------
-# Palettes and DB mtime
+# DB mtime
 # -----------------------------------------------------------------------
 
 
 class TestMiscEndpoints:
-    """Tests for /api/palettes and /api/db-mtime endpoints."""
-
-    def test_palettes(self) -> None:
-        """GET /api/palettes returns at least 5 palette names."""
-        client = _make_client(seed=True)
-        r = client.get("/api/palettes")
-        assert r.status_code == 200
-        assert len(r.json()["names"]) >= 5
+    """Tests for the /api/db-mtime endpoint."""
 
     def test_db_mtime(self) -> None:
         """GET /api/db-mtime returns a float mtime."""

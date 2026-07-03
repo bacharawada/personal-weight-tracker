@@ -78,14 +78,110 @@ class GoalProjectionOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Palettes
+# Charts — raw data series (rendering happens entirely on the frontend)
 # ---------------------------------------------------------------------------
 
 
-class PaletteOut(BaseModel):
-    """Response model for palette metadata."""
+class ChartPoint(BaseModel):
+    """A single ``(date, value)`` point in a chart series."""
 
-    names: list[str]
+    date: datetime.date
+    value: float
+
+
+class ChartBandPoint(BaseModel):
+    """A single point of an uncertainty band (``date`` with low/high edges)."""
+
+    date: datetime.date
+    lower: float
+    upper: float
+
+
+class ModelDiagnosticsOut(BaseModel):
+    """Fitted-parameter diagnostics for one prediction model.
+
+    Weights are in kg, rates in kg/week. Fields that do not apply to the
+    model kind are ``None`` (e.g. ``half_life_days`` for the linear trend).
+    Consumed by the frontend's methodology explainers and stat cards.
+    """
+
+    n_points: int
+    residual_std: float
+    a: float | None = None
+    b: float | None = None
+    c: float | None = None
+    a_std: float | None = None
+    b_std: float | None = None
+    c_std: float | None = None
+    half_life_days: float | None = None
+    current_rate_per_week: float | None = None
+    slope_per_week: float | None = None
+    slope_low_per_week: float | None = None
+    slope_high_per_week: float | None = None
+    window_days: int | None = None
+    used_fallback: bool | None = None
+
+
+class ModelSeriesOut(BaseModel):
+    """One prediction model's drawable series for the weight chart."""
+
+    id: Literal["exp", "linear"]
+    label: str
+    fit: list[ChartPoint]
+    projection: list[ChartPoint]
+    band: list[ChartBandPoint]
+    asymptote: float | None
+    asymptote_label: str
+    warning: str
+    diagnostics: ModelDiagnosticsOut | None = None
+
+
+class DeviationZoneOut(BaseModel):
+    """A shaded plateau / acceleration zone derived from exp-fit residuals."""
+
+    start: datetime.date
+    end: datetime.date
+    kind: Literal["plateau", "acceleration"]
+
+
+class WeightChartData(BaseModel):
+    """Response model for GET /api/charts/weight."""
+
+    raw: list[ChartPoint]
+    smoothed: list[ChartPoint]
+    smoothing_window: int
+    models: list[ModelSeriesOut]
+    zones: list[DeviationZoneOut]
+    goal_weight: float | None
+
+
+class RatePoint(BaseModel):
+    """A single ``(date, rate)`` point for the rate-of-change chart."""
+
+    date: datetime.date
+    rate: float
+
+
+class DerivativeChartData(BaseModel):
+    """Response model for GET /api/charts/derivative."""
+
+    bars: list[RatePoint]
+    smoothed: list[ChartPoint]
+
+
+class ResidualSeriesOut(BaseModel):
+    """One model's residual series (observed minus predicted)."""
+
+    id: Literal["exp", "linear"]
+    label: str
+    points: list[ChartPoint]
+
+
+class ResidualsChartData(BaseModel):
+    """Response model for GET /api/charts/residuals."""
+
+    series: list[ResidualSeriesOut]
+    sigma: float
 
 
 # ---------------------------------------------------------------------------
