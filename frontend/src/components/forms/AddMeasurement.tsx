@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { addMeasurement } from "../../lib/api";
 import { Plus } from "lucide-react";
@@ -13,6 +14,7 @@ interface AddMeasurementProps {
 }
 
 export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
+  const { t } = useTranslation("data");
   const { unit } = useWeightTracker();
   const [date, setDate] = useState("");
   const [weight, setWeight] = useState("");
@@ -25,7 +27,7 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!date || !weight) {
-      setFeedback({ type: "error", msg: "Please fill in both date and weight." });
+      setFeedback({ type: "error", msg: t("form.errorFillBoth") });
       return;
     }
 
@@ -33,7 +35,11 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
     if (isNaN(entered) || entered < bounds.min || entered > bounds.max) {
       setFeedback({
         type: "error",
-        msg: `Weight must be between ${bounds.min.toFixed(0)} and ${bounds.max.toFixed(0)} ${u}.`,
+        msg: t("form.errorRange", {
+          min: bounds.min.toFixed(0),
+          max: bounds.max.toFixed(0),
+          unit: u,
+        }),
       });
       return;
     }
@@ -42,13 +48,13 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
     setLoading(true);
     try {
       await addMeasurement({ date, weight: w });
-      setFeedback({ type: "success", msg: `Added: ${date} — ${entered} ${u}` });
+      setFeedback({ type: "success", msg: t("form.added", { date, weight: entered, unit: u }) });
       setDate("");
       setWeight("");
       onSuccess();
       setTimeout(() => setFeedback(null), 4000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
+      const msg = err instanceof Error ? err.message : t("form.errorUnknown");
       setFeedback({ type: "error", msg });
     } finally {
       setLoading(false);
@@ -58,11 +64,11 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
   return (
     <div>
       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-        Add Measurement
+        {t("form.heading")}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-2">
         <div className="space-y-1">
-          <Label htmlFor="add-date" className="text-xs text-muted-foreground">Date</Label>
+          <Label htmlFor="add-date" className="text-xs text-muted-foreground">{t("form.dateLabel")}</Label>
           <Input
             id="add-date"
             type="date"
@@ -73,7 +79,7 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="add-weight" className="text-xs text-muted-foreground">Weight ({u})</Label>
+          <Label htmlFor="add-weight" className="text-xs text-muted-foreground">{t("form.weightLabel", { unit: u })}</Label>
           <Input
             id="add-weight"
             type="number"
@@ -82,7 +88,7 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
             min={bounds.min}
             max={bounds.max}
             step={0.05}
-            placeholder={u === "lb" ? "e.g. 165" : "e.g. 75.5"}
+            placeholder={u === "lb" ? t("form.weightPlaceholderLb") : t("form.weightPlaceholderKg")}
             className="h-8 text-sm"
           />
         </div>
@@ -93,7 +99,7 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
           disabled={loading}
           className="w-full"
         >
-          <Plus size={14} /> {loading ? "Adding…" : "Add"}
+          <Plus size={14} /> {loading ? t("form.submitAdding") : t("form.submitAdd")}
         </Button>
       </form>
 

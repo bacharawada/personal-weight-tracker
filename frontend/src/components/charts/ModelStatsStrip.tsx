@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { kgToDisplay, unitLabel } from "../../lib/units";
 import { ModelId, type ModelSeries, type WeightUnit } from "../../lib/types";
 
@@ -14,6 +15,7 @@ interface StatEntry {
 
 /** Headline numbers from the fitted prediction models, shown above the charts. */
 export function ModelStatsStrip({ models, unit }: ModelStatsStripProps) {
+  const { t } = useTranslation("analysis");
   const u = unitLabel(unit);
   const expDiag = models.find((m) => m.id === ModelId.Exp)?.diagnostics ?? null;
   const linDiag = models.find((m) => m.id === ModelId.Linear)?.diagnostics ?? null;
@@ -22,43 +24,52 @@ export function ModelStatsStrip({ models, unit }: ModelStatsStripProps) {
 
   if (expDiag?.c != null) {
     stats.push({
-      label: "Predicted equilibrium",
+      label: t("stats.predictedEquilibrium"),
       value: `${kgToDisplay(expDiag.c, unit).toFixed(1)} ${u}`,
       detail:
         expDiag.c_std != null
           ? `± ${kgToDisplay(expDiag.c_std, unit).toFixed(1)} ${u}`
-          : "exp. decay asymptote",
+          : t("stats.equilibriumAsymptote"),
     });
   }
   if (expDiag?.half_life_days != null) {
     stats.push({
-      label: "Half-life",
-      value: `${Math.round(expDiag.half_life_days)} days`,
-      detail: "gap to equilibrium halves",
+      label: t("stats.halfLife"),
+      value: t("stats.halfLifeDays", { days: Math.round(expDiag.half_life_days) }),
+      detail: t("stats.halfLifeDetail"),
     });
   }
   if (expDiag?.current_rate_per_week != null) {
     stats.push({
-      label: "Model rate today",
-      value: `${kgToDisplay(expDiag.current_rate_per_week, unit).toFixed(2)} ${u}/wk`,
-      detail: "exp. decay slope now",
+      label: t("stats.modelRateToday"),
+      value: t("stats.modelRateValue", {
+        rate: kgToDisplay(expDiag.current_rate_per_week, unit).toFixed(2),
+        unit: u,
+      }),
+      detail: t("stats.modelRateDetail"),
     });
   }
   if (linDiag?.slope_per_week != null) {
     stats.push({
-      label: "Recent trend",
-      value: `${kgToDisplay(linDiag.slope_per_week, unit).toFixed(2)} ${u}/wk`,
+      label: t("stats.recentTrend"),
+      value: t("stats.recentTrendValue", {
+        slope: kgToDisplay(linDiag.slope_per_week, unit).toFixed(2),
+        unit: u,
+      }),
       detail:
         linDiag.slope_low_per_week != null && linDiag.slope_high_per_week != null
-          ? `CI ${kgToDisplay(linDiag.slope_low_per_week, unit).toFixed(2)} to ${kgToDisplay(linDiag.slope_high_per_week, unit).toFixed(2)}`
-          : `Theil–Sen, ${linDiag.n_points} points`,
+          ? t("stats.recentTrendCi", {
+              low: kgToDisplay(linDiag.slope_low_per_week, unit).toFixed(2),
+              high: kgToDisplay(linDiag.slope_high_per_week, unit).toFixed(2),
+            })
+          : t("stats.recentTrendTheilSen", { count: linDiag.n_points }),
     });
   }
   if (expDiag != null && expDiag.residual_std > 0) {
     stats.push({
-      label: "Fit scatter (σ)",
+      label: t("stats.fitScatter"),
       value: `${kgToDisplay(expDiag.residual_std, unit).toFixed(2)} ${u}`,
-      detail: `over ${expDiag.n_points} measurements`,
+      detail: t("stats.fitScatterDetail", { count: expDiag.n_points }),
     });
   }
 

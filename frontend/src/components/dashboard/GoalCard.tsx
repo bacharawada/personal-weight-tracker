@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Target, TriangleAlert, CheckCircle2, Activity } from "lucide-react";
 import { getGoal, getStats } from "../../lib/api";
@@ -20,28 +21,29 @@ interface GoalCardProps {
 
 interface BmiInfo {
   value: number;
-  category: string;
+  categoryKey: string;
   color: string;
 }
 
 function computeBmi(weightKg: number, heightCm: number): BmiInfo {
   const bmi = weightKg / (heightCm / 100) ** 2;
-  let category = "Normal";
+  let categoryKey = "normal";
   let color = "text-green-600";
   if (bmi < 18.5) {
-    category = "Underweight";
+    categoryKey = "underweight";
     color = "text-blue-500";
   } else if (bmi >= 30) {
-    category = "Obese";
+    categoryKey = "obese";
     color = "text-red-600";
   } else if (bmi >= 25) {
-    category = "Overweight";
+    categoryKey = "overweight";
     color = "text-amber-600";
   }
-  return { value: bmi, category, color };
+  return { value: bmi, categoryKey, color };
 }
 
 export function GoalCard({ refreshKey }: GoalCardProps) {
+  const { t } = useTranslation("dashboard");
   const { profile, unit } = useWeightTracker();
   const [goal, setGoal] = useState<GoalProjection | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -69,7 +71,7 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
       >
         <span className="inline-flex items-center gap-2">
           <Target size={16} />
-          Set a goal weight and height in Settings to track your progress and BMI.
+          {t("goal.setupPrompt")}
         </span>
       </Link>
     );
@@ -91,7 +93,7 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
           </div>
           <div className="min-w-0">
             <div className="flex items-baseline gap-2">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Goal</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("goal.label")}</p>
               {profile?.goal_weight != null && (
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   {formatWeight(profile.goal_weight, unit)}
@@ -99,12 +101,12 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
               )}
               {goal.on_track === true && !goal.already_reached && (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
-                  On track
+                  {t("goal.onTrack")}
                 </span>
               )}
               {goal.on_track === false && (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
-                  Behind
+                  {t("goal.behind")}
                 </span>
               )}
             </div>
@@ -113,7 +115,7 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
             </p>
             {goal.days_remaining != null && goal.days_remaining > 0 && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                ~{goal.days_remaining} day{goal.days_remaining !== 1 ? "s" : ""} to go
+                {t("goal.daysToGo", { count: goal.days_remaining })}
               </p>
             )}
           </div>
@@ -125,12 +127,12 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-start gap-3">
           <Activity size={20} className="shrink-0 mt-0.5 text-gray-400" />
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Body Mass Index</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t("bmi.label")}</p>
             {bmi ? (
               <>
                 <p className={`text-xl font-bold leading-tight ${bmi.color}`}>
                   {bmi.value.toFixed(1)}
-                  <span className="text-sm font-medium ml-2">{bmi.category}</span>
+                  <span className="text-sm font-medium ml-2">{t(`bmi.category.${bmi.categoryKey}`)}</span>
                 </p>
                 {profile?.height_cm != null && latestWeight != null && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -140,7 +142,7 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
               </>
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Add a measurement to see your BMI.
+                {t("bmi.addMeasurement")}
               </p>
             )}
           </div>

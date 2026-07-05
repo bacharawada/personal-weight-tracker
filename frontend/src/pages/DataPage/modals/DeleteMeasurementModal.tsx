@@ -3,6 +3,7 @@
  */
 
 import { Trash2 } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import { ConfirmModal } from "../../../components/modals/ConfirmModal";
 import type { Measurement } from "../../../lib/types";
 
@@ -19,19 +20,21 @@ export function DeleteMeasurementModal({
   onConfirm,
   loading,
 }: DeleteMeasurementModalProps) {
+  const { t } = useTranslation("data");
   return (
     <ConfirmModal
       open={!!target}
       onOpenChange={onOpenChange}
-      title="Delete measurement"
+      title={t("deleteModal.title")}
       description={
-        <>
-          Are you sure you want to delete the measurement for{" "}
-          <strong>{target?.date}</strong> ({target?.weight} kg)? This cannot be
-          undone.
-        </>
+        <Trans
+          t={t}
+          i18nKey="deleteModal.description"
+          values={{ date: target?.date, weight: target?.weight }}
+          components={{ strong: <strong /> }}
+        />
       }
-      confirmLabel="Delete"
+      confirmLabel={t("deleteModal.confirmLabel")}
       confirmVariant="destructive"
       confirmIcon={<Trash2 size={14} />}
       onConfirm={onConfirm}

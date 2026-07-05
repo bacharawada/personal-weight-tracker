@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CircleUser, Check } from "lucide-react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { useAuth } from "../context/AuthContext";
@@ -11,11 +12,13 @@ import { WeightUnit } from "../lib/types";
 import { displayToKg, kgToDisplay, unitLabel } from "../lib/units";
 
 export function ProfilePage() {
+  const { t } = useTranslation("profile");
   const { profile, unit, saveProfile } = useWeightTracker();
   const { user } = useAuth();
 
   const displayName =
-    user?.name || (user?.email ? user.email.split("@")[0] : "Account");
+    user?.name ||
+    (user?.email ? user.email.split("@")[0] : t("identity.fallbackName"));
   const displayEmail = user?.email ?? "";
 
   // Profile form state — re-seeded from the loaded profile (and whenever the
@@ -68,7 +71,7 @@ export function ProfilePage() {
   return (
     <PageTransition>
       <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-w-2xl">
-        <PageTitle title="Profile" subtitle="Your account, goal and measurement units" />
+        <PageTitle title={t("page.title")} subtitle={t("page.subtitle")} />
 
         {/* Identity */}
         <section>
@@ -94,14 +97,14 @@ export function ProfilePage() {
 
         {/* Goal & body metrics */}
         <section>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Goal &amp; Body</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">{t("goalBody.heading")}</h2>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 space-y-5">
             {/* Units */}
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Units</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t("goalBody.units.label")}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Display weights in kilograms or pounds
+                  {t("goalBody.units.helper")}
                 </p>
               </div>
               <div className="flex rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
@@ -130,7 +133,7 @@ export function ProfilePage() {
             {/* Height / goal / target date */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="profile-height" className="text-xs text-muted-foreground">Height (cm)</Label>
+                <Label htmlFor="profile-height" className="text-xs text-muted-foreground">{t("goalBody.fields.height")}</Label>
                 <Input
                   id="profile-height"
                   type="number"
@@ -139,24 +142,24 @@ export function ProfilePage() {
                   min={50}
                   max={300}
                   step={0.5}
-                  placeholder="e.g. 178"
+                  placeholder={t("goalBody.placeholders.height")}
                   className="h-9 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="profile-goal" className="text-xs text-muted-foreground">Goal weight ({u})</Label>
+                <Label htmlFor="profile-goal" className="text-xs text-muted-foreground">{t("goalBody.fields.goal", { unit: u })}</Label>
                 <Input
                   id="profile-goal"
                   type="number"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   step={0.1}
-                  placeholder={u === "lb" ? "e.g. 165" : "e.g. 75"}
+                  placeholder={u === "lb" ? t("goalBody.placeholders.goalLb") : t("goalBody.placeholders.goalKg")}
                   className="h-9 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="profile-target" className="text-xs text-muted-foreground">Target date</Label>
+                <Label htmlFor="profile-target" className="text-xs text-muted-foreground">{t("goalBody.fields.targetDate")}</Label>
                 <Input
                   id="profile-target"
                   type="date"
@@ -170,11 +173,11 @@ export function ProfilePage() {
             <div className="flex items-center justify-end gap-3">
               {profileSaved && (
                 <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                  <Check size={14} /> Saved
+                  <Check size={14} /> {t("goalBody.saved")}
                 </span>
               )}
               <Button variant="primary" size="sm" onClick={handleProfileSave} disabled={savingProfile}>
-                {savingProfile ? "Saving…" : "Save profile"}
+                {savingProfile ? t("goalBody.saving") : t("goalBody.save")}
               </Button>
             </div>
           </div>

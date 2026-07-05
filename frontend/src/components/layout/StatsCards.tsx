@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { getStats } from "../../lib/api";
 import type { Stats } from "../../lib/types";
@@ -10,6 +11,7 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ refreshKey }: StatsCardsProps) {
+  const { t } = useTranslation("dashboard");
   const { unit } = useWeightTracker();
   const [stats, setStats] = useState<Stats | null>(null);
 
@@ -32,27 +34,27 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
   const cards = stats
     ? [
         {
-          label: "Total Loss",
+          label: t("stats.totalLoss"),
           value: `${stats.total_loss_kg > 0 ? "-" : "+"}${kgToDisplay(Math.abs(stats.total_loss_kg), unit).toFixed(1)} ${u}`,
           color: stats.total_loss_kg > 0 ? "text-green-600" : "text-red-600",
         },
         {
-          label: "Avg Loss/Week",
+          label: t("stats.avgLossPerWeek"),
           value: `${stats.avg_loss_per_week >= 0 ? "+" : ""}${kgToDisplay(stats.avg_loss_per_week, unit).toFixed(2)} ${u}/wk`,
           color: "text-gray-900 dark:text-gray-100",
         },
         {
-          label: "Current Trend",
+          label: t("stats.currentTrend"),
           value: `${stats.current_trend >= 0 ? "+" : ""}${kgToDisplay(stats.current_trend, unit).toFixed(2)} ${u}/wk`,
           color: trendColor,
         },
         {
-          label: "Days Tracked",
+          label: t("stats.daysTracked"),
           value: String(stats.days_tracked),
           color: "text-gray-900 dark:text-gray-100",
         },
         {
-          label: "Measurements",
+          label: t("stats.measurements"),
           value: String(stats.measurement_count),
           color: "text-gray-900 dark:text-gray-100",
         },

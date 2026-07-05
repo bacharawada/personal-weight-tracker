@@ -6,6 +6,7 @@
  */
 
 import type { RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -45,6 +46,7 @@ export function MeasurementRow({
   onErrorClear,
   onDeleteRequest,
 }: MeasurementRowProps) {
+  const { t } = useTranslation("data");
   const bounds = weightBounds(unit);
   return (
     <tr
@@ -115,7 +117,7 @@ export function MeasurementRow({
               size="icon-sm"
               onClick={() => onEditSave(m.date)}
               disabled={saving}
-              title="Save"
+              title={t("actions.save", { ns: "common" })}
               className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
             >
               <Check size={15} />
@@ -124,7 +126,7 @@ export function MeasurementRow({
               variant="ghost"
               size="icon-sm"
               onClick={onEditCancel}
-              title="Cancel"
+              title={t("actions.cancel", { ns: "common" })}
             >
               <X size={15} />
             </Button>
@@ -135,7 +137,7 @@ export function MeasurementRow({
               variant="ghost"
               size="icon-sm"
               onClick={(e) => onEditStart(m, e)}
-              title="Edit weight"
+              title={t("row.editWeight")}
               className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 min-w-[36px] min-h-[36px]"
             >
               <Pencil size={14} />
@@ -147,7 +149,7 @@ export function MeasurementRow({
                 e.stopPropagation();
                 onDeleteRequest(m);
               }}
-              title="Delete"
+              title={t("actions.delete", { ns: "common" })}
               className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 min-w-[36px] min-h-[36px]"
             >
               <Trash2 size={14} />
