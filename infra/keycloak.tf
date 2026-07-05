@@ -118,10 +118,11 @@ resource "azurerm_container_app" "keycloak" {
       }
 
       # -- Volume mounts --
-      # Realm JSON is imported from this path on first boot
+      # Keycloak reads *.json from /opt/keycloak/data/import when started
+      # with --import-realm. The Azure Files share root holds realm-export.json.
       volume_mounts {
         name = "keycloak-config"
-        path = "/opt/keycloak/config-mount"
+        path = "/opt/keycloak/data/import"
       }
 
       # Liveness probe — Keycloak health endpoint

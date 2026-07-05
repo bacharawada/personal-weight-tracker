@@ -24,17 +24,15 @@ resource "azurerm_storage_share" "keycloak_config" {
 
 # ------------------------------------------------------------
 # Realm config — uploaded from the repo
+#
+# The file lives at the share root. The share is mounted at
+# /opt/keycloak/data/import in keycloak.tf, so Keycloak's
+# `--import-realm` finds it at /opt/keycloak/data/import/realm-export.json.
 # ------------------------------------------------------------
-
-resource "azurerm_storage_share_directory" "import" {
-  name             = "import"
-  storage_share_id = azurerm_storage_share.keycloak_config.id
-}
 
 resource "azurerm_storage_share_file" "realm_export" {
   name             = "realm-export.json"
   storage_share_id = azurerm_storage_share.keycloak_config.id
-  path             = azurerm_storage_share_directory.import.name
   source           = "${path.module}/../docker/keycloak/realm-export.json"
 
   # Re-upload whenever the file content changes
