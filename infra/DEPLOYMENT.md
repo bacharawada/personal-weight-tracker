@@ -107,14 +107,26 @@ az containerapp logs show -n ca-baw-weighttracker-prd -g rg-baw-weighttracker-pr
    TXT    asuid.weighttracker-auth  <verificationId>
    ```
 
-2. After propagation, bind (this issues the managed TLS cert):
+2. After propagation, it's a **two-step** flow per host — `add` first, then
+   `bind`. A lone `bind` fails with `RequireCustomHostnameInEnvironment`, and
+   `bind` needs `--environment` or it errors asking for `--certificate`.
 
    ```bash
-   az containerapp hostname bind -n ca-baw-weighttracker-prd \
-     -g rg-baw-weighttracker-prd --hostname weighttracker.bawada.fr --validation-method CNAME
-   az containerapp hostname bind -n ca-baw-weighttracker-kc-prd \
-     -g rg-baw-weighttracker-prd --hostname weighttracker-auth.bawada.fr --validation-method CNAME
+   RG=rg-baw-weighttracker-prd; ENV=cae-baw-weighttracker-prd
+
+   # Step 1 — add + validate the hostname (bindingType: Disabled, no cert yet)
+   az containerapp hostname add -n ca-baw-weighttracker-prd -g $RG --hostname weighttracker.bawada.fr
+   az containerapp hostname add -n ca-baw-weighttracker-kc-prd -g $RG --hostname weighttracker-auth.bawada.fr
+
+   # Step 2 — bind + issue the managed TLS cert (bindingType: SniEnabled)
+   az containerapp hostname bind -n ca-baw-weighttracker-prd -g $RG \
+     --hostname weighttracker.bawada.fr --environment $ENV --validation-method CNAME
+   az containerapp hostname bind -n ca-baw-weighttracker-kc-prd -g $RG \
+     --hostname weighttracker-auth.bawada.fr --environment $ENV --validation-method CNAME
    ```
+
+   Verify: both custom domains return 200 over HTTPS, and the OIDC issuer uses
+   the custom domain (`curl .../realms/weight-tracker/.well-known/openid-configuration`).
 
 Auth only works once `weighttracker-auth.bawada.fr` is bound, because the SPA's
 `VITE_KEYCLOAK_URL` and the realm redirect URIs are pinned to the custom domains.
