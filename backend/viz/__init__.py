@@ -1,23 +1,23 @@
-"""Visualization package — Plotly figure builders and colour palettes.
+"""Visualization package — chart data builders.
+
+These functions are UI-agnostic: they shape a DataFrame into JSON-ready data
+series. All rendering (colours, theme, layout) lives in the frontend.
 
 Re-exports all public symbols for convenient imports::
 
-    from viz import build_weight_figure, PALETTES, PaletteConfig
+    from viz import build_weight_chart_data
 """
 
 from __future__ import annotations
 
 from viz.charts import (
-    build_derivative_figure,
-    build_residuals_figure,
-    build_weight_figure,
+    build_derivative_chart_data,
+    build_residuals_chart_data,
+    build_weight_chart_data,
 )
-from viz.palettes import PALETTES, PaletteConfig
 
 __all__ = [
-    "PALETTES",
-    "PaletteConfig",
-    "build_derivative_figure",
-    "build_residuals_figure",
-    "build_weight_figure",
+    "build_derivative_chart_data",
+    "build_residuals_chart_data",
+    "build_weight_chart_data",
 ]

@@ -1,20 +1,18 @@
-"""Chart endpoints — return Plotly figures as JSON."""
+"""Chart endpoints — return raw data series as JSON (frontend renders)."""
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import JSONResponse
 
 from analysis import MODEL_EXP, MODEL_LINEAR, AnalysisConfig, build_model_curve
 from api.deps import get_current_user, get_store
+from api.schemas import DerivativeChartData, ResidualsChartData, WeightChartData
 from viz import (
-    PALETTES,
-    build_derivative_figure,
-    build_residuals_figure,
-    build_weight_figure,
+    build_derivative_chart_data,
+    build_residuals_chart_data,
+    build_weight_chart_data,
 )
 
 if TYPE_CHECKING:
@@ -47,8 +45,6 @@ def _parse_models(models: str) -> list[str]:
 def _parse_chart_params(
     smoothing: int = Query(5, ge=3, le=10, description="Rolling mean window"),
     horizon: int = Query(56, description="Extrapolation horizon in days"),
-    palette: str = Query("Classic", description="Colour palette name"),
-    dark: bool = Query(False, description="Dark mode"),
     models: str = Query("exp", description="Comma-separated prediction models"),
     band: bool = Query(True, description="Show model uncertainty bands"),
 ) -> dict:
@@ -56,8 +52,6 @@ def _parse_chart_params(
     return {
         "smoothing": smoothing,
         "horizon": horizon,
-        "palette": palette,
-        "dark": dark,
         "models": _parse_models(models),
         "band": band,
     }
@@ -90,55 +84,43 @@ def _build_curves(df: pd.DataFrame, params: dict) -> list[ModelCurve]:
     ]
 
 
-@router.get("/weight")
+@router.get("/weight", response_model=WeightChartData)
 def get_weight_chart(
     params: dict = Depends(_parse_chart_params),
     keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
-) -> JSONResponse:
-    """Return the main weight progression chart as Plotly JSON."""
+) -> dict:
+    """Return the main weight progression chart data series."""
     df = store.get_all(keycloak_sub)
-    palette_obj = PALETTES.get(params["palette"], PALETTES["Classic"])
     model_curves = _build_curves(df, params)
     goal_weight = store.get_user_profile(keycloak_sub)["goal_weight"]
 
-    fig = build_weight_figure(
+    return build_weight_chart_data(
         df,
         model_curves=model_curves,
-        palette=palette_obj,
-        dark=params["dark"],
         smoothing_window=params["smoothing"],
         goal_weight=goal_weight,
         show_band=params["band"],
     )
-    return JSONResponse(content=json.loads(fig.to_json()))
 
 
-@router.get("/derivative")
+@router.get("/derivative", response_model=DerivativeChartData)
 def get_derivative_chart(
-    params: dict = Depends(_parse_chart_params),
     keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
-) -> JSONResponse:
-    """Return the derivative (rate of change) chart as Plotly JSON."""
+) -> dict:
+    """Return the derivative (rate of change) chart data series."""
     df = store.get_all(keycloak_sub)
-    palette_obj = PALETTES.get(params["palette"], PALETTES["Classic"])
-    fig = build_derivative_figure(df, palette=palette_obj, dark=params["dark"])
-    return JSONResponse(content=json.loads(fig.to_json()))
+    return build_derivative_chart_data(df)
 
 
-@router.get("/residuals")
+@router.get("/residuals", response_model=ResidualsChartData)
 def get_residuals_chart(
     params: dict = Depends(_parse_chart_params),
     keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
-) -> JSONResponse:
-    """Return the residuals vs. model chart as Plotly JSON."""
+) -> dict:
+    """Return the residuals vs. model chart data series."""
     df = store.get_all(keycloak_sub)
-    palette_obj = PALETTES.get(params["palette"], PALETTES["Classic"])
     model_curves = _build_curves(df, params)
-
-    fig = build_residuals_figure(
-        df, model_curves=model_curves, palette=palette_obj, dark=params["dark"]
-    )
-    return JSONResponse(content=json.loads(fig.to_json()))
+    return build_residuals_chart_data(df, model_curves=model_curves)

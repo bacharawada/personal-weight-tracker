@@ -1,70 +1,22 @@
-"""Export endpoints — PNG and CSV downloads."""
+"""Export endpoints — CSV download.
+
+PNG export is performed client-side (the frontend serialises the rendered
+SVG chart), so there is no server-side image-rendering endpoint here.
+"""
 
 from __future__ import annotations
 
-import io
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
-from analysis import MODEL_EXP, MODEL_LINEAR, AnalysisConfig, build_model_curve
 from api.deps import get_current_user, get_store
-from viz import PALETTES, build_weight_figure
 
 if TYPE_CHECKING:
     from db import WeightDataStore
 
 router = APIRouter(prefix="/exports", tags=["exports"])
-
-_VALID_MODELS = (MODEL_EXP, MODEL_LINEAR)
-
-
-@router.get("/png")
-def export_png(
-    smoothing: int = Query(5, ge=3, le=10),
-    horizon: int = Query(56),
-    palette: str = Query("Classic"),
-    dark: bool = Query(False),
-    models: str = Query("exp"),
-    band: bool = Query(True),
-    keycloak_sub: str = Depends(get_current_user),
-    store: WeightDataStore = Depends(get_store),
-) -> Response:
-    """Export the main weight chart as a PNG image for the current user."""
-    df = store.get_all(keycloak_sub)
-    if df.empty:
-        return Response(status_code=204)
-
-    palette_obj = PALETTES.get(palette, PALETTES["Classic"])
-    config = AnalysisConfig(smoothing_window=smoothing)
-    requested = {m.strip() for m in models.split(",") if m.strip()}
-    selected = [m for m in _VALID_MODELS if m in requested]
-    model_curves = [
-        build_model_curve(
-            df, kind, config=config, extrapolation_days=horizon, with_band=band
-        )
-        for kind in selected
-    ]
-
-    fig = build_weight_figure(
-        df,
-        model_curves=model_curves,
-        palette=palette_obj,
-        dark=dark,
-        smoothing_window=smoothing,
-        show_band=band,
-    )
-
-    buf = io.BytesIO()
-    fig.write_image(buf, format="png", width=1200, height=700, scale=2)
-    buf.seek(0)
-
-    return Response(
-        content=buf.getvalue(),
-        media_type="image/png",
-        headers={"Content-Disposition": 'attachment; filename="weight_chart.png"'},
-    )
 
 
 @router.get("/csv")

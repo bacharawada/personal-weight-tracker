@@ -12,10 +12,8 @@ from api.schemas import (
     MeasurementOut,
     MeasurementUpdate,
     MtimeOut,
-    PaletteOut,
 )
 from db import DuplicateDateError, NotFoundError, WeightDataStore
-from viz import PALETTES
 
 router = APIRouter(tags=["measurements"])
 
@@ -162,12 +160,6 @@ def delete_measurement(
         store.remove(keycloak_sub, date)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-
-@router.get("/palettes", response_model=PaletteOut)
-def list_palettes() -> dict:
-    """Return the list of available colour palette names."""
-    return {"names": list(PALETTES.keys())}
 
 
 @router.get("/db-mtime", response_model=MtimeOut)
