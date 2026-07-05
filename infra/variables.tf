@@ -82,6 +82,26 @@ variable "github_repo" {
   type        = string
 }
 
+# Creating the Azure AD application for GitHub Actions OIDC requires
+# tenant-level (directory) privileges. On a corporate tenant where only
+# subscription rights are granted, keep this disabled and deploy manually.
+# Enable once an admin has granted "Application Developer" (or created the SP).
+variable "enable_github_oidc" {
+  description = "Provision the Azure AD app + service principal for GitHub Actions OIDC"
+  type        = bool
+  default     = false
+}
+
+# ------------------------------------------------------------
+# Keycloak custom login theme (optional)
+# ------------------------------------------------------------
+
+variable "enable_keycloak_theme" {
+  description = "Upload the custom Keycloak login theme to Azure Files"
+  type        = bool
+  default     = false
+}
+
 # ------------------------------------------------------------
 # Domains (fixed for this project — override if needed)
 # ------------------------------------------------------------

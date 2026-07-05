@@ -17,11 +17,13 @@ data "azurerm_subscription" "current" {}
 # ------------------------------------------------------------
 
 resource "azuread_application" "github_actions" {
+  count        = var.enable_github_oidc ? 1 : 0
   display_name = "weight-tracker-github-actions"
 }
 
 resource "azuread_service_principal" "github_actions" {
-  client_id = azuread_application.github_actions.client_id
+  count     = var.enable_github_oidc ? 1 : 0
+  client_id = azuread_application.github_actions[0].client_id
 }
 
 # ------------------------------------------------------------
@@ -31,7 +33,8 @@ resource "azuread_service_principal" "github_actions" {
 # ------------------------------------------------------------
 
 resource "azuread_application_federated_identity_credential" "github_actions" {
-  application_id = azuread_application.github_actions.id
+  count          = var.enable_github_oidc ? 1 : 0
+  application_id = azuread_application.github_actions[0].id
   display_name   = "github-actions-main"
   description    = "GitHub Actions OIDC for pushes to main"
   audiences      = ["api://AzureADTokenExchange"]
@@ -45,14 +48,16 @@ resource "azuread_application_federated_identity_credential" "github_actions" {
 
 # Contributor on the resource group — allows deploying Container Apps
 resource "azurerm_role_assignment" "github_actions_contributor" {
+  count                = var.enable_github_oidc ? 1 : 0
   scope                = azurerm_resource_group.main.id
   role_definition_name = "Contributor"
-  principal_id         = azuread_service_principal.github_actions.object_id
+  principal_id         = azuread_service_principal.github_actions[0].object_id
 }
 
 # AcrPush on the Container Registry — allows pushing Docker images
 resource "azurerm_role_assignment" "github_actions_acr_push" {
+  count                = var.enable_github_oidc ? 1 : 0
   scope                = azurerm_container_registry.main.id
   role_definition_name = "AcrPush"
-  principal_id         = azuread_service_principal.github_actions.object_id
+  principal_id         = azuread_service_principal.github_actions[0].object_id
 }

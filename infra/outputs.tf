@@ -48,7 +48,7 @@ output "dns_instructions" {
       --validation-method CNAME
 
     az containerapp hostname bind \
-      --name ca-baw-weighttracker-keycloak-prd \
+      --name ca-baw-weighttracker-kc-prd \
       --resource-group ${var.resource_group_name} \
       --hostname ${var.keycloak_domain} \
       --validation-method CNAME
@@ -60,15 +60,14 @@ output "dns_instructions" {
 # GitHub Actions secrets
 # ------------------------------------------------------------
 
-output "github_actions_secrets" {
-  description = "Values to set as GitHub Actions secrets"
-  value       = <<-EOT
+locals {
+  github_actions_secrets_text = <<-EOT
 
     ================================================================
     STEP 3 — Set these GitHub Actions secrets
     Settings → Secrets and variables → Actions → New repository secret
     ================================================================
-    AZURE_CLIENT_ID          = ${azuread_application.github_actions.client_id}
+    AZURE_CLIENT_ID          = ${coalesce(one(azuread_application.github_actions[*].client_id), "n/a")}
     AZURE_TENANT_ID          = ${data.azurerm_subscription.current.tenant_id}
     AZURE_SUBSCRIPTION_ID    = ${data.azurerm_subscription.current.subscription_id}
     ACR_LOGIN_SERVER         = ${azurerm_container_registry.main.login_server}
@@ -82,6 +81,13 @@ output "github_actions_secrets" {
     git push origin main
 
   EOT
+}
+
+output "github_actions_secrets" {
+  description = "Values to set as GitHub Actions secrets (only when GitHub OIDC is enabled)"
+  value = var.enable_github_oidc ? local.github_actions_secrets_text : (
+    "GitHub Actions OIDC is disabled (enable_github_oidc = false). Deploying manually via az."
+  )
 }
 
 # ------------------------------------------------------------

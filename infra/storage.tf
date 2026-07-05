@@ -56,11 +56,13 @@ locals {
 }
 
 resource "azurerm_storage_share_directory" "theme_root" {
+  count            = var.enable_keycloak_theme ? 1 : 0
   name             = "themes"
   storage_share_id = azurerm_storage_share.keycloak_config.id
 }
 
 resource "azurerm_storage_share_directory" "theme_weight_tracker" {
+  count            = var.enable_keycloak_theme ? 1 : 0
   name             = "themes/weight-tracker"
   storage_share_id = azurerm_storage_share.keycloak_config.id
 
@@ -69,11 +71,11 @@ resource "azurerm_storage_share_directory" "theme_weight_tracker" {
 
 # Create intermediate subdirectories for nested theme files
 resource "azurerm_storage_share_directory" "theme_subdirs" {
-  for_each = toset([
+  for_each = var.enable_keycloak_theme ? toset([
     for f in local.theme_files :
     "themes/weight-tracker/${dirname(f)}"
     if dirname(f) != "."
-  ])
+  ]) : toset([])
 
   name             = each.value
   storage_share_id = azurerm_storage_share.keycloak_config.id
@@ -82,7 +84,7 @@ resource "azurerm_storage_share_directory" "theme_subdirs" {
 }
 
 resource "azurerm_storage_share_file" "theme_files" {
-  for_each = { for f in local.theme_files : f => f }
+  for_each = var.enable_keycloak_theme ? { for f in local.theme_files : f => f } : {}
 
   name             = basename(each.value)
   storage_share_id = azurerm_storage_share.keycloak_config.id

@@ -12,6 +12,13 @@ resource "azurerm_container_app_environment" "main" {
   # only the database is private.
   infrastructure_subnet_id       = azurerm_subnet.containerapps.id
   internal_load_balancer_enabled = false
+
+  # Azure auto-creates and names the managed infrastructure resource group
+  # ("ME_..."). The provider otherwise treats the imported value as a change
+  # that forces replacement — ignore it so re-applies don't recreate the env.
+  lifecycle {
+    ignore_changes = [infrastructure_resource_group_name]
+  }
 }
 
 # Attach the Azure Files share so Container Apps can mount it.
