@@ -2,7 +2,7 @@
 # Keycloak Container App
 #
 # Runs Keycloak 24.0 with:
-#   - Neon PostgreSQL as its backend database
+#   - Azure PostgreSQL Flexible Server (private) as its backend database
 #   - Realm config auto-imported from Azure Files on first boot
 #   - Custom theme mounted from Azure Files
 #   - KC_PROXY=edge so Keycloak trusts the TLS termination done
@@ -20,7 +20,7 @@ resource "azurerm_container_app" "keycloak" {
   # ------------------------------------------------------------
   secret {
     name  = "kc-db-password"
-    value = var.kc_db_password
+    value = random_password.postgres_admin.result
   }
 
   secret {
@@ -76,11 +76,11 @@ resource "azurerm_container_app" "keycloak" {
       }
       env {
         name  = "KC_DB_URL"
-        value = var.kc_db_url
+        value = local.keycloak_jdbc_url
       }
       env {
         name  = "KC_DB_USERNAME"
-        value = var.kc_db_username
+        value = var.postgres_admin_username
       }
       env {
         name        = "KC_DB_PASSWORD"
@@ -130,9 +130,9 @@ resource "azurerm_container_app" "keycloak" {
         path      = "/health/live"
         port      = 8080
 
-        initial_delay    = 60
-        interval_seconds = 15
-        timeout          = 10
+        initial_delay           = 60
+        interval_seconds        = 15
+        timeout                 = 10
         failure_count_threshold = 5
       }
 

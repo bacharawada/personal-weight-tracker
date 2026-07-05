@@ -33,7 +33,7 @@ resource "azurerm_container_app" "app" {
 
   secret {
     name  = "database-url"
-    value = var.database_url
+    value = local.app_database_url
   }
 
   # ------------------------------------------------------------

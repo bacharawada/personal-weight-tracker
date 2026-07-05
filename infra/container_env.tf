@@ -6,6 +6,12 @@ resource "azurerm_container_app_environment" "main" {
   name                = "cae-baw-weighttracker-prd"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
+
+  # VNet-inject the environment so containers can reach the private
+  # PostgreSQL server. Public ingress is kept (internal LB disabled) —
+  # only the database is private.
+  infrastructure_subnet_id       = azurerm_subnet.containerapps.id
+  internal_load_balancer_enabled = false
 }
 
 # Attach the Azure Files share so Container Apps can mount it.

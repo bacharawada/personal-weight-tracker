@@ -20,20 +20,14 @@ github_repo = "<your-github-username>/weight_analysis"
 # storage_account_name = "stbawweighttrackerprd"       # alphanumeric only — Azure constraint
 
 # -----------------------------------------------------------
-# App database — Neon project: weighttracker
+# PostgreSQL (Azure Flexible Server, private)
 # -----------------------------------------------------------
-# From Neon dashboard → project → Connection string
-# Switch the driver dropdown to "SQLAlchemy" to get this format.
-database_url = "postgresql+psycopg2://<user>:<password>@<host>/weighttracker?sslmode=require"
-
-# -----------------------------------------------------------
-# Keycloak database — Neon project: weighttracker_keycloak
-# -----------------------------------------------------------
-# From Neon dashboard → project → Connection details
-# Build the JDBC URL manually from the host/user/password/dbname shown.
-kc_db_url      = "jdbc:postgresql://<host>/<dbname>?user=<user>&password=<password>&sslmode=require"
-kc_db_username = "<neon-username>"
-kc_db_password = "<neon-password>"
+# The server, both databases, and the admin password are all
+# managed by Terraform — nothing to provision beforehand.
+# The admin password is generated (random_password); you only
+# override the login here if you want something other than the
+# default "pgadmin".
+# postgres_admin_username = "pgadmin"
 
 # -----------------------------------------------------------
 # Keycloak admin

@@ -27,7 +27,7 @@ output "keycloak_fqdn" {
 
 output "dns_instructions" {
   description = "DNS CNAME records to set at your bawada.fr registrar"
-  value = <<-EOT
+  value       = <<-EOT
 
     ================================================================
     STEP 1 — Set these DNS records at your registrar for bawada.fr
@@ -62,7 +62,7 @@ output "dns_instructions" {
 
 output "github_actions_secrets" {
   description = "Values to set as GitHub Actions secrets"
-  value = <<-EOT
+  value       = <<-EOT
 
     ================================================================
     STEP 3 — Set these GitHub Actions secrets
