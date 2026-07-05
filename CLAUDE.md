@@ -76,12 +76,13 @@ All backend tests use the in-memory SQLite engine from `backend/conftest.py`. Th
 
 ## Deployment
 
-Three independent GitHub Actions workflows in `.github/workflows/`, all using Azure OIDC (no long-lived secrets):
-- **`infra.yml`** — Terraform apply (`infra/` → resource group, ACR, Container App, storage, IAM)
-- **`db.yml`** — runs Alembic migrations against the Azure Postgres
+Two independent GitHub Actions workflows in `.github/workflows/`, both using Azure OIDC (no long-lived secrets):
+- **`infra.yml`** — Terraform apply (`infra/` → VNet, private PostgreSQL Flexible Server, resource group, ACR, Container App, storage, IAM)
 - **`app.yml`** — runs pytest, then builds the backend image, pushes to ACR, updates the Container App revision
 
 The frontend is built into `frontend/dist` and copied into the backend image (single container deploy).
+
+The PostgreSQL Flexible Server is private (VNet-integrated, no public endpoint), so Alembic migrations cannot run from a GitHub-hosted runner. They run at container startup via `backend/entrypoint.sh` (`alembic upgrade head`), which executes inside the VNet.
 
 ## Conventions specific to this repo
 

@@ -14,12 +14,11 @@
 #
 # Required GitHub Actions secrets (passed as TF_VAR_* to Terraform):
 #   TF_VAR_subscription_id          Azure subscription ID
-#   TF_VAR_database_url             Neon connection string for the app
-#   TF_VAR_kc_db_url                Neon JDBC connection string for Keycloak
-#   TF_VAR_kc_db_username           Neon username for Keycloak
-#   TF_VAR_kc_db_password           Neon password for Keycloak
 #   TF_VAR_keycloak_admin_password  Keycloak admin password
 #   TF_VAR_github_repo              e.g. bawada/weight_analysis
+#
+# The PostgreSQL server and its admin password are managed by
+# Terraform (random_password), so no database secrets are needed.
 # ============================================================
 
 name: Infrastructure — Terraform
@@ -43,10 +42,6 @@ jobs:
       # Terraform reads TF_VAR_* automatically as input variables.
       # Sensitive values are stored as GitHub secrets and never logged.
       TF_VAR_subscription_id:         ${{ secrets.TF_VAR_subscription_id }}
-      TF_VAR_database_url:            ${{ secrets.TF_VAR_database_url }}
-      TF_VAR_kc_db_url:               ${{ secrets.TF_VAR_kc_db_url }}
-      TF_VAR_kc_db_username:          ${{ secrets.TF_VAR_kc_db_username }}
-      TF_VAR_kc_db_password:          ${{ secrets.TF_VAR_kc_db_password }}
       TF_VAR_keycloak_admin_password: ${{ secrets.TF_VAR_keycloak_admin_password }}
       TF_VAR_github_repo:             ${{ secrets.TF_VAR_github_repo }}
 
