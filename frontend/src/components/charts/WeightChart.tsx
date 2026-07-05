@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { format as formatDate } from "date-fns";
 import { getWeightChart } from "../../lib/api";
@@ -42,6 +43,7 @@ export function WeightChart({
   className,
   onDataLoaded,
 }: WeightChartProps) {
+  const { t } = useTranslation("charts");
   const svgRef = useRef<SVGSVGElement>(null);
   const fetcher = useCallback(() => getWeightChart(params), [params]);
   const { data, loading, error } = useChartData<WeightChartData>(fetcher, [
@@ -75,8 +77,11 @@ export function WeightChart({
 
   const legendItems: LegendItem[] = [];
   if (data && !isEmpty) {
-    legendItems.push({ label: "Measurements", color: palette.raw });
-    legendItems.push({ label: `Rolling mean (${data.smoothing_window}-pt)`, color: palette.smoothed });
+    legendItems.push({ label: t("weight.legend.measurements"), color: palette.raw });
+    legendItems.push({
+      label: t("weight.legend.rollingMean", { count: data.smoothing_window }),
+      color: palette.smoothed,
+    });
     for (const model of data.models) {
       legendItems.push({
         label: model.label,
@@ -84,7 +89,11 @@ export function WeightChart({
       });
     }
     if (data.goal_weight != null) {
-      legendItems.push({ label: `Goal: ${data.goal_weight.toFixed(1)} kg`, color: palette.accent, dashed: true });
+      legendItems.push({
+        label: t("weight.legend.goal", { value: data.goal_weight.toFixed(1) }),
+        color: palette.accent,
+        dashed: true,
+      });
     }
   }
 
@@ -98,7 +107,7 @@ export function WeightChart({
         !isEmpty ? (
           <button
             onClick={handleExport}
-            title="Export PNG"
+            title={t("weight.exportPng")}
             className="rounded-md bg-white/80 dark:bg-gray-700/80 p-1.5 text-gray-500 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white shadow-sm"
           >
             <Download size={15} />
@@ -151,6 +160,7 @@ function WeightChartBody({
   innerHeight,
   onPointClick,
 }: BodyProps) {
+  const { t } = useTranslation("charts");
   // -- Collect domains across every series ----------------------------------
   const allMs: number[] = [
     ...data.raw.map((p) => toMs(p.date)),
@@ -287,7 +297,13 @@ function WeightChartBody({
         innerHeight={innerHeight}
         theme={theme}
         header={(p) => formatDate(new Date(toMs(p.date)), "MMM d, yyyy")}
-        lines={(p) => [{ label: "Weight", value: `${p.value.toFixed(1)} kg`, color: palette.raw }]}
+        lines={(p) => [
+          {
+            label: t("weight.tooltip.weight"),
+            value: t("weight.tooltip.weightValue", { value: p.value.toFixed(1) }),
+            color: palette.raw,
+          },
+        ]}
         dots={(p) => [{ y: y(p.value), color: palette.raw }]}
         onSelect={(p) => onPointClick({ date: p.date.slice(0, 10), weight: p.value })}
       />

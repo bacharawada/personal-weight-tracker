@@ -55,7 +55,7 @@ Four packages with strict separation — `analysis/` and `viz/` are UI-agnostic 
 
 - **`db/`** — SQLAlchemy Core (not ORM). `engine.py` defines `metadata`, `users` and `measurements` tables, plus `DuplicateDateError` / `NotFoundError`. `store.py` exposes the `WeightDataStore` class — **all DB access must go through it**, never construct SQL elsewhere. `migrate.py` is a one-shot CSV seeder (not imported by the app).
 - **`analysis/`** — pure data science (pandas/scipy/numpy). Smoothing, derivative, exponential-decay curve fit, summary stats. No side effects.
-- **`viz/`** — Plotly figure builders. Functions take a DataFrame and return a `go.Figure`. `palettes.py` defines the `PaletteConfig` dataclass and the `PALETTES` registry.
+- **`viz/`** — chart **data** builders. Functions take a DataFrame and return JSON-ready `dict`s of plain data series (points, bands, zones) — **no rendering concerns** (no colours, theme, or layout). The frontend owns all rendering; there is no server-side plotting library. Colours/palettes live in the frontend (`frontend/src/lib/palettes.ts`).
 - **`api/`** — FastAPI app factory in `api/__init__.py`. Routes split per concern under `api/routes/` (measurements, charts, exports, imports, stats, users). `api/deps.py` owns the singleton `WeightDataStore` via lifespan. `api/auth.py` validates Keycloak JWTs against the JWKS (cached 5 min).
 
 The app factory also mounts `frontend/dist` and serves it as an SPA when the directory exists — production runs a single container; dev runs Vite + FastAPI separately.
@@ -67,7 +67,9 @@ The app factory also mounts `frontend/dist` and serves it as an SPA when the dir
 Frontend uses `oidc-client-ts` (Authorization Code + PKCE) against Keycloak. Backend extracts the `sub` claim via `api.auth.get_current_user`, then `WeightDataStore.get_or_create_user(sub)` resolves it to the internal `user_id`. Tests override `get_current_user` via `app.dependency_overrides`.
 
 ### Frontend (`frontend/src/`)
-React 19 + Vite + Tailwind. shadcn/ui primitives in `components/ui` (CVA variants, no external `className` override on primitives). Global state in `context/AuthContext.tsx` and `context/WeightTrackerContext.tsx`. Plotly is lazy-loaded via `lib/PlotlyFactory.ts`. API client in `lib/api.ts`; types in `lib/types.ts`.
+React 19 + Vite + Tailwind. shadcn/ui primitives in `components/ui` (CVA variants, no external `className` override on primitives). Global state in `context/AuthContext.tsx` and `context/WeightTrackerContext.tsx`. API client in `lib/api.ts`; types in `lib/types.ts`.
+
+**Charts are custom SVG** (no chart library). The backend returns raw data series; the frontend renders them. `lib/charts/` holds the math helpers (`scales.ts`/`geometry.ts` wrap `d3-scale`/`d3-shape`, `exportPng.ts` does client-side SVG→PNG export, `useChartData.ts` fetches). `components/charts/primitives/` holds the building blocks (`ChartFrame`, `Axes`, `HoverLayer`, `Legend`, `ChartCard`); `WeightChart`/`DerivativeChart`/`ResidualsChart` compose them. Palette colours and dark-mode theming are applied at render time (`lib/palettes.ts`) and never sent to the backend; `AxisControls` lets the user pin axis start/end/step.
 
 ### Tests
 All backend tests use the in-memory SQLite engine from `backend/conftest.py`. The `store` fixture seeds 10 measurements for `TEST_USER_SUB`. **Never touch the real database in tests.** The SQLite schema mirrors Postgres; alembic migrations are not run in tests (the conftest calls `metadata.create_all` directly).

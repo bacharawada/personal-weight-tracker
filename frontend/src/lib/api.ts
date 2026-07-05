@@ -10,14 +10,16 @@ import type {
   CsvImportResult,
   CsvPreview,
   CsvPreviewRow,
+  DerivativeChartData,
   GoalProjection,
   Measurement,
   MeasurementIn,
   Mtime,
-  Palettes,
+  ResidualsChartData,
   Stats,
   UserProfile,
   UserProfileUpdate,
+  WeightChartData,
 } from "./types";
 
 const BASE = "/api";
@@ -117,10 +119,6 @@ export async function getDbMtime(): Promise<Mtime> {
   return fetchJson<Mtime>(`${BASE}/db-mtime`);
 }
 
-export async function getPalettes(): Promise<Palettes> {
-  return fetchJson<Palettes>(`${BASE}/palettes`);
-}
-
 // ---------------------------------------------------------------------------
 // User profile
 // ---------------------------------------------------------------------------
@@ -185,6 +183,8 @@ export async function confirmCsvImport(
 // Charts
 // ---------------------------------------------------------------------------
 
+// Only data-affecting params reach the backend. Colour palette and theme are
+// pure rendering concerns handled entirely on the frontend.
 function chartQuery(params: ChartParams): string {
   const models = [
     ...(params.showExp ? ["exp"] : []),
@@ -193,35 +193,37 @@ function chartQuery(params: ChartParams): string {
   const q = new URLSearchParams({
     smoothing: String(params.smoothing),
     horizon: String(params.horizon),
-    palette: params.palette,
-    dark: String(params.dark),
     models,
     band: String(params.showBand),
   });
   return q.toString();
 }
 
-export async function getWeightChart(params: ChartParams): Promise<object> {
-  return fetchJson<object>(`${BASE}/charts/weight?${chartQuery(params)}`);
+export async function getWeightChart(params: ChartParams): Promise<WeightChartData> {
+  return fetchJson<WeightChartData>(`${BASE}/charts/weight?${chartQuery(params)}`);
 }
 
-export async function getDerivativeChart(params: ChartParams): Promise<object> {
-  return fetchJson<object>(`${BASE}/charts/derivative?${chartQuery(params)}`);
+export async function getDerivativeChart(params: ChartParams): Promise<DerivativeChartData> {
+  return fetchJson<DerivativeChartData>(`${BASE}/charts/derivative?${chartQuery(params)}`);
 }
 
-export async function getResidualsChart(params: ChartParams): Promise<object> {
-  return fetchJson<object>(`${BASE}/charts/residuals?${chartQuery(params)}`);
+export async function getResidualsChart(params: ChartParams): Promise<ResidualsChartData> {
+  return fetchJson<ResidualsChartData>(`${BASE}/charts/residuals?${chartQuery(params)}`);
 }
 
 // ---------------------------------------------------------------------------
-// Export URLs (opened directly in the browser, token in query param not
-// feasible — user must be authenticated when the browser follows the link)
+// Exports
 // ---------------------------------------------------------------------------
+// A plain <a href> link cannot carry the Bearer token, so the request must go
+// through the authenticated fetch client and download the response as a blob.
 
-export function exportPngUrl(params: ChartParams): string {
-  return `${BASE}/exports/png?${chartQuery(params)}`;
-}
-
-export function exportCsvUrl(): string {
-  return `${BASE}/exports/csv`;
+export async function exportCsv(): Promise<Blob> {
+  const res = await fetch(`${BASE}/exports/csv`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+  return res.blob();
 }

@@ -16,7 +16,7 @@ import {
   useState,
 } from "react";
 import { getMe, getMeasurements, updateProfile } from "../lib/api";
-import { getPaletteAccent } from "../lib/palette";
+import { getPaletteAccent } from "../lib/palettes";
 import type { ChartParams, UserProfile, UserProfileUpdate } from "../lib/types";
 import { WeightUnit } from "../lib/types";
 import { usePolling } from "../hooks/usePolling";
@@ -118,18 +118,32 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
 
   const unit = profile?.unit_preference ?? WeightUnit.Kg;
 
-  // Stable numeric key from refreshKey + chartParams for chart refetches.
+  // Stable numeric key from refreshKey + the data-affecting chart params only.
+  // Palette and dark mode are pure rendering concerns handled client-side, so
+  // they are deliberately excluded — changing them re-renders without a refetch.
   const chartRefreshKey = useMemo(() => {
-    const str = `${refreshKey}-${JSON.stringify(chartParams)}`;
+    const str = [
+      refreshKey,
+      chartParams.smoothing,
+      chartParams.horizon,
+      chartParams.showExp,
+      chartParams.showLinear,
+      chartParams.showBand,
+    ].join("-");
     let hash = 0;
     for (const ch of str) {
       hash = (hash << 5) - hash + ch.charCodeAt(0);
       hash |= 0;
     }
-    const key = Math.abs(hash);
-    console.log("[WTC] chartRefreshKey recomputed →", key, "| refreshKey=", refreshKey, "| params=", JSON.stringify(chartParams));
-    return key;
-  }, [refreshKey, chartParams]);
+    return Math.abs(hash);
+  }, [
+    refreshKey,
+    chartParams.smoothing,
+    chartParams.horizon,
+    chartParams.showExp,
+    chartParams.showLinear,
+    chartParams.showBand,
+  ]);
 
   const accent = useMemo(
     () => getPaletteAccent(chartParams.palette),

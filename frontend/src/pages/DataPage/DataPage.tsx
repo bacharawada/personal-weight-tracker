@@ -1,3 +1,5 @@
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Download, FileUp, Plus, Trash2 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { PageTransition } from "../../components/layout/PageTransition";
@@ -5,7 +7,7 @@ import { PageTitle } from "../../components/layout/PageTitle";
 import { Button } from "../../components/ui/button";
 import { ActionCard } from "../../components/ui/ActionCard";
 import { DataTable } from "../../components/ui/DataTable";
-import { exportCsvUrl } from "../../lib/api";
+import { exportCsv } from "../../lib/api";
 import { useDataPage } from "../../hooks/useDataPage";
 import { MeasurementRow } from "./MeasurementRow";
 import { DataPageFAB } from "./DataPageFAB";
@@ -16,11 +18,12 @@ import { DeleteAllModal } from "./modals/DeleteAllModal";
 import { unitLabel } from "../../lib/units";
 
 export function DataPage() {
+  const { t } = useTranslation("data");
   const { bump, accent, hasData, unit } = useWeightTracker();
   const tableColumns = [
-    { label: "Date", align: "left" as const },
-    { label: `Weight (${unitLabel(unit)})`, align: "right" as const },
-    { label: "Actions", align: "right" as const, className: "w-24" },
+    { label: t("table.date"), align: "left" as const },
+    { label: t("table.weight", { unit: unitLabel(unit) }), align: "right" as const },
+    { label: t("table.actions"), align: "right" as const, className: "w-24" },
   ];
   const {
     measurements,
@@ -36,6 +39,24 @@ export function DataPage() {
     handleDelete, handleDeleteAll, handleCsvComplete,
   } = useDataPage();
 
+  const [exporting, setExporting] = useState(false);
+  const handleExportCsv = useCallback(async () => {
+    setExporting(true);
+    try {
+      const blob = await exportCsv();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "measurements.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
   return (
     <>
       <PageTransition>
@@ -44,8 +65,8 @@ export function DataPage() {
           {/* Header */}
           <div className="flex items-center justify-between gap-4 shrink-0">
             <PageTitle
-              title="Data"
-              subtitle={`${measurements.length} measurement${measurements.length !== 1 ? "s" : ""} recorded`}
+              title={t("page.title")}
+              subtitle={t("page.subtitle", { count: measurements.length })}
             />
             <div className="flex items-center gap-2 shrink-0">
               {hasData && (
@@ -55,24 +76,18 @@ export function DataPage() {
                   onClick={() => setDeleteAllOpen(true)}
                 >
                   <Trash2 size={15} />
-                  <span className="hidden sm:inline">Delete all</span>
+                  <span className="hidden sm:inline">{t("toolbar.deleteAll")}</span>
                 </Button>
               )}
-              <a
-                href={hasData ? exportCsvUrl() : undefined}
-                download={hasData ? "measurements.csv" : undefined}
-                aria-disabled={!hasData}
-                className={[
-                  "inline-flex items-center gap-2 h-9 rounded-md px-3 text-sm font-medium",
-                  "border border-input bg-background transition-colors",
-                  hasData
-                    ? "hover:bg-muted dark:hover:bg-muted/50 text-foreground cursor-pointer"
-                    : "opacity-50 pointer-events-none text-foreground",
-                ].join(" ")}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCsv}
+                disabled={!hasData || exporting}
               >
                 <Download size={15} />
-                <span className="hidden sm:inline">Export CSV</span>
-              </a>
+                <span className="hidden sm:inline">{t("toolbar.exportCsv")}</span>
+              </Button>
             </div>
           </div>
 
@@ -87,13 +102,13 @@ export function DataPage() {
                   loading={loading}
                   empty={
                     <>
-                      <p>No measurements yet.</p>
+                      <p>{t("table.empty")}</p>
                       <button
                         onClick={() => setAddOpen(true)}
                         className="mt-2 text-sm font-medium underline underline-offset-2"
                         style={{ color: "var(--color-accent)" }}
                       >
-                        Add your first one
+                        {t("table.addFirst")}
                       </button>
                     </>
                   }
@@ -124,14 +139,14 @@ export function DataPage() {
               <div className="hidden md:flex flex-col gap-3 w-72 shrink-0">
                 <ActionCard
                   icon={<Plus size={18} />}
-                  title="Add entry"
-                  description="Log a new measurement"
+                  title={t("actionCard.addTitle")}
+                  description={t("actionCard.addDescription")}
                   onClick={() => setAddOpen(true)}
                 />
                 <ActionCard
                   icon={<FileUp size={18} />}
-                  title="Import CSV"
-                  description="Upload from a file"
+                  title={t("actionCard.importTitle")}
+                  description={t("actionCard.importDescription")}
                   onClick={openCsvModal}
                 />
               </div>

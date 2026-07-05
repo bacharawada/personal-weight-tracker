@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
@@ -14,13 +15,14 @@ import { ResidualsChartExplainer } from "../components/charts/explainers/Residua
 import { AUTO_AXES, type ChartAxes, type WeightChartData } from "../lib/types";
 
 const HORIZON_OPTIONS = [
-  { label: "4 weeks", value: 28 },
-  { label: "8 weeks", value: 56 },
-  { label: "3 months", value: 90 },
-  { label: "6 months", value: 180 },
-];
+  { unit: "weeks", count: 4, value: 28 },
+  { unit: "weeks", count: 8, value: 56 },
+  { unit: "months", count: 3, value: 90 },
+  { unit: "months", count: 6, value: 180 },
+] as const;
 
 export function AnalysisPage() {
+  const { t } = useTranslation("analysis");
   const { chartParams, setChartParams, refreshKey, setSelectedPoint, accent, unit } = useWeightTracker();
   const [axes, setAxes] = useState<ChartAxes>(AUTO_AXES);
   const [weightData, setWeightData] = useState<WeightChartData | null>(null);
@@ -33,14 +35,14 @@ export function AnalysisPage() {
   return (
     <PageTransition>
     <div className="p-4 md:p-8 space-y-4 md:space-y-8">
-      <PageTitle title="Analysis" subtitle="Rate of change and residuals vs. your selected prediction models" />
+      <PageTitle title={t("page.title")} subtitle={t("page.subtitle")} />
 
       {/* Controls row */}
       <div className="flex flex-wrap gap-4 md:gap-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-5">
         {/* Smoothing window */}
         <div className="flex-1 min-w-full md:min-w-48">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Smoothing Window: <span className="font-bold">{chartParams.smoothing}</span>
+            {t("controls.smoothingWindow")} <span className="font-bold">{chartParams.smoothing}</span>
           </label>
           <input
             type="range"
@@ -66,7 +68,7 @@ export function AnalysisPage() {
         {/* Extrapolation horizon */}
         <div className="flex-1 min-w-full md:min-w-64">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Extrapolation Horizon
+            {t("controls.extrapolationHorizon")}
           </label>
           <div className="flex flex-wrap gap-2">
             {HORIZON_OPTIONS.map((opt) => (
@@ -84,7 +86,7 @@ export function AnalysisPage() {
                     : undefined
                 }
               >
-                {opt.label}
+                {t(`horizon.${opt.unit}`, { count: opt.count })}
               </button>
             ))}
           </div>
@@ -93,7 +95,7 @@ export function AnalysisPage() {
         {/* Prediction models */}
         <div className="flex-1 min-w-full md:min-w-56">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Prediction Models
+            {t("controls.predictionModels")}
           </label>
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -105,7 +107,7 @@ export function AnalysisPage() {
                 }
                 style={{ accentColor: accent }}
               />
-              Exponential decay
+              {t("controls.exponentialDecay")}
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <input
@@ -116,7 +118,7 @@ export function AnalysisPage() {
                 }
                 style={{ accentColor: accent }}
               />
-              Linear trend
+              {t("controls.linearTrend")}
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <input
@@ -127,7 +129,7 @@ export function AnalysisPage() {
                 }
                 style={{ accentColor: accent }}
               />
-              Show uncertainty band
+              {t("controls.showUncertaintyBand")}
             </label>
           </div>
         </div>
@@ -145,17 +147,17 @@ export function AnalysisPage() {
         className="h-[260px] md:h-[380px]"
         onDataLoaded={setWeightData}
       />
-      <ChartExplainer title="How this chart works — smoothing and prediction models">
+      <ChartExplainer title={t("explainerTitles.weight")}>
         <WeightChartExplainer data={weightData} params={chartParams} unit={unit} />
       </ChartExplainer>
 
       <DerivativeChart params={chartParams} refreshKey={refreshKey} />
-      <ChartExplainer title="How this chart works — rate of change">
+      <ChartExplainer title={t("explainerTitles.derivative")}>
         <DerivativeChartExplainer unit={unit} />
       </ChartExplainer>
 
       <ResidualsChart params={chartParams} refreshKey={refreshKey} />
-      <ChartExplainer title="How this chart works — residuals and deviation zones">
+      <ChartExplainer title={t("explainerTitles.residuals")}>
         <ResidualsChartExplainer />
       </ChartExplainer>
     </div>

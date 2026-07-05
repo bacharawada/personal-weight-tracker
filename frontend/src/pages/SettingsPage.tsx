@@ -1,53 +1,40 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
+import { motion } from "motion/react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
-import { Spinner } from "../components/ui/Spinner";
-import { getPalettes, exportPngUrl } from "../lib/api";
-import { getPaletteAccent } from "../lib/palette";
-import { Download, Globe, Moon, Sun } from "lucide-react";
+import { PALETTE_NAMES, PALETTE_PREVIEWS, getPaletteAccent } from "../lib/palettes";
+import { Globe, Moon, Sun } from "lucide-react";
 import { GithubIcon } from "../components/ui/github-icon";
 import { Button } from "../components/ui/button";
 
 const APP_VERSION = "1.0.0";
 
-const PALETTE_PREVIEWS: Record<string, string[]> = {
-  Classic:    ["#2E6DB4", "#C97A0A", "#2CA02C"],
-  Teal:       ["#00897B", "#26A69A", "#004D40"],
-  Warm:       ["#E65100", "#FF8F00", "#BF360C"],
-  Monochrome: ["#424242", "#757575", "#1565C0"],
-  Forest:     ["#2E7D32", "#558B2F", "#33691E"],
-};
-
 export function SettingsPage() {
-  const { isDark, toggleTheme, chartParams, setChartParams, hasData } = useWeightTracker();
-  const [palettes, setPalettes] = useState<string[]>([]);
-
-  useEffect(() => {
-    getPalettes().then((p) => setPalettes(p.names)).catch(console.error);
-  }, []);
+  const { t } = useTranslation("settings");
+  const { isDark, toggleTheme, chartParams, setChartParams } = useWeightTracker();
+  const palettes = PALETTE_NAMES;
 
   return (
     <PageTransition>
     <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-w-2xl">
-      <PageTitle title="Settings" subtitle="Customize the appearance and export your data" />
+      <PageTitle title={t("title")} subtitle={t("subtitle")} />
 
       {/* Theme */}
       <section>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Appearance</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">{t("appearance.heading")}</h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Theme</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t("appearance.theme")}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Currently: {isDark ? "Dark" : "Light"}
+                {t("appearance.currently", { mode: isDark ? t("appearance.dark") : t("appearance.light") })}
               </p>
             </div>
             <Button variant="secondary" size="sm" onClick={toggleTheme} className="shrink-0">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
-              Switch to {isDark ? "Light" : "Dark"}
+              {isDark ? t("appearance.switchToLight") : t("appearance.switchToDark")}
             </Button>
           </div>
         </div>
@@ -55,19 +42,8 @@ export function SettingsPage() {
 
       {/* Colour palette */}
       <section>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Colour Palette</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">{t("palette.heading")}</h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
-          <AnimatePresence mode="wait">
-          {palettes.length === 0 ? (
-            <motion.div
-              key="palette-loading"
-              initial={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex justify-center py-6"
-            >
-              <Spinner size={24} />
-            </motion.div>
-          ) : (
           <motion.div
             key="palette-grid"
             initial={{ opacity: 0 }}
@@ -102,60 +78,34 @@ export function SettingsPage() {
                     ))}
                   </div>
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {name}
+                    {t(`palette.names.${name}`, { defaultValue: name })}
                   </span>
                   {isActive && (
                     <span className="ml-auto text-xs font-medium" style={{ color: getPaletteAccent(chartParams.palette) }}>
-                      Active
+                      {t("palette.active")}
                     </span>
                   )}
                 </button>
               );
             })}
           </motion.div>
-          )}
-          </AnimatePresence>
-        </div>
-      </section>
-
-      {/* Export */}
-      <section>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Export</h2>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Weight Chart</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                PNG, 1200×700, with current palette and settings
-              </p>
-            </div>
-            <Button variant="secondary" size="sm" asChild={hasData} disabled={!hasData}>
-              {hasData ? (
-                <a href={exportPngUrl(chartParams)} download="weight_chart.png">
-                  <Download size={16} /> Export PNG
-                </a>
-              ) : (
-                <span><Download size={16} /> Export PNG</span>
-              )}
-            </Button>
-          </div>
         </div>
       </section>
 
       {/* About */}
       <section>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">About</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">{t("about.heading")}</h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 space-y-4">
           {/* App name + version */}
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Weight Tracker</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t("appName", { ns: "common" })}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Personal health dashboard
+                {t("about.tagline")}
               </p>
             </div>
             <span className="shrink-0 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
-              v{APP_VERSION}
+              {t("about.version", { version: APP_VERSION })}
             </span>
           </div>
 
@@ -190,7 +140,7 @@ export function SettingsPage() {
           <div className="h-px bg-gray-100 dark:bg-gray-700" />
 
           <Button variant="ghost" size="sm" asChild className="w-full justify-center text-gray-500 dark:text-gray-400">
-            <Link to="/about">View full About page</Link>
+            <Link to="/about">{t("about.viewFullAbout")}</Link>
           </Button>
         </div>
       </section>
