@@ -34,7 +34,7 @@ export function AnalysisPage() {
 
   return (
     <PageTransition>
-    <div className="p-4 md:p-8 space-y-4 md:space-y-8">
+    <div className="p-4 md:p-8 pb-nav space-y-4 md:space-y-8">
       <PageTitle title={t("page.title")} subtitle={t("page.subtitle")} />
 
       {/* Controls row */}

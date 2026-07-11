@@ -18,7 +18,7 @@ export function SettingsPage() {
 
   return (
     <PageTransition>
-    <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-w-2xl">
+    <div className="p-4 md:p-6 pb-nav space-y-6 md:space-y-8 max-w-2xl">
       <PageTitle title={t("title")} subtitle={t("subtitle")} />
 
       {/* Theme */}
