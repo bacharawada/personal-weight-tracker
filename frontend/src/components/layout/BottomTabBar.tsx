@@ -55,6 +55,11 @@ export function BottomTabBar() {
     (user?.email ? user.email.split("@")[0] : t("account.fallback"));
   const displayEmail = user?.email ?? "";
 
+  // Fixed-height, centred label box: keeps the icons row-aligned across tabs
+  // even when a label wraps to two lines (e.g. French "Tableau de bord").
+  const tabLabelClass =
+    "flex h-[26px] w-full items-center justify-center text-center text-[10px] leading-[1.15]";
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 safe-bottom">
       <div className="flex items-stretch h-16">
@@ -65,7 +70,7 @@ export function BottomTabBar() {
             end={end}
             className={({ isActive }) =>
               cn(
-                "flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors relative",
+                "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 font-medium transition-colors relative",
                 isActive
                   ? "text-gray-900 dark:text-white"
                   : "text-gray-400 dark:text-gray-500",
@@ -86,10 +91,10 @@ export function BottomTabBar() {
                   <Icon size={20} />
                 </span>
                 <span
-                  className="leading-none"
+                  className={tabLabelClass}
                   style={isActive ? { color: "var(--color-accent)" } : {}}
                 >
-                  {t(labelKey)}
+                  <span className="line-clamp-2">{t(labelKey)}</span>
                 </span>
               </>
             )}
@@ -99,9 +104,11 @@ export function BottomTabBar() {
         {/* Profile / actions slot */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium text-gray-400 dark:text-gray-500 transition-colors">
+            <button className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 font-medium text-gray-400 dark:text-gray-500 transition-colors">
               <CircleUser size={20} />
-              <span className="leading-none">{t("account.fallback")}</span>
+              <span className={tabLabelClass}>
+                <span className="line-clamp-2">{t("account.fallback")}</span>
+              </span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" className="mb-1 mr-2">
