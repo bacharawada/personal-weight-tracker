@@ -20,7 +20,7 @@ export function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col h-full p-4 md:p-8 gap-4 md:gap-8">
+      <div className="flex flex-col md:h-full p-4 md:p-8 pb-nav gap-4 md:gap-8">
         <PageTitle title={t("page.title")} subtitle={t("page.subtitle")} />
 
         <StatsCards refreshKey={refreshKey} />
@@ -31,6 +31,7 @@ export function DashboardPage() {
           params={chartParams}
           refreshKey={refreshKey}
           onPointClick={handlePointClick}
+          className="h-[300px] md:h-auto md:flex-1 md:min-h-0"
         />
       </div>
     </PageTransition>

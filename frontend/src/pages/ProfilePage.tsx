@@ -114,7 +114,7 @@ export function ProfilePage() {
                     <button
                       key={option}
                       onClick={() => handleUnitChange(option)}
-                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`px-3 py-3 md:py-1.5 text-sm font-medium transition-colors ${
                         isActive
                           ? "text-white"
                           : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
