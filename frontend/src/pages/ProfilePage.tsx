@@ -70,7 +70,7 @@ export function ProfilePage() {
 
   return (
     <PageTransition>
-      <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-w-2xl">
+      <div className="p-4 md:p-6 pb-nav space-y-6 md:space-y-8 max-w-2xl">
         <PageTitle title={t("page.title")} subtitle={t("page.subtitle")} />
 
         {/* Identity */}
@@ -114,7 +114,7 @@ export function ProfilePage() {
                     <button
                       key={option}
                       onClick={() => handleUnitChange(option)}
-                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`px-3 py-3 md:py-1.5 text-sm font-medium transition-colors ${
                         isActive
                           ? "text-white"
                           : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"

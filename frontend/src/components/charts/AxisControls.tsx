@@ -47,7 +47,7 @@ export function AxisControls({ axes, onChange }: AxisControlsProps) {
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
             {t("axes.dateAxis")}
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <div>
               <label className={labelClass}>{t("axes.start")}</label>
               <input
@@ -91,7 +91,7 @@ export function AxisControls({ axes, onChange }: AxisControlsProps) {
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
             {t("axes.weightAxis")}
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <div>
               <label className={labelClass}>{t("axes.min")}</label>
               <input

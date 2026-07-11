@@ -138,7 +138,7 @@ export function MeasurementRow({
               size="icon-sm"
               onClick={(e) => onEditStart(m, e)}
               title={t("row.editWeight")}
-              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 min-w-[36px] min-h-[36px]"
+              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px]"
             >
               <Pencil size={14} />
             </Button>
@@ -150,7 +150,7 @@ export function MeasurementRow({
                 onDeleteRequest(m);
               }}
               title={t("actions.delete", { ns: "common" })}
-              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 min-w-[36px] min-h-[36px]"
+              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px]"
             >
               <Trash2 size={14} />
             </Button>

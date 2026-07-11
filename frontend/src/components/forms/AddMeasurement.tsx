@@ -63,9 +63,6 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-        {t("form.heading")}
-      </h3>
       <form onSubmit={handleSubmit} className="space-y-2">
         <div className="space-y-1">
           <Label htmlFor="add-date" className="text-xs text-muted-foreground">{t("form.dateLabel")}</Label>

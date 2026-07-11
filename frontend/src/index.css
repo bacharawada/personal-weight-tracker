@@ -86,4 +86,16 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /*
+   * Bottom clearance for the mobile fixed tab bar (h-16 + iOS safe area) so a
+   * scrolling page's last content isn't trapped behind it. Only applies below
+   * the md breakpoint, where the bar exists; at md+ the sidebar replaces it and
+   * the page keeps its own padding untouched.
+   */
+  @media (max-width: 767.98px) {
+    .pb-nav {
+      padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px) + 0.75rem);
+    }
+  }
 }
