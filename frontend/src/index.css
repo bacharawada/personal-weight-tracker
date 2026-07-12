@@ -79,6 +79,26 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /*
+   * iOS Safari renders <input type="date"> with a native control that ignores
+   * the container width (an intrinsic min-width makes it overflow its grid
+   * cell) and looks nothing like our text/number inputs. Strip the native
+   * appearance, let it shrink inside flex/grid (min-width: 0), and left-align
+   * the value pseudo-elements so it matches a regular text field.
+   */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+  }
+  input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+    margin: 0;
+  }
+  input[type="date"]::-webkit-datetime-edit {
+    padding: 0;
+  }
 }
 
 @layer utilities {
