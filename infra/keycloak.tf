@@ -15,9 +15,22 @@ resource "azurerm_container_app" "keycloak" {
   container_app_environment_id = azurerm_container_app_environment.main.id
   revision_mode                = "Single"
 
+  # Pull the custom Keycloak image (weight-tracker theme baked in) from ACR
+  # using admin credentials — mirrors the app Container App.
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
   # ------------------------------------------------------------
   # Secrets — referenced by env vars below via secretRef
   # ------------------------------------------------------------
+  secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
+
   secret {
     name  = "kc-db-password"
     value = random_password.postgres_admin.result
@@ -58,7 +71,10 @@ resource "azurerm_container_app" "keycloak" {
 
     container {
       name   = "keycloak"
-      image  = "quay.io/keycloak/keycloak:24.0"
+      # Custom image built from docker/keycloak/Dockerfile (stock Keycloak 24.0
+      # + baked-in weight-tracker theme). The tag is set by the manual ACR
+      # deploy; ignore_changes below keeps Terraform from reverting it.
+      image  = "${azurerm_container_registry.main.login_server}/keycloak-weighttracker:latest"
       cpu    = 0.5
       memory = "1Gi"
 
@@ -152,4 +168,13 @@ resource "azurerm_container_app" "keycloak" {
   }
 
   depends_on = [azurerm_container_app_environment_storage.keycloak_files]
+
+  # The image tag is set out-of-band by the manual ACR deploy
+  # (az containerapp update); don't let Terraform revert it on infra
+  # applies. Mirrors the app Container App.
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].image,
+    ]
+  }
 }
