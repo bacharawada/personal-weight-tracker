@@ -124,6 +124,13 @@ const analysis: AnalysisResource = {
   axes: {
     heading: "Axes du graphique de poids",
     resetToAuto: "Réinitialiser en auto",
+    presets: "Plages rapides",
+    presetLabels: {
+      weeks4: "4 dernières semaines",
+      months3: "3 derniers mois",
+      months6: "6 derniers mois",
+      all: "Tout l'historique",
+    },
     dateAxis: "Axe des dates",
     weightAxis: "Axe des poids (kg)",
     start: "Début",

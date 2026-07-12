@@ -135,7 +135,7 @@ export function AnalysisPage() {
         </div>
       </div>
 
-      <AxisControls axes={axes} onChange={setAxes} />
+      <AxisControls axes={axes} onChange={setAxes} points={weightData?.raw ?? []} />
 
       <ModelStatsStrip models={weightData?.models ?? []} unit={unit} />
 

@@ -123,6 +123,13 @@ const analysis = {
   axes: {
     heading: "Weight chart axes",
     resetToAuto: "Reset to auto",
+    presets: "Quick ranges",
+    presetLabels: {
+      weeks4: "Last 4 weeks",
+      months3: "Last 3 months",
+      months6: "Last 6 months",
+      all: "All time",
+    },
     dateAxis: "Date axis",
     weightAxis: "Weight axis (kg)",
     start: "Start",
