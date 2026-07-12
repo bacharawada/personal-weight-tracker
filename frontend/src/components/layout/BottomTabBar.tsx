@@ -82,10 +82,14 @@ export function BottomTabBar() {
                 {isActive && (
                   <motion.div
                     layoutId="bottom-tab-indicator"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full"
-                    style={{ backgroundColor: "var(--color-accent)" }}
+                    className="absolute top-0 left-0 right-0 flex justify-center"
                     transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                  />
+                  >
+                    <div
+                      className="h-0.5 w-8 rounded-full"
+                      style={{ backgroundColor: "var(--color-accent)" }}
+                    />
+                  </motion.div>
                 )}
                 <span style={isActive ? { color: "var(--color-accent)" } : {}}>
                   <Icon size={20} />
