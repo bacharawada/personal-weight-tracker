@@ -9,6 +9,8 @@ import { Label } from "../ui/label";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { displayToKg, unitLabel, weightBounds } from "../../lib/units";
 
+const NOTE_MAX_LENGTH = 500;
+
 interface AddMeasurementProps {
   onSuccess: () => void;
 }
@@ -18,6 +20,7 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
   const { unit } = useWeightTracker();
   const [date, setDate] = useState("");
   const [weight, setWeight] = useState("");
+  const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,10 +50,11 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
     const w = displayToKg(entered, unit);
     setLoading(true);
     try {
-      await addMeasurement({ date, weight: w });
+      await addMeasurement({ date, weight: w, note: note.trim() || undefined });
       setFeedback({ type: "success", msg: t("form.added", { date, weight: entered, unit: u }) });
       setDate("");
       setWeight("");
+      setNote("");
       onSuccess();
       setTimeout(() => setFeedback(null), 4000);
     } catch (err: unknown) {
@@ -88,6 +92,21 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
             placeholder={u === "lb" ? t("form.weightPlaceholderLb") : t("form.weightPlaceholderKg")}
             className="h-8 text-sm"
           />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="add-note" className="text-xs text-muted-foreground">{t("form.noteLabel")}</Label>
+          <Input
+            id="add-note"
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={NOTE_MAX_LENGTH}
+            placeholder={t("form.notePlaceholder")}
+            className="h-8 text-sm"
+          />
+          <p className="text-[10px] text-muted-foreground text-right">
+            {note.length}/{NOTE_MAX_LENGTH}
+          </p>
         </div>
         <Button
           type="submit"

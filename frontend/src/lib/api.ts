@@ -14,6 +14,7 @@ import type {
   GoalProjection,
   Measurement,
   MeasurementIn,
+  MeasurementUpdate,
   Mtime,
   ResidualsChartData,
   Stats,
@@ -77,11 +78,14 @@ export async function addMeasurement(data: MeasurementIn): Promise<Measurement> 
   });
 }
 
-export async function updateMeasurement(date: string, weight: number): Promise<Measurement> {
+export async function updateMeasurement(
+  date: string,
+  patch: MeasurementUpdate,
+): Promise<Measurement> {
   return fetchJson<Measurement>(`${BASE}/measurements/${date}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ weight }),
+    body: JSON.stringify(patch),
   });
 }
 
