@@ -40,6 +40,17 @@ const charts: ChartsResource = {
       value: "{{value}} kg",
     },
   },
+  energy: {
+    empty: "Données insuffisantes pour estimer un bilan énergétique.",
+    legend: {
+      deficit: "Déficit (kcal/jour)",
+      surplus: "Surplus (kcal/jour)",
+    },
+    tooltip: {
+      balance: "Bilan",
+      balanceValue: "{{value}} kcal/jour",
+    },
+  },
 };
 
 export default charts;

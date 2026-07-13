@@ -40,6 +40,17 @@ const charts = {
       value: "{{value}} kg",
     },
   },
+  energy: {
+    empty: "Not enough data to estimate an energy balance.",
+    legend: {
+      deficit: "Deficit (kcal/day)",
+      surplus: "Surplus (kcal/day)",
+    },
+    tooltip: {
+      balance: "Balance",
+      balanceValue: "{{value}} kcal/day",
+    },
+  },
 };
 
 export type ChartsResource = typeof charts;

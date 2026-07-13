@@ -37,6 +37,15 @@ const dashboard = {
       obese: "Obese",
     },
   },
+  energy: {
+    label: "Estimated energy balance",
+    deficit: "Deficit ~{{value}} kcal/day",
+    surplus: "Surplus ~{{value}} kcal/day",
+    maintenance: "Roughly at maintenance",
+    range: "{{low}} to {{high}} kcal/day",
+    insufficient:
+      "Add a few weeks of measurements to estimate your energy balance.",
+  },
 };
 
 export type DashboardResource = typeof dashboard;

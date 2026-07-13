@@ -37,6 +37,15 @@ const dashboard: DashboardResource = {
       obese: "Obésité",
     },
   },
+  energy: {
+    label: "Bilan énergétique estimé",
+    deficit: "Déficit ~{{value}} kcal/jour",
+    surplus: "Surplus ~{{value}} kcal/jour",
+    maintenance: "Proche de l'équilibre",
+    range: "{{low}} à {{high}} kcal/jour",
+    insufficient:
+      "Ajoutez quelques semaines de mesures pour estimer votre bilan énergétique.",
+  },
 };
 
 export default dashboard;
