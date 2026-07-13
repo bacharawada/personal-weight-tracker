@@ -5,6 +5,7 @@ import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
 import { StatsCards } from "../components/layout/StatsCards";
 import { GoalCard } from "../components/dashboard/GoalCard";
+import { MilestonesCard } from "../components/dashboard/MilestonesCard";
 import { WeightChart } from "../components/charts/WeightChart";
 
 export function DashboardPage() {
@@ -26,6 +27,8 @@ export function DashboardPage() {
         <StatsCards refreshKey={refreshKey} />
 
         <GoalCard refreshKey={refreshKey} />
+
+        <MilestonesCard refreshKey={refreshKey} />
 
         <WeightChart
           params={chartParams}
