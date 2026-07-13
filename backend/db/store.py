@@ -11,13 +11,20 @@ domain-specific ones so callers never handle raw SQLAlchemy errors.
 
 from __future__ import annotations
 
+import secrets
 from typing import TYPE_CHECKING
 
 import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 
-from db.engine import DuplicateDateError, NotFoundError, measurements, users
+from db.engine import (
+    DuplicateDateError,
+    NotFoundError,
+    measurements,
+    share_tokens,
+    users,
+)
 
 if TYPE_CHECKING:
     import datetime
@@ -213,6 +220,145 @@ class WeightDataStore:
         df = pd.DataFrame(rows, columns=["date", "weight"])
         df["date"] = pd.to_datetime(df["date"])
         return df
+
+    # -- queries by internal user id (public share access) -----------------
+    # These accept the internal ``users.id`` primary key directly rather than
+    # a Keycloak subject, because the public share endpoints resolve a token
+    # to a ``user_id`` and must never create a user or touch Keycloak identity.
+
+    def get_all_by_user_id(self, user_id: int) -> pd.DataFrame:
+        """Return all measurements for an internal *user_id*, sorted by date.
+
+        Unlike :meth:`get_all`, this never auto-creates a user; it is used by
+        the public share endpoints that only know the internal id resolved
+        from a share token.
+
+        Args:
+            user_id: The internal ``users.id`` primary key.
+
+        Returns:
+            A ``pandas.DataFrame`` with columns ``date`` and ``weight``.
+            Empty DataFrame when no data exists.
+        """
+        stmt = (
+            sa.select(measurements.c.date, measurements.c.weight)
+            .where(measurements.c.user_id == user_id)
+            .order_by(measurements.c.date.asc())
+        )
+        with self._engine.connect() as conn:
+            rows = conn.execute(stmt).fetchall()
+        if not rows:
+            return pd.DataFrame(columns=["date", "weight"])
+        df = pd.DataFrame(rows, columns=["date", "weight"])
+        df["date"] = pd.to_datetime(df["date"])
+        return df
+
+    def get_goal_weight_by_user_id(self, user_id: int) -> float | None:
+        """Return the goal weight (kg) for an internal *user_id*, or ``None``.
+
+        Args:
+            user_id: The internal ``users.id`` primary key.
+
+        Returns:
+            The stored goal weight in kilograms, or ``None`` when unset or the
+            user does not exist.
+        """
+        stmt = sa.select(users.c.goal_weight).where(users.c.id == user_id)
+        with self._engine.connect() as conn:
+            row = conn.execute(stmt).fetchone()
+        if row is None:
+            return None
+        return row[0]
+
+    # -- share tokens ------------------------------------------------------
+
+    def create_share_token(self, user_id: int) -> str:
+        """Create a fresh active share token for *user_id*.
+
+        Any existing active token for the user is revoked first, so at most
+        one token is ever valid per user (regenerating a link invalidates the
+        previous one).
+
+        Args:
+            user_id: The internal ``users.id`` primary key.
+
+        Returns:
+            The newly generated URL-safe token string.
+        """
+        token = secrets.token_urlsafe(32)
+        with self._engine.begin() as conn:
+            conn.execute(
+                share_tokens.update()
+                .where(share_tokens.c.user_id == user_id)
+                .where(share_tokens.c.revoked == sa.false())
+                .values(revoked=True)
+            )
+            conn.execute(
+                share_tokens.insert().values(
+                    user_id=user_id,
+                    token=token,
+                    created_at=sa.func.now(),
+                )
+            )
+        return token
+
+    def get_share_token(self, user_id: int) -> str | None:
+        """Return the active share token for *user_id*, or ``None``.
+
+        Args:
+            user_id: The internal ``users.id`` primary key.
+
+        Returns:
+            The active (non-revoked) token string, or ``None`` when sharing is
+            disabled for this user.
+        """
+        stmt = (
+            sa.select(share_tokens.c.token)
+            .where(share_tokens.c.user_id == user_id)
+            .where(share_tokens.c.revoked == sa.false())
+            .order_by(share_tokens.c.created_at.desc())
+            .limit(1)
+        )
+        with self._engine.connect() as conn:
+            row = conn.execute(stmt).fetchone()
+        return str(row[0]) if row is not None else None
+
+    def revoke_share_token(self, user_id: int) -> None:
+        """Revoke every active share token for *user_id* (idempotent).
+
+        Args:
+            user_id: The internal ``users.id`` primary key.
+        """
+        stmt = (
+            share_tokens.update()
+            .where(share_tokens.c.user_id == user_id)
+            .where(share_tokens.c.revoked == sa.false())
+            .values(revoked=True)
+        )
+        with self._engine.begin() as conn:
+            conn.execute(stmt)
+
+    def resolve_share_token(self, token: str) -> int | None:
+        """Resolve an active share *token* to its owner's internal ``user_id``.
+
+        Revoked and unknown tokens both return ``None`` so callers cannot
+        distinguish "never existed" from "was revoked".
+
+        Args:
+            token: The opaque share token from the public URL.
+
+        Returns:
+            The owning ``users.id``, or ``None`` if the token is unknown or
+            revoked.
+        """
+        stmt = (
+            sa.select(share_tokens.c.user_id)
+            .where(share_tokens.c.token == token)
+            .where(share_tokens.c.revoked == sa.false())
+        )
+        with self._engine.connect() as conn:
+            row = conn.execute(stmt).fetchone()
+        return int(row[0]) if row is not None else None
 
     # -- mutations ---------------------------------------------------------
 

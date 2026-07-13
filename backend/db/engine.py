@@ -111,6 +111,39 @@ measurements = sa.Table(
     sa.UniqueConstraint("user_id", "date", name="uq_user_date"),
 )
 
+# ``share_tokens`` backs the public read-only dashboard sharing feature.
+# Each row is an opaque, URL-safe secret that resolves to a single user's
+# data. Tokens are revocable (soft-delete via the ``revoked`` flag) so a
+# leaked link can be killed without deleting history. At most one active
+# (non-revoked) token per user is kept by the store layer.
+share_tokens = sa.Table(
+    "share_tokens",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+    sa.Column(
+        "user_id",
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    ),
+    # Opaque secret (secrets.token_urlsafe(32) → ~43 chars); unique so a
+    # token resolves to exactly one user.
+    sa.Column("token", sa.String(64), nullable=False, unique=True),
+    sa.Column(
+        "created_at",
+        sa.DateTime(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    ),
+    sa.Column(
+        "revoked",
+        sa.Boolean,
+        nullable=False,
+        server_default=sa.false(),
+    ),
+)
+
 
 # ---------------------------------------------------------------------------
 # Custom exceptions

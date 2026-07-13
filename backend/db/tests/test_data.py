@@ -335,3 +335,69 @@ class TestMigration:
         assert summary1["rows_inserted"] == 1
         assert summary2["rows_inserted"] == 0
         assert summary2["rows_skipped"] == 1
+
+
+# -----------------------------------------------------------------------
+# Share tokens
+# -----------------------------------------------------------------------
+
+
+class TestShareTokens:
+    """Tests for the share-token store methods."""
+
+    def test_no_token_by_default(self, store: WeightDataStore) -> None:
+        """A user with no share token returns None."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        assert store.get_share_token(user_id) is None
+
+    def test_create_and_get(self, store: WeightDataStore) -> None:
+        """Creating a token makes it retrievable and resolvable."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        token = store.create_share_token(user_id)
+        assert isinstance(token, str)
+        assert len(token) > 0
+        assert store.get_share_token(user_id) == token
+        assert store.resolve_share_token(token) == user_id
+
+    def test_regenerate_revokes_previous(self, store: WeightDataStore) -> None:
+        """Re-creating a token revokes the old one (single active token)."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        first = store.create_share_token(user_id)
+        second = store.create_share_token(user_id)
+        assert first != second
+        assert store.get_share_token(user_id) == second
+        # Old token no longer resolves.
+        assert store.resolve_share_token(first) is None
+        assert store.resolve_share_token(second) == user_id
+
+    def test_revoke(self, store: WeightDataStore) -> None:
+        """Revoking clears the active token and stops resolution."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        token = store.create_share_token(user_id)
+        store.revoke_share_token(user_id)
+        assert store.get_share_token(user_id) is None
+        assert store.resolve_share_token(token) is None
+
+    def test_revoke_is_idempotent(self, store: WeightDataStore) -> None:
+        """Revoking when nothing is active does not raise."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        store.revoke_share_token(user_id)
+        store.revoke_share_token(user_id)
+        assert store.get_share_token(user_id) is None
+
+    def test_resolve_unknown_token(self, store: WeightDataStore) -> None:
+        """An unknown token resolves to None."""
+        assert store.resolve_share_token("does-not-exist") is None
+
+    def test_get_goal_weight_by_user_id(self, store: WeightDataStore) -> None:
+        """Goal weight is readable by internal user id."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        assert store.get_goal_weight_by_user_id(user_id) is None
+        store.update_profile(TEST_USER_SUB, {"goal_weight": 150.0})
+        assert store.get_goal_weight_by_user_id(user_id) == 150.0
+
+    def test_get_all_by_user_id(self, store: WeightDataStore) -> None:
+        """Measurements are readable by internal user id."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        df = store.get_all_by_user_id(user_id)
+        assert len(df) == 10

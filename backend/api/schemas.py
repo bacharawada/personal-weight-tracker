@@ -226,6 +226,23 @@ class UserProfileUpdate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Dashboard sharing
+# ---------------------------------------------------------------------------
+
+
+class ShareStatusOut(BaseModel):
+    """Response model for the /api/me/share endpoints.
+
+    ``enabled`` reflects whether an active share token exists. ``token`` is
+    the raw token when sharing is on (so the frontend can build the public
+    URL), or ``null`` when off. No identity information is included.
+    """
+
+    enabled: bool
+    token: str | None
+
+
+# ---------------------------------------------------------------------------
 # CSV import
 # ---------------------------------------------------------------------------
 
