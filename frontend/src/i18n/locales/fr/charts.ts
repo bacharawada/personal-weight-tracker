@@ -20,6 +20,7 @@ const charts: ChartsResource = {
     tooltip: {
       weight: "Poids",
       weightValue: "{{value}} kg",
+      note: "Note",
     },
   },
   derivative: {
