@@ -15,7 +15,16 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.deps import lifespan
-from api.routes import charts, exports, goal, imports, measurements, stats, users
+from api.routes import (
+    charts,
+    exports,
+    goal,
+    imports,
+    measurements,
+    medications,
+    stats,
+    users,
+)
 
 
 def create_app() -> FastAPI:
@@ -45,6 +54,7 @@ def create_app() -> FastAPI:
 
     # API routes.
     app.include_router(measurements.router, prefix="/api")
+    app.include_router(medications.router, prefix="/api")
     app.include_router(charts.router, prefix="/api")
     app.include_router(exports.router, prefix="/api")
     app.include_router(imports.router, prefix="/api")

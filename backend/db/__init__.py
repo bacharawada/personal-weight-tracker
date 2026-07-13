@@ -13,6 +13,7 @@ from db.engine import (
     NotFoundError,
     get_engine,
     measurements,
+    medication_doses,
     metadata,
     users,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "WeightDataStore",
     "get_engine",
     "measurements",
+    "medication_doses",
     "metadata",
     "users",
 ]

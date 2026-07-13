@@ -19,6 +19,12 @@ from analysis.curve_fit import (
 )
 from analysis.derivative import compute_derivative
 from analysis.goal import GoalProjection, project_goal
+from analysis.medication import (
+    DoseChange,
+    TrendComparison,
+    compare_trend_around,
+    detect_dose_changes,
+)
 from analysis.models import (
     MODEL_EXP,
     MODEL_LINEAR,
@@ -34,18 +40,22 @@ __all__ = [
     "MODEL_EXP",
     "MODEL_LINEAR",
     "AnalysisConfig",
+    "DoseChange",
     "FitResult",
     "GoalProjection",
     "ModelCurve",
     "ModelDiagnostics",
     "SummaryStats",
+    "TrendComparison",
     "TrendConfig",
     "TrendFit",
     "build_model_curve",
+    "compare_trend_around",
     "compute_derivative",
     "compute_rolling_mean",
     "compute_summary_stats",
     "detect_deviations",
+    "detect_dose_changes",
     "exp_decay",
     "exp_decay_band",
     "extrapolate_fit",

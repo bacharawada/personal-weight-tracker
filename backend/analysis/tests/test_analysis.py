@@ -5,10 +5,12 @@ All tests use deterministic sample data — no database interaction.
 
 from __future__ import annotations
 
+import datetime
 import math
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from analysis import (
     MODEL_EXP,
@@ -17,10 +19,12 @@ from analysis import (
     FitResult,
     TrendConfig,
     build_model_curve,
+    compare_trend_around,
     compute_derivative,
     compute_rolling_mean,
     compute_summary_stats,
     detect_deviations,
+    detect_dose_changes,
     exp_decay,
     exp_decay_band,
     extrapolate_fit,
@@ -555,3 +559,130 @@ class TestBuildModelCurve:
         curve = build_model_curve(df, MODEL_EXP)
         assert not curve.success
         assert curve.diagnostics is None
+
+
+# -----------------------------------------------------------------------
+# Medication — compare_trend_around
+# -----------------------------------------------------------------------
+
+
+class TestCompareTrendAround:
+    """Tests for ``compare_trend_around()``."""
+
+    @staticmethod
+    def _make_df(points: dict[str, float]) -> pd.DataFrame:
+        """Build a weight DataFrame from an ISO-date → weight mapping."""
+        return pd.DataFrame(
+            {
+                "date": pd.to_datetime(list(points.keys())),
+                "weight": list(points.values()),
+            }
+        )
+
+    def test_known_slopes_before_and_after(self) -> None:
+        """Slopes match the constructed rates on each side of the event."""
+        # -1 kg/week before, -2 kg/week after, sharing the pivot point.
+        df = self._make_df(
+            {
+                "2025-06-24": 100.0,
+                "2025-07-01": 99.0,
+                "2025-07-08": 98.0,
+                "2025-07-15": 97.0,  # pivot
+                "2025-07-22": 95.0,
+                "2025-07-29": 93.0,
+                "2025-08-05": 91.0,
+            }
+        )
+        result = compare_trend_around(df, datetime.date(2025, 7, 15), window_days=28)
+        assert result.reason == ""
+        assert result.n_before == 4
+        assert result.n_after == 4
+        assert result.slope_before_per_week is not None
+        assert result.slope_after_per_week is not None
+        assert result.slope_before_per_week == pytest.approx(-1.0, abs=1e-6)
+        assert result.slope_after_per_week == pytest.approx(-2.0, abs=1e-6)
+        assert result.delta_per_week == pytest.approx(-1.0, abs=1e-6)
+
+    def test_not_enough_points_before(self) -> None:
+        """Too few points before the event degrades gracefully."""
+        df = self._make_df(
+            {
+                "2025-07-08": 98.0,  # only 1 pt in the before window besides pivot
+                "2025-07-15": 97.0,  # pivot
+                "2025-07-22": 95.0,
+                "2025-07-29": 93.0,
+                "2025-08-05": 91.0,
+            }
+        )
+        result = compare_trend_around(df, datetime.date(2025, 7, 15), window_days=28)
+        assert result.slope_before_per_week is None
+        assert result.slope_after_per_week is not None
+        assert result.delta_per_week is None
+        assert result.n_before == 2
+        assert "before" in result.reason
+
+    def test_empty_dataframe(self) -> None:
+        """An empty DataFrame yields null slopes and a reason."""
+        df = pd.DataFrame(columns=["date", "weight"])
+        result = compare_trend_around(df, datetime.date(2025, 7, 15))
+        assert result.slope_before_per_week is None
+        assert result.slope_after_per_week is None
+        assert result.n_before == 0
+        assert result.n_after == 0
+        assert result.reason != ""
+
+
+# -----------------------------------------------------------------------
+# Medication — detect_dose_changes
+# -----------------------------------------------------------------------
+
+
+class TestDetectDoseChanges:
+    """Tests for ``detect_dose_changes()``."""
+
+    def test_first_dose_of_each_molecule_is_a_change(self) -> None:
+        """The first dose of every molecule is flagged with is_first=True."""
+        doses = [
+            {"date": datetime.date(2025, 6, 1), "medication": "semaglutide", "dose_mg": 0.25},
+            {"date": datetime.date(2025, 6, 2), "medication": "tirzepatide", "dose_mg": 2.5},
+        ]
+        changes = detect_dose_changes(doses)
+        assert len(changes) == 2
+        assert all(c.is_first for c in changes)
+        assert all(c.previous_dose_mg is None for c in changes)
+
+    def test_dose_increase_is_a_change(self) -> None:
+        """A later dose with a different amount is flagged as a change."""
+        doses = [
+            {"date": datetime.date(2025, 6, 1), "medication": "semaglutide", "dose_mg": 0.25},
+            {"date": datetime.date(2025, 7, 1), "medication": "semaglutide", "dose_mg": 0.5},
+        ]
+        changes = detect_dose_changes(doses)
+        assert len(changes) == 2
+        assert changes[1].is_first is False
+        assert changes[1].previous_dose_mg == 0.25
+        assert changes[1].dose_mg == 0.5
+
+    def test_repeated_same_dose_is_not_a_change(self) -> None:
+        """Repeating the same dose does not add a change event."""
+        doses = [
+            {"date": datetime.date(2025, 6, 1), "medication": "semaglutide", "dose_mg": 0.5},
+            {"date": datetime.date(2025, 6, 8), "medication": "semaglutide", "dose_mg": 0.5},
+            {"date": datetime.date(2025, 6, 15), "medication": "semaglutide", "dose_mg": 0.5},
+        ]
+        changes = detect_dose_changes(doses)
+        assert len(changes) == 1
+        assert changes[0].is_first is True
+
+    def test_molecule_matching_is_case_insensitive(self) -> None:
+        """Molecule names are grouped case-insensitively after trimming."""
+        doses = [
+            {"date": datetime.date(2025, 6, 1), "medication": "Semaglutide", "dose_mg": 0.25},
+            {"date": datetime.date(2025, 6, 8), "medication": "semaglutide", "dose_mg": 0.25},
+        ]
+        changes = detect_dose_changes(doses)
+        assert len(changes) == 1
+
+    def test_empty_input(self) -> None:
+        """No doses yields no change events."""
+        assert detect_dose_changes([]) == []
