@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from analysis import MODEL_EXP, compute_derivative, compute_rolling_mean
+from analysis import MODEL_EXP, compute_derivative, compute_rolling_mean, energy_series
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -268,6 +268,30 @@ def build_derivative_chart_data(df: pd.DataFrame) -> dict:
 
     smoothed = _points(dates, deriv_df["deriv_smooth"])
     return {"bars": bars, "smoothed": smoothed}
+
+
+# ---------------------------------------------------------------------------
+# Energy-balance chart
+# ---------------------------------------------------------------------------
+
+
+def build_energy_chart_data(df: pd.DataFrame, window: int = 5) -> dict:
+    """Build the data series for the estimated daily energy-balance chart.
+
+    Each bar is the estimated daily energy balance (kcal) at a measurement,
+    derived from the smoothed weight-change rate (negative = deficit). The
+    frontend renders the bars, the zero baseline and the tooltip.
+
+    Args:
+        df: DataFrame with ``date`` and ``weight`` columns.
+        window: Centred rolling-mean window passed through to
+            :func:`analysis.energy_series`.
+
+    Returns:
+        A dict matching the ``EnergyChartData`` schema. Empty ``bars`` when
+        there are fewer than two measurements.
+    """
+    return {"bars": energy_series(df, window)}
 
 
 # ---------------------------------------------------------------------------

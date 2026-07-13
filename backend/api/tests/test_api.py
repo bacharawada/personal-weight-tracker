@@ -228,6 +228,27 @@ class TestStatsEndpoint:
         assert r.status_code == 200
         assert r.json()["days_tracked"] == 0
 
+    def test_energy_balance_with_data(self) -> None:
+        """GET /api/stats/energy returns a signed daily energy balance."""
+        client = _make_client(seed=True)
+        r = client.get("/api/stats/energy")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["has_data"] is True
+        assert data["balance_kcal_day"] is not None
+        assert data["balance_low"] <= data["balance_kcal_day"] <= data["balance_high"]
+        assert data["balance_kcal_day"] < 0  # seed data trends down (deficit)
+
+    def test_energy_balance_empty(self) -> None:
+        """GET /api/stats/energy degrades gracefully on an empty database."""
+        client = _make_client(seed=False)
+        r = client.get("/api/stats/energy")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["has_data"] is False
+        assert data["balance_kcal_day"] is None
+        assert data["reason"] != ""
+
 
 # -----------------------------------------------------------------------
 # Charts
@@ -322,6 +343,23 @@ class TestChartEndpoints:
         r = client.get("/api/charts/residuals?models=exp,linear")
         assert r.status_code == 200
         assert len(r.json()["series"]) == 2
+
+    def test_energy_chart(self) -> None:
+        """GET /api/charts/energy returns kcal/day bars."""
+        client = _make_client(seed=True)
+        r = client.get("/api/charts/energy")
+        assert r.status_code == 200
+        body = r.json()
+        assert "bars" in body
+        assert len(body["bars"]) > 0
+        assert {"date", "kcal"} <= set(body["bars"][0])
+
+    def test_energy_chart_empty_db(self) -> None:
+        """Energy chart handles an empty database gracefully."""
+        client = _make_client(seed=False)
+        r = client.get("/api/charts/energy")
+        assert r.status_code == 200
+        assert r.json()["bars"] == []
 
 
 # -----------------------------------------------------------------------

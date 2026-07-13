@@ -185,6 +185,42 @@ class ResidualsChartData(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Energy balance
+# ---------------------------------------------------------------------------
+
+
+class EnergyPoint(BaseModel):
+    """A single ``(date, kcal)`` point for the energy-balance chart."""
+
+    date: datetime.date
+    kcal: float
+
+
+class EnergyChartData(BaseModel):
+    """Response model for GET /api/charts/energy."""
+
+    bars: list[EnergyPoint]
+
+
+class EnergyBalanceOut(BaseModel):
+    """Response model for the estimated energy balance (GET /api/stats/energy).
+
+    Values are signed kcal/day (negative = deficit, positive = surplus) with
+    ``balance_low <= balance_kcal_day <= balance_high``. All numeric fields are
+    ``None`` when ``has_data`` is ``False`` (see ``reason``).
+    """
+
+    has_data: bool
+    balance_kcal_day: float | None
+    balance_low: float | None
+    balance_high: float | None
+    window_days: int | None
+    trend_per_week: float | None
+    n_points: int
+    reason: str
+
+
+# ---------------------------------------------------------------------------
 # DB polling
 # ---------------------------------------------------------------------------
 

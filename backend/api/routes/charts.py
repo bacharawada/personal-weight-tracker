@@ -8,9 +8,15 @@ from fastapi import APIRouter, Depends, Query
 
 from analysis import MODEL_EXP, MODEL_LINEAR, AnalysisConfig, build_model_curve
 from api.deps import get_current_user, get_store
-from api.schemas import DerivativeChartData, ResidualsChartData, WeightChartData
+from api.schemas import (
+    DerivativeChartData,
+    EnergyChartData,
+    ResidualsChartData,
+    WeightChartData,
+)
 from viz import (
     build_derivative_chart_data,
+    build_energy_chart_data,
     build_residuals_chart_data,
     build_weight_chart_data,
 )
@@ -112,6 +118,16 @@ def get_derivative_chart(
     """Return the derivative (rate of change) chart data series."""
     df = store.get_all(keycloak_sub)
     return build_derivative_chart_data(df)
+
+
+@router.get("/energy", response_model=EnergyChartData)
+def get_energy_chart(
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Return the estimated daily energy-balance chart data series."""
+    df = store.get_all(keycloak_sub)
+    return build_energy_chart_data(df)
 
 
 @router.get("/residuals", response_model=ResidualsChartData)

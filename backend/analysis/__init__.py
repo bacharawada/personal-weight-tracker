@@ -18,6 +18,11 @@ from analysis.curve_fit import (
     fit_exponential_decay,
 )
 from analysis.derivative import compute_derivative
+from analysis.energy import (
+    ENERGY_DENSITY_KCAL_PER_KG,
+    energy_series,
+    estimate_energy_balance,
+)
 from analysis.goal import GoalProjection, project_goal
 from analysis.models import (
     MODEL_EXP,
@@ -31,6 +36,7 @@ from analysis.stats import SummaryStats, compute_summary_stats
 from analysis.trend import TrendConfig, TrendFit, fit_recent_trend, trend_curve
 
 __all__ = [
+    "ENERGY_DENSITY_KCAL_PER_KG",
     "MODEL_EXP",
     "MODEL_LINEAR",
     "AnalysisConfig",
@@ -46,6 +52,8 @@ __all__ = [
     "compute_rolling_mean",
     "compute_summary_stats",
     "detect_deviations",
+    "energy_series",
+    "estimate_energy_balance",
     "exp_decay",
     "exp_decay_band",
     "extrapolate_fit",
