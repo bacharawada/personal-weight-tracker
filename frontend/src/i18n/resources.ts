@@ -17,6 +17,7 @@ import enData from "./locales/en/data";
 import enSettings from "./locales/en/settings";
 import enProfile from "./locales/en/profile";
 import enOnboarding from "./locales/en/onboarding";
+import enShare from "./locales/en/share";
 
 import frCommon from "./locales/fr/common";
 import frNav from "./locales/fr/nav";
@@ -29,6 +30,7 @@ import frData from "./locales/fr/data";
 import frSettings from "./locales/fr/settings";
 import frProfile from "./locales/fr/profile";
 import frOnboarding from "./locales/fr/onboarding";
+import frShare from "./locales/fr/share";
 
 export const defaultNS = "common";
 
@@ -45,6 +47,7 @@ export const resources = {
     settings: enSettings,
     profile: enProfile,
     onboarding: enOnboarding,
+    share: enShare,
   },
   fr: {
     common: frCommon,
@@ -58,6 +61,7 @@ export const resources = {
     settings: frSettings,
     profile: frProfile,
     onboarding: frOnboarding,
+    share: frShare,
   },
 };
 

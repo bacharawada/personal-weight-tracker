@@ -178,6 +178,12 @@ export interface UserProfileUpdate {
   unit_preference?: WeightUnit;
 }
 
+// Dashboard sharing status returned by /api/me/share.
+export interface ShareStatus {
+  enabled: boolean;
+  token: string | null;
+}
+
 export interface GoalProjection {
   has_goal: boolean;
   reachable: boolean | null;
