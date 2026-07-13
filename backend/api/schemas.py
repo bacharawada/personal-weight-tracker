@@ -7,13 +7,47 @@ route handlers stay thin and type-safe.
 from __future__ import annotations
 
 import datetime  # noqa: TC003 — Pydantic needs this at runtime for field validation
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+if TYPE_CHECKING:
+    from pydantic.fields import FieldInfo
 
 # ---------------------------------------------------------------------------
 # Measurements
 # ---------------------------------------------------------------------------
+
+
+def _note_field() -> FieldInfo:
+    """Build a fresh ``FieldInfo`` for an optional note (max 500 chars).
+
+    Returns a new instance per call — ``Field()`` objects must not be
+    shared across model classes.
+
+    Returns:
+        A Pydantic ``Field`` default for ``note: str | None``.
+    """
+    return Field(
+        default=None,
+        max_length=500,
+        description="Optional free-text note (max 500 characters)",
+    )
+
+
+def _normalize_note(value: str | None) -> str | None:
+    """Trim whitespace and collapse an empty string to ``None``.
+
+    Args:
+        value: The raw note string, or ``None``.
+
+    Returns:
+        The trimmed note, or ``None`` if it was ``None`` or blank.
+    """
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
 
 
 class MeasurementIn(BaseModel):
@@ -23,6 +57,12 @@ class MeasurementIn(BaseModel):
     weight: float = Field(
         ..., ge=40.0, le=300.0, description="Body weight in kg (40-300)"
     )
+    note: str | None = _note_field()
+
+    @field_validator("note")
+    @classmethod
+    def _clean_note(cls, value: str | None) -> str | None:
+        return _normalize_note(value)
 
 
 class MeasurementOut(BaseModel):
@@ -30,14 +70,27 @@ class MeasurementOut(BaseModel):
 
     date: datetime.date
     weight: float
+    note: str | None = None
 
 
 class MeasurementUpdate(BaseModel):
-    """Request body for updating an existing measurement's weight."""
+    """Request body for partially updating an existing measurement.
 
-    weight: float = Field(
-        ..., ge=40.0, le=300.0, description="New body weight in kg (40-300)"
+    Both fields are optional (PATCH semantics): only the fields present in
+    the request body are modified. An explicit ``null`` for ``note`` (or an
+    empty/blank string) clears it. ``weight`` cannot be cleared — sending it
+    as ``null`` is rejected by the route.
+    """
+
+    weight: float | None = Field(
+        default=None, ge=40.0, le=300.0, description="New body weight in kg (40-300)"
     )
+    note: str | None = _note_field()
+
+    @field_validator("note")
+    @classmethod
+    def _clean_note(cls, value: str | None) -> str | None:
+        return _normalize_note(value)
 
 
 # ---------------------------------------------------------------------------
@@ -83,10 +136,15 @@ class GoalProjectionOut(BaseModel):
 
 
 class ChartPoint(BaseModel):
-    """A single ``(date, value)`` point in a chart series."""
+    """A single ``(date, value)`` point in a chart series.
+
+    ``note`` is only ever populated on the raw measurements series — fit,
+    projection and smoothed series leave it ``None``.
+    """
 
     date: datetime.date
     value: float
+    note: str | None = None
 
 
 class ChartBandPoint(BaseModel):

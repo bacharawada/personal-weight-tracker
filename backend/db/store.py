@@ -165,20 +165,21 @@ class WeightDataStore:
             keycloak_sub: The ``sub`` claim from the Keycloak JWT.
 
         Returns:
-            A ``pandas.DataFrame`` with columns ``date`` (datetime.date)
-            and ``weight`` (float). Empty DataFrame when no data exists.
+            A ``pandas.DataFrame`` with columns ``date`` (datetime.date),
+            ``weight`` (float) and ``note`` (str or ``None``). Empty
+            DataFrame when no data exists.
         """
         user_id = self.get_or_create_user(keycloak_sub)
         stmt = (
-            sa.select(measurements.c.date, measurements.c.weight)
+            sa.select(measurements.c.date, measurements.c.weight, measurements.c.note)
             .where(measurements.c.user_id == user_id)
             .order_by(measurements.c.date.asc())
         )
         with self._engine.connect() as conn:
             rows = conn.execute(stmt).fetchall()
         if not rows:
-            return pd.DataFrame(columns=["date", "weight"])
-        df = pd.DataFrame(rows, columns=["date", "weight"])
+            return pd.DataFrame(columns=["date", "weight", "note"])
+        df = pd.DataFrame(rows, columns=["date", "weight", "note"])
         df["date"] = pd.to_datetime(df["date"])
         return df
 
@@ -196,11 +197,12 @@ class WeightDataStore:
             end: Latest date (inclusive).
 
         Returns:
-            A ``pandas.DataFrame`` sorted by date.
+            A ``pandas.DataFrame`` sorted by date, with ``date``, ``weight``
+            and ``note`` columns.
         """
         user_id = self.get_or_create_user(keycloak_sub)
         stmt = (
-            sa.select(measurements.c.date, measurements.c.weight)
+            sa.select(measurements.c.date, measurements.c.weight, measurements.c.note)
             .where(measurements.c.user_id == user_id)
             .where(measurements.c.date >= start)
             .where(measurements.c.date <= end)
@@ -209,20 +211,52 @@ class WeightDataStore:
         with self._engine.connect() as conn:
             rows = conn.execute(stmt).fetchall()
         if not rows:
-            return pd.DataFrame(columns=["date", "weight"])
-        df = pd.DataFrame(rows, columns=["date", "weight"])
+            return pd.DataFrame(columns=["date", "weight", "note"])
+        df = pd.DataFrame(rows, columns=["date", "weight", "note"])
         df["date"] = pd.to_datetime(df["date"])
         return df
 
+    def get_one(self, keycloak_sub: str, date: datetime.date) -> dict | None:
+        """Return a single measurement (weight + note) for *date*.
+
+        Args:
+            keycloak_sub: The ``sub`` claim from the Keycloak JWT.
+            date: The measurement date to look up.
+
+        Returns:
+            A dict with keys ``date``, ``weight`` and ``note``, or ``None``
+            if no measurement exists for this date and user.
+        """
+        user_id = self.get_or_create_user(keycloak_sub)
+        stmt = sa.select(
+            measurements.c.date, measurements.c.weight, measurements.c.note
+        ).where(
+            measurements.c.user_id == user_id,
+            measurements.c.date == date,
+        )
+        with self._engine.connect() as conn:
+            row = conn.execute(stmt).fetchone()
+        if row is None:
+            return None
+        return {"date": row[0], "weight": row[1], "note": row[2]}
+
     # -- mutations ---------------------------------------------------------
 
-    def add(self, keycloak_sub: str, date: datetime.date, weight: float) -> None:
+    def add(
+        self,
+        keycloak_sub: str,
+        date: datetime.date,
+        weight: float,
+        note: str | None = None,
+    ) -> None:
         """Insert a new measurement for *keycloak_sub*.
 
         Args:
             keycloak_sub: The ``sub`` claim from the Keycloak JWT.
             date: The measurement date.
             weight: Body weight in kilograms (must be 40--300).
+            note: Optional free-text note (already validated/trimmed by the
+                caller; max 500 characters).
 
         Raises:
             DuplicateDateError: If a measurement for *date* already exists
@@ -233,6 +267,7 @@ class WeightDataStore:
             user_id=user_id,
             date=date,
             weight=weight,
+            note=note,
             updated_at=sa.func.now(),
         )
         try:
@@ -251,24 +286,46 @@ class WeightDataStore:
             raise  # pragma: no cover
 
     def update(
-        self, keycloak_sub: str, date: datetime.date, weight: float
+        self,
+        keycloak_sub: str,
+        date: datetime.date,
+        weight: float | None = None,
+        note: str | None = None,
+        note_provided: bool = False,
     ) -> None:
-        """Update the weight for an existing measurement.
+        """Partially update an existing measurement.
+
+        ``weight`` and ``note`` are independently optional so callers can
+        update either field alone (PATCH semantics). Since ``note`` is
+        nullable, ``note_provided`` disambiguates "leave the note
+        untouched" (``False``) from "set the note to ``None`` /
+        clear it" (``True`` with ``note=None``).
 
         Args:
             keycloak_sub: The ``sub`` claim from the Keycloak JWT.
             date: The date of the measurement to update.
-            weight: New body weight in kilograms (must be 40--300).
+            weight: New body weight in kilograms (must be 40--300), or
+                ``None`` to leave the weight unchanged.
+            note: New note text, or ``None``. Only written when
+                *note_provided* is ``True``.
+            note_provided: Whether *note* should be written (even if
+                ``None``, which clears the column).
 
         Raises:
             NotFoundError: If no measurement exists for *date* and user.
         """
         user_id = self.get_or_create_user(keycloak_sub)
+        values: dict[str, object] = {"updated_at": sa.func.now()}
+        if weight is not None:
+            values["weight"] = weight
+        if note_provided:
+            values["note"] = note
+
         stmt = (
             measurements.update()
             .where(measurements.c.user_id == user_id)
             .where(measurements.c.date == date)
-            .values(weight=weight, updated_at=sa.func.now())
+            .values(**values)
         )
         try:
             with self._engine.begin() as conn:

@@ -51,6 +51,33 @@ def _points(dates: Iterable[pd.Timestamp], values: Iterable[float]) -> list[dict
     return out
 
 
+def _raw_points(
+    dates: Iterable[pd.Timestamp],
+    values: Iterable[float],
+    notes: Iterable[str | None],
+) -> list[dict]:
+    """Zip dates, values and notes into ``{date, value, note}`` points.
+
+    Same finite-value filtering as ``_points``, plus a pass-through
+    ``note`` field carried only on the raw measurements series.
+
+    Args:
+        dates: Iterable of pandas Timestamps (rows align with *values*).
+        values: Iterable of numeric values.
+        notes: Iterable of optional note strings, aligned with *values*.
+
+    Returns:
+        A list of ``{"date": date, "value": float, "note": str | None}``
+        dicts. Points whose value is ``NaN`` or infinite are omitted.
+    """
+    out: list[dict] = []
+    for ts, value, note in zip(dates, values, notes, strict=True):
+        fvalue = float(value)
+        if math.isfinite(fvalue):
+            out.append({"date": ts.date(), "value": fvalue, "note": note or None})
+    return out
+
+
 def _offset_dates(first_date: pd.Timestamp, offsets: Iterable[float]) -> list[pd.Timestamp]:
     """Convert day-offsets from the first measurement into Timestamps.
 
@@ -220,7 +247,8 @@ def build_weight_chart_data(
     dates = pd.to_datetime(df["date"])
     first_date = dates.iloc[0]
 
-    raw = _points(dates, df["weight"])
+    notes = df["note"] if "note" in df.columns else pd.Series([None] * len(df), index=df.index)
+    raw = _raw_points(dates, df["weight"], notes)
     rolling = compute_rolling_mean(df, window=smoothing_window)
     smoothed = _points(dates, rolling)
 
