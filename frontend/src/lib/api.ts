@@ -16,6 +16,7 @@ import type {
   MeasurementIn,
   MilestonesProjection,
   Mtime,
+  PlateauStatus,
   ResidualsChartData,
   Stats,
   UserProfile,
@@ -118,6 +119,10 @@ export async function getStats(): Promise<Stats> {
 
 export async function getDbMtime(): Promise<Mtime> {
   return fetchJson<Mtime>(`${BASE}/db-mtime`);
+}
+
+export async function getPlateauStatus(): Promise<PlateauStatus> {
+  return fetchJson<PlateauStatus>(`${BASE}/stats/plateau`);
 }
 
 // ---------------------------------------------------------------------------

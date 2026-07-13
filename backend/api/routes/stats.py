@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends
 
-from analysis import compute_summary_stats
+from analysis import compute_plateau_status, compute_summary_stats
 from api.deps import get_current_user, get_store
-from api.schemas import StatsOut
+from api.schemas import PlateauStatusOut, StatsOut
 
 if TYPE_CHECKING:
     from db import WeightDataStore
@@ -41,3 +41,21 @@ def get_stats(
         "measurement_count": len(df),
         "latest_weight": stats.latest_weight,
     }
+
+
+@router.get("/stats/plateau", response_model=PlateauStatusOut)
+def get_plateau_status(
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Return the current plateau/losing/gaining status and past plateau history.
+
+    Args:
+        keycloak_sub: Injected from the auth dependency.
+        store: Injected data store.
+
+    Returns:
+        Dict matching the ``PlateauStatusOut`` schema.
+    """
+    df = store.get_all(keycloak_sub)
+    return compute_plateau_status(df)

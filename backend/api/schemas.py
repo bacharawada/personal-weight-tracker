@@ -114,6 +114,35 @@ class MilestonesProjectionOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Plateau detection
+# ---------------------------------------------------------------------------
+
+
+class PlateauZoneOut(BaseModel):
+    """A past plateau period detected from exponential-fit residuals."""
+
+    start: datetime.date
+    end: datetime.date
+    duration_days: int
+
+
+class PlateauStatusOut(BaseModel):
+    """Response model for GET /api/stats/plateau."""
+
+    has_data: bool
+    state: Literal["plateau", "losing", "gaining"] | None
+    in_plateau: bool
+    trend_per_week: float | None
+    since_date: datetime.date | None
+    duration_days: int | None
+    history: list[PlateauZoneOut]
+    avg_duration_days: float | None
+    history_available: bool
+    reason: str
+    warning: str
+
+
+# ---------------------------------------------------------------------------
 # Charts — raw data series (rendering happens entirely on the frontend)
 # ---------------------------------------------------------------------------
 

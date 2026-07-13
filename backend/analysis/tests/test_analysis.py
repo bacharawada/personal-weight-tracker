@@ -16,9 +16,11 @@ from analysis import (
     MODEL_LINEAR,
     AnalysisConfig,
     FitResult,
+    PlateauConfig,
     TrendConfig,
     build_model_curve,
     compute_derivative,
+    compute_plateau_status,
     compute_rolling_mean,
     compute_summary_stats,
     detect_deviations,
@@ -659,3 +661,137 @@ class TestBuildModelCurve:
         curve = build_model_curve(df, MODEL_EXP)
         assert not curve.success
         assert curve.diagnostics is None
+
+
+# -----------------------------------------------------------------------
+# Plateau detection
+# -----------------------------------------------------------------------
+
+
+class TestPlateauStatus:
+    """Tests for ``compute_plateau_status()``."""
+
+    def test_plateau_detected(self) -> None:
+        """A flat recent tail (>= 14 days, |slope| < 0.1 kg/week) is a plateau."""
+        import datetime
+
+        declining_dates = pd.date_range("2025-01-01", periods=5, freq="7D")
+        declining_weights = [95.0, 93.0, 91.0, 89.5, 88.0]
+        last_decline_date = declining_dates[-1]
+        plateau_dates = pd.date_range(
+            last_decline_date + pd.Timedelta(days=4), periods=6, freq="4D"
+        )
+        plateau_weights = [87.9, 88.1, 87.95, 88.05, 88.0, 87.9]
+        df = pd.DataFrame(
+            {
+                "date": list(declining_dates) + list(plateau_dates),
+                "weight": declining_weights + plateau_weights,
+            }
+        )
+
+        status = compute_plateau_status(df)
+
+        assert status["has_data"] is True
+        assert status["state"] == "plateau"
+        assert status["in_plateau"] is True
+        assert status["trend_per_week"] is not None
+        assert abs(status["trend_per_week"]) < 0.1
+        assert status["since_date"] == datetime.date(2025, 2, 2)
+        assert status["duration_days"] == 20
+        assert "steady" in status["reason"].lower()
+
+    def test_steady_loss_is_not_a_plateau(self, sample_df: pd.DataFrame) -> None:
+        """A clear, steady downward trend is reported as 'losing', not a plateau."""
+        status = compute_plateau_status(sample_df)
+
+        assert status["has_data"] is True
+        assert status["state"] == "losing"
+        assert status["in_plateau"] is False
+        assert status["trend_per_week"] is not None and status["trend_per_week"] < -0.1
+        assert status["since_date"] is None
+        assert status["duration_days"] is None
+
+    def test_gaining(self) -> None:
+        """A clear upward trend is reported as 'gaining'."""
+        dates = pd.date_range("2025-01-01", periods=8, freq="4D")
+        weights = [80.0, 80.3, 80.7, 81.0, 81.4, 81.8, 82.1, 82.5]
+        df = pd.DataFrame({"date": dates, "weight": weights})
+
+        status = compute_plateau_status(df)
+
+        assert status["state"] == "gaining"
+        assert status["in_plateau"] is False
+        assert status["trend_per_week"] is not None and status["trend_per_week"] > 0.1
+
+    def test_insufficient_data_degrades_gracefully(self) -> None:
+        """Fewer than 3 points reports has_data=False with a populated reason."""
+        dates = pd.date_range("2025-01-01", periods=2, freq="7D")
+        df = pd.DataFrame({"date": dates, "weight": [90.0, 89.5]})
+
+        status = compute_plateau_status(df)
+
+        assert status["has_data"] is False
+        assert status["state"] is None
+        assert status["history"] == []
+        assert status["reason"] != ""
+
+    def test_empty_dataframe_degrades_gracefully(self) -> None:
+        """An empty DataFrame never raises and reports has_data=False."""
+        df = pd.DataFrame(columns=["date", "weight"])
+
+        status = compute_plateau_status(df)
+
+        assert status["has_data"] is False
+        assert status["history"] == []
+        assert status["history_available"] is False
+
+    def test_failed_curve_fit_yields_empty_history_without_crashing(self) -> None:
+        """When the exponential fit can't converge, history degrades to [] + warning.
+
+        ``fit_exponential_decay`` only *guarantees* failure below 3 points
+        (its one documented, deterministic failure mode — see
+        ``TestFitExponentialDecay.test_too_few_points_fails_gracefully``).
+        ``min_points_for_status`` is lowered here so the 2-point DataFrame
+        still reaches ``_history()`` instead of short-circuiting on the
+        top-level "not enough data" guard.
+        """
+        dates = pd.date_range("2025-01-01", periods=2, freq="7D")
+        df = pd.DataFrame({"date": dates, "weight": [90.0, 89.5]})
+
+        status = compute_plateau_status(df, PlateauConfig(min_points_for_status=2))
+
+        assert status["has_data"] is True
+        assert status["history"] == []
+        assert status["avg_duration_days"] is None
+        assert status["history_available"] is False
+        assert status["warning"] != ""
+
+    def test_history_zones_and_average_duration(self) -> None:
+        """Consecutive above-curve points merge into dated zones with an average."""
+        declining_dates = pd.date_range("2025-01-01", periods=5, freq="7D")
+        declining_weights = [95.0, 93.0, 91.0, 89.5, 88.0]
+        last_decline_date = declining_dates[-1]
+        plateau_dates = pd.date_range(
+            last_decline_date + pd.Timedelta(days=4), periods=6, freq="4D"
+        )
+        plateau_weights = [87.9, 88.1, 87.95, 88.05, 88.0, 87.9]
+        df = pd.DataFrame(
+            {
+                "date": list(declining_dates) + list(plateau_dates),
+                "weight": declining_weights + plateau_weights,
+            }
+        )
+
+        status = compute_plateau_status(df)
+
+        assert status["history_available"] is True
+        assert status["warning"] == ""
+        for zone in status["history"]:
+            assert zone["start"] < zone["end"]
+            assert zone["duration_days"] == (zone["end"] - zone["start"]).days
+            assert zone["duration_days"] > 0
+        if status["history"]:
+            expected_avg = sum(z["duration_days"] for z in status["history"]) / len(
+                status["history"]
+            )
+            assert status["avg_duration_days"] == expected_avg
