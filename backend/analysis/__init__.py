@@ -26,6 +26,7 @@ from analysis.models import (
     ModelDiagnostics,
     build_model_curve,
 )
+from analysis.plateau import PlateauConfig, compute_plateau_status
 from analysis.smoothing import compute_rolling_mean
 from analysis.stats import SummaryStats, compute_summary_stats
 from analysis.trend import TrendConfig, TrendFit, fit_recent_trend, trend_curve
@@ -38,11 +39,13 @@ __all__ = [
     "GoalProjection",
     "ModelCurve",
     "ModelDiagnostics",
+    "PlateauConfig",
     "SummaryStats",
     "TrendConfig",
     "TrendFit",
     "build_model_curve",
     "compute_derivative",
+    "compute_plateau_status",
     "compute_rolling_mean",
     "compute_summary_stats",
     "detect_deviations",
