@@ -11,6 +11,8 @@ import type {
   CsvPreview,
   CsvPreviewRow,
   DerivativeChartData,
+  EnergyBalance,
+  EnergyChartData,
   GoalProjection,
   Measurement,
   MeasurementIn,
@@ -160,6 +162,14 @@ export async function getGoalMilestones(): Promise<MilestonesProjection> {
 }
 
 // ---------------------------------------------------------------------------
+// Energy balance
+// ---------------------------------------------------------------------------
+
+export async function getEnergyBalance(): Promise<EnergyBalance> {
+  return fetchJson<EnergyBalance>(`${BASE}/stats/energy`);
+}
+
+// ---------------------------------------------------------------------------
 // CSV import
 // ---------------------------------------------------------------------------
 
@@ -219,6 +229,10 @@ export async function getDerivativeChart(params: ChartParams): Promise<Derivativ
 
 export async function getResidualsChart(params: ChartParams): Promise<ResidualsChartData> {
   return fetchJson<ResidualsChartData>(`${BASE}/charts/residuals?${chartQuery(params)}`);
+}
+
+export async function getEnergyChart(params: ChartParams): Promise<EnergyChartData> {
+  return fetchJson<EnergyChartData>(`${BASE}/charts/energy?${chartQuery(params)}`);
 }
 
 // ---------------------------------------------------------------------------

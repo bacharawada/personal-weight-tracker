@@ -63,6 +63,15 @@ const dashboard = {
       "A plateau: your trend has stayed within 0.1 kg/week for at least 14 days.",
     insufficientData: "Add a few more measurements to see your plateau status.",
   },
+  energy: {
+    label: "Estimated energy balance",
+    deficit: "Deficit ~{{value}} kcal/day",
+    surplus: "Surplus ~{{value}} kcal/day",
+    maintenance: "Roughly at maintenance",
+    range: "{{low}} to {{high}} kcal/day",
+    insufficient:
+      "Add a few weeks of measurements to estimate your energy balance.",
+  },
 };
 
 export type DashboardResource = typeof dashboard;

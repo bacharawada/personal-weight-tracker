@@ -12,12 +12,14 @@ from __future__ import annotations
 
 from viz.charts import (
     build_derivative_chart_data,
+    build_energy_chart_data,
     build_residuals_chart_data,
     build_weight_chart_data,
 )
 
 __all__ = [
     "build_derivative_chart_data",
+    "build_energy_chart_data",
     "build_residuals_chart_data",
     "build_weight_chart_data",
 ]

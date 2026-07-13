@@ -28,6 +28,7 @@ const analysis = {
     weight: "How this chart works — smoothing and prediction models",
     derivative: "How this chart works — rate of change",
     residuals: "How this chart works — residuals and deviation zones",
+    energy: "How this chart works — estimated energy balance",
   },
   weightExplainer: {
     smoothedHeading: "Smoothed line — centred rolling mean",
@@ -85,6 +86,16 @@ const analysis = {
     smoothedHeading: "Smoothed rate",
     smoothedBody:
       "The overlaid line is a 5-point centred rolling mean of the raw rates. Consecutive-day rates are extremely noisy (a single water-weight swing dominates them), so the smoothed line is the one to read for your sustained pace.",
+  },
+  energyExplainer: {
+    balanceHeading: "Energy balance from the weight trend",
+    balanceIntro:
+      "A change in body mass has an approximate energy cost, so the smoothed rate of weight change converts directly into an average daily energy balance:",
+    balanceBody:
+      "Each bar is the estimated daily balance in kcal, reusing the same smoothed rate as the rate-of-change chart (dw/dt in kg/day). Negative bars are a deficit — you were eating below your needs; positive bars a surplus. The constant is the {{density}} kcal/kg energy density of body-mass change.",
+    caveatsHeading: "Why this is an estimate, not a calorie count",
+    caveatsBody:
+      "Short-term weight swings are mostly water and glycogen, not fat, so a single week's bar can be wildly overstated — read the multi-week trend, never one bar. The {{density}} kcal/kg figure assumes the change is pure fat and ignores metabolic adaptation, so treat the number as directional rather than exact.",
   },
   residualsExplainer: {
     residualsHeading: "Residuals — what the model cannot explain",

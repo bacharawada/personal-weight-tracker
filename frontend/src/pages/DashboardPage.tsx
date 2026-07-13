@@ -7,6 +7,7 @@ import { StatsCards } from "../components/layout/StatsCards";
 import { GoalCard } from "../components/dashboard/GoalCard";
 import { MilestonesCard } from "../components/dashboard/MilestonesCard";
 import { PlateauCard } from "../components/dashboard/PlateauCard";
+import { EnergyCard } from "../components/dashboard/EnergyCard";
 import { WeightChart } from "../components/charts/WeightChart";
 
 export function DashboardPage() {
@@ -32,6 +33,8 @@ export function DashboardPage() {
         <MilestonesCard refreshKey={refreshKey} />
 
         <PlateauCard refreshKey={refreshKey} />
+
+        <EnergyCard refreshKey={refreshKey} />
 
         <WeightChart
           params={chartParams}

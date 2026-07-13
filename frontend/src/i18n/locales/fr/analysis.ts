@@ -29,6 +29,7 @@ const analysis: AnalysisResource = {
     weight: "Comment ce graphique fonctionne — lissage et modèles de prédiction",
     derivative: "Comment ce graphique fonctionne — taux de variation",
     residuals: "Comment ce graphique fonctionne — résidus et zones de déviation",
+    energy: "Comment ce graphique fonctionne — bilan énergétique estimé",
   },
   weightExplainer: {
     smoothedHeading: "Courbe lissée — moyenne mobile centrée",
@@ -86,6 +87,16 @@ const analysis: AnalysisResource = {
     smoothedHeading: "Taux lissé",
     smoothedBody:
       "La ligne superposée est une moyenne mobile centrée sur 5 points des taux bruts. Les taux entre jours consécutifs sont extrêmement bruités (une seule variation de rétention d'eau les domine) ; c'est donc la ligne lissée qu'il faut lire pour votre rythme durable.",
+  },
+  energyExplainer: {
+    balanceHeading: "Bilan énergétique d'après la tendance de poids",
+    balanceIntro:
+      "Une variation de masse corporelle a un coût énergétique approximatif ; le taux lissé de variation de poids se convertit donc directement en un bilan énergétique quotidien moyen :",
+    balanceBody:
+      "Chaque barre est le bilan quotidien estimé en kcal, en réutilisant le même taux lissé que le graphique du taux de variation (dw/dt en kg/jour). Les barres négatives correspondent à un déficit — vous mangiez en dessous de vos besoins ; les barres positives à un surplus. La constante est la densité énergétique de {{density}} kcal/kg de la variation de masse corporelle.",
+    caveatsHeading: "Pourquoi c'est une estimation, pas un décompte calorique",
+    caveatsBody:
+      "Les variations de poids à court terme sont surtout de l'eau et du glycogène, pas de la graisse ; la barre d'une seule semaine peut donc être largement surestimée — lisez la tendance sur plusieurs semaines, jamais une seule barre. Le chiffre de {{density}} kcal/kg suppose que la variation est de la graisse pure et ignore l'adaptation métabolique ; considérez donc la valeur comme indicative plutôt qu'exacte.",
   },
   residualsExplainer: {
     residualsHeading: "Résidus — ce que le modèle ne peut pas expliquer",

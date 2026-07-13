@@ -5,12 +5,14 @@ import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
 import { WeightChart } from "../components/charts/WeightChart";
 import { DerivativeChart } from "../components/charts/DerivativeChart";
+import { EnergyChart } from "../components/charts/EnergyChart";
 import { ResidualsChart } from "../components/charts/ResidualsChart";
 import { AxisControls } from "../components/charts/AxisControls";
 import { ChartExplainer } from "../components/charts/ChartExplainer";
 import { ModelStatsStrip } from "../components/charts/ModelStatsStrip";
 import { WeightChartExplainer } from "../components/charts/explainers/WeightChartExplainer";
 import { DerivativeChartExplainer } from "../components/charts/explainers/DerivativeChartExplainer";
+import { EnergyChartExplainer } from "../components/charts/explainers/EnergyChartExplainer";
 import { ResidualsChartExplainer } from "../components/charts/explainers/ResidualsChartExplainer";
 import { AUTO_AXES, type ChartAxes, type WeightChartData } from "../lib/types";
 
@@ -154,6 +156,11 @@ export function AnalysisPage() {
       <DerivativeChart params={chartParams} refreshKey={refreshKey} />
       <ChartExplainer title={t("explainerTitles.derivative")}>
         <DerivativeChartExplainer unit={unit} />
+      </ChartExplainer>
+
+      <EnergyChart params={chartParams} refreshKey={refreshKey} />
+      <ChartExplainer title={t("explainerTitles.energy")}>
+        <EnergyChartExplainer />
       </ChartExplainer>
 
       <ResidualsChart params={chartParams} refreshKey={refreshKey} />

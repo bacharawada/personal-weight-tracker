@@ -5,6 +5,7 @@ All tests use deterministic sample data — no database interaction.
 
 from __future__ import annotations
 
+import datetime
 import math
 
 import numpy as np
@@ -12,6 +13,7 @@ import pandas as pd
 import pytest
 
 from analysis import (
+    ENERGY_DENSITY_KCAL_PER_KG,
     MODEL_EXP,
     MODEL_LINEAR,
     AnalysisConfig,
@@ -24,6 +26,8 @@ from analysis import (
     compute_rolling_mean,
     compute_summary_stats,
     detect_deviations,
+    energy_series,
+    estimate_energy_balance,
     exp_decay,
     exp_decay_band,
     extrapolate_fit,
@@ -795,3 +799,110 @@ class TestPlateauStatus:
                 status["history"]
             )
             assert status["avg_duration_days"] == expected_avg
+
+
+# -----------------------------------------------------------------------
+# Energy balance
+# -----------------------------------------------------------------------
+
+
+def _linear_daily_df(slope_per_day: float, days: int = 60, start: float = 100.0) -> pd.DataFrame:
+    """Build a perfectly-linear daily DataFrame with a known slope (kg/day)."""
+    dates = pd.date_range("2025-01-01", periods=days, freq="D")
+    weights = [start + slope_per_day * i for i in range(days)]
+    return pd.DataFrame({"date": dates, "weight": weights})
+
+
+class TestEstimateEnergyBalance:
+    """Tests for ``estimate_energy_balance()``."""
+
+    def test_known_slope_gives_known_kcal(self) -> None:
+        """A -0.1 kg/day trend yields exactly -770 kcal/day (deficit)."""
+        df = _linear_daily_df(slope_per_day=-0.1)
+        result = estimate_energy_balance(df)
+        assert result["has_data"] is True
+        # -0.1 kg/day * 7700 kcal/kg = -770 kcal/day.
+        assert result["balance_kcal_day"] == pytest.approx(-770.0, abs=1e-6)
+        assert result["trend_per_week"] == pytest.approx(-0.7, abs=1e-6)
+        assert result["window_days"] == TrendConfig().window_days
+
+    def test_ci_brackets_central_estimate(self) -> None:
+        """The low/high bounds always bracket the central estimate."""
+        df = _linear_daily_df(slope_per_day=-0.1)
+        result = estimate_energy_balance(df)
+        assert result["balance_low"] <= result["balance_kcal_day"] <= result["balance_high"]
+
+    def test_noisy_data_has_uncertainty_width(self) -> None:
+        """A noisy series produces a non-degenerate uncertainty range."""
+        weights = [
+            100.0, 99.2, 98.9, 98.0, 97.6, 96.7,
+            96.5, 95.6, 95.1, 94.2, 93.9, 93.0,
+        ]
+        df = pd.DataFrame(
+            {"date": pd.date_range("2025-06-01", periods=len(weights), freq="7D"), "weight": weights}
+        )
+        result = estimate_energy_balance(df)
+        assert result["has_data"] is True
+        assert result["balance_high"] - result["balance_low"] > 0.0
+
+    def test_deficit_is_negative(self) -> None:
+        """A downward trend is reported as a deficit (negative kcal)."""
+        result = estimate_energy_balance(_linear_daily_df(slope_per_day=-0.05))
+        assert result["balance_kcal_day"] < 0
+
+    def test_surplus_is_positive(self) -> None:
+        """An upward trend is reported as a surplus (positive kcal)."""
+        result = estimate_energy_balance(_linear_daily_df(slope_per_day=0.05))
+        assert result["balance_kcal_day"] > 0
+
+    def test_empty_data_degrades(self) -> None:
+        """No measurements yields has_data=False and a reason, never raises."""
+        df = pd.DataFrame(columns=["date", "weight"])
+        result = estimate_energy_balance(df)
+        assert result["has_data"] is False
+        assert result["balance_kcal_day"] is None
+        assert result["reason"] != ""
+
+    def test_insufficient_data_degrades(self) -> None:
+        """Fewer than three points cannot fit a trend — degrades gracefully."""
+        df = pd.DataFrame(
+            {"date": pd.date_range("2025-06-01", periods=2, freq="7D"), "weight": [90.0, 89.0]}
+        )
+        result = estimate_energy_balance(df)
+        assert result["has_data"] is False
+        assert result["reason"] != ""
+
+
+class TestEnergySeries:
+    """Tests for ``energy_series()``."""
+
+    def test_known_values(self) -> None:
+        """A -0.1 kg/day trend yields ~-770 kcal/day at every interior point."""
+        df = _linear_daily_df(slope_per_day=-0.1)
+        points = energy_series(df)
+        assert len(points) > 0
+        # Skip the edges (partial rolling window) and check the interior.
+        interior = [p["kcal"] for p in points[3:-3]]
+        assert all(abs(kcal - (-770.0)) < 1e-6 for kcal in interior)
+
+    def test_point_shape(self) -> None:
+        """Every point exposes an ISO-able date and a finite kcal float."""
+        points = energy_series(_linear_daily_df(slope_per_day=-0.1))
+        for point in points:
+            assert isinstance(point["date"], datetime.date)
+            assert isinstance(point["kcal"], float)
+            assert math.isfinite(point["kcal"])
+
+    def test_empty_df(self) -> None:
+        """An empty DataFrame yields no points."""
+        df = pd.DataFrame(columns=["date", "weight"])
+        assert energy_series(df) == []
+
+    def test_single_row(self) -> None:
+        """A single measurement has no defined rate, so no points."""
+        df = pd.DataFrame({"date": [pd.Timestamp("2025-06-01")], "weight": [180.0]})
+        assert energy_series(df) == []
+
+    def test_density_constant(self) -> None:
+        """The documented energy density constant is 7700 kcal/kg."""
+        assert ENERGY_DENSITY_KCAL_PER_KG == 7700.0

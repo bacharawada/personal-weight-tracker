@@ -63,6 +63,15 @@ const dashboard: DashboardResource = {
       "Un plateau : votre tendance est restée sous 0,1 kg/semaine pendant au moins 14 jours.",
     insufficientData: "Ajoutez quelques mesures pour voir votre statut de plateau.",
   },
+  energy: {
+    label: "Bilan énergétique estimé",
+    deficit: "Déficit ~{{value}} kcal/jour",
+    surplus: "Surplus ~{{value}} kcal/jour",
+    maintenance: "Proche de l'équilibre",
+    range: "{{low}} à {{high}} kcal/jour",
+    insufficient:
+      "Ajoutez quelques semaines de mesures pour estimer votre bilan énergétique.",
+  },
 };
 
 export default dashboard;

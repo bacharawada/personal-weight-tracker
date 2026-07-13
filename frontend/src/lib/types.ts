@@ -138,6 +138,27 @@ export interface ResidualsChartData {
   sigma: number;
 }
 
+// Estimated daily energy balance (kcal). Negative = deficit, positive = surplus.
+export interface EnergyPoint {
+  date: string;
+  kcal: number;
+}
+
+export interface EnergyChartData {
+  bars: EnergyPoint[];
+}
+
+export interface EnergyBalance {
+  has_data: boolean;
+  balance_kcal_day: number | null;
+  balance_low: number | null;
+  balance_high: number | null;
+  window_days: number | null;
+  trend_per_week: number | null;
+  n_points: number;
+  reason: string;
+}
+
 // Manual axis-scale overrides. A `null` field means "auto" (derive from data).
 export interface DateAxisConfig {
   min: string | null; // ISO date (inclusive lower bound)

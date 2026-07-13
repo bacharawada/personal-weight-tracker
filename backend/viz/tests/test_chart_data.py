@@ -15,6 +15,7 @@ import pandas as pd
 from analysis import MODEL_EXP, MODEL_LINEAR, ModelCurve, build_model_curve
 from viz import (
     build_derivative_chart_data,
+    build_energy_chart_data,
     build_residuals_chart_data,
     build_weight_chart_data,
 )
@@ -180,6 +181,39 @@ class TestBuildDerivativeChartData:
         df = pd.DataFrame({"date": [pd.Timestamp("2025-06-01")], "weight": [180.0]})
         data = build_derivative_chart_data(df)
         assert data == {"bars": [], "smoothed": []}
+
+
+# -----------------------------------------------------------------------
+# Energy chart data
+# -----------------------------------------------------------------------
+
+
+class TestBuildEnergyChartData:
+    """Tests for ``build_energy_chart_data()``."""
+
+    def test_returns_expected_keys(self, sample_df: pd.DataFrame) -> None:
+        """The payload exposes only ``bars``."""
+        data = build_energy_chart_data(sample_df)
+        assert set(data) == {"bars"}
+
+    def test_bars_shape(self, sample_df: pd.DataFrame) -> None:
+        """Every bar has an ISO-able date and a finite kcal float."""
+        data = build_energy_chart_data(sample_df)
+        assert len(data["bars"]) > 0
+        for bar in data["bars"]:
+            assert isinstance(bar["date"], datetime.date)
+            assert isinstance(bar["kcal"], float)
+            assert math.isfinite(bar["kcal"])
+
+    def test_deficit_sign(self, sample_df: pd.DataFrame) -> None:
+        """A downward sample trend yields negative (deficit) kcal values."""
+        data = build_energy_chart_data(sample_df)
+        assert all(bar["kcal"] < 0 for bar in data["bars"])
+
+    def test_empty_df(self) -> None:
+        """An empty DataFrame yields empty bars."""
+        df = pd.DataFrame(columns=["date", "weight"])
+        assert build_energy_chart_data(df) == {"bars": []}
 
 
 # -----------------------------------------------------------------------
