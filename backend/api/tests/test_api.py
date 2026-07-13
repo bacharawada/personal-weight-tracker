@@ -230,6 +230,58 @@ class TestStatsEndpoint:
 
 
 # -----------------------------------------------------------------------
+# Plateau detection
+# -----------------------------------------------------------------------
+
+
+class TestPlateauEndpoint:
+    """Tests for /api/stats/plateau endpoint."""
+
+    def test_steady_loss_reports_losing(self) -> None:
+        """The seeded monthly-loss data is reported as 'losing', not a plateau."""
+        client = _make_client(seed=True)
+        r = client.get("/api/stats/plateau")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["has_data"] is True
+        assert data["state"] == "losing"
+        assert data["in_plateau"] is False
+        assert data["reason"] != ""
+
+    def test_empty_db_degrades_gracefully(self) -> None:
+        """With no measurements, the endpoint returns a populated reason, not an error."""
+        client = _make_client(seed=False)
+        r = client.get("/api/stats/plateau")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["has_data"] is False
+        assert data["state"] is None
+        assert data["history"] == []
+        assert data["reason"] != ""
+
+    def test_response_shape_matches_schema(self) -> None:
+        """The response includes every field of PlateauStatusOut."""
+        client = _make_client(seed=True)
+        r = client.get("/api/stats/plateau")
+        assert r.status_code == 200
+        data = r.json()
+        expected_keys = {
+            "has_data",
+            "state",
+            "in_plateau",
+            "trend_per_week",
+            "since_date",
+            "duration_days",
+            "history",
+            "avg_duration_days",
+            "history_available",
+            "reason",
+            "warning",
+        }
+        assert expected_keys <= set(data)
+
+
+# -----------------------------------------------------------------------
 # Charts
 # -----------------------------------------------------------------------
 
