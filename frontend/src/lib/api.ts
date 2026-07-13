@@ -11,9 +11,12 @@ import type {
   CsvPreview,
   CsvPreviewRow,
   DerivativeChartData,
+  DoseImpact,
   GoalProjection,
   Measurement,
   MeasurementIn,
+  MedicationDose,
+  MedicationDoseIn,
   Mtime,
   ResidualsChartData,
   Stats,
@@ -105,6 +108,39 @@ export async function deleteAllMeasurements(): Promise<void> {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(body.detail || res.statusText);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Medication doses
+// ---------------------------------------------------------------------------
+
+export async function getMedications(): Promise<MedicationDose[]> {
+  return fetchJson<MedicationDose[]>(`${BASE}/medications`);
+}
+
+export async function addMedicationDose(
+  data: MedicationDoseIn,
+): Promise<MedicationDose> {
+  return fetchJson<MedicationDose>(`${BASE}/medications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteMedicationDose(id: number): Promise<void> {
+  const res = await fetch(`${BASE}/medications/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+}
+
+export async function getMedicationImpact(): Promise<DoseImpact[]> {
+  return fetchJson<DoseImpact[]>(`${BASE}/medications/impact`);
 }
 
 // ---------------------------------------------------------------------------

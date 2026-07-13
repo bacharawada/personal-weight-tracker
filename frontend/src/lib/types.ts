@@ -10,6 +10,52 @@ export interface MeasurementIn {
   weight: number;
 }
 
+// ---------------------------------------------------------------------------
+// Medication doses (GLP-1 & co.)
+// ---------------------------------------------------------------------------
+
+export interface MedicationDose {
+  id: number;
+  date: string;
+  medication: string;
+  dose_mg: number | null;
+  note: string | null;
+}
+
+export interface MedicationDoseIn {
+  date: string;
+  medication: string;
+  dose_mg: number | null;
+  note: string | null;
+}
+
+// Common GLP-1 molecule suggestions offered via a datalist. Free text is still
+// allowed — these only pre-populate the input. `as const` keeps it a literal
+// tuple (the project bans TS enums via erasableSyntaxOnly).
+export const MEDICATION_SUGGESTIONS = [
+  "semaglutide",
+  "tirzepatide",
+  "liraglutide",
+  "dulaglutide",
+] as const;
+
+// One row of the dose-change impact analysis (kg/week; negative = losing).
+// A `null` slope means that side of the window had too few measurements.
+export interface DoseImpact {
+  date: string;
+  medication: string;
+  dose_mg: number | null;
+  previous_dose_mg: number | null;
+  is_first: boolean;
+  slope_before_per_week: number | null;
+  slope_after_per_week: number | null;
+  n_before: number;
+  n_after: number;
+  delta_per_week: number | null;
+  window_days: number;
+  reason: string;
+}
+
 export interface Stats {
   total_loss_kg: number;
   avg_loss_per_week: number;
@@ -31,6 +77,10 @@ export interface ChartParams {
   showExp: boolean;
   showLinear: boolean;
   showBand: boolean;
+  // Pure rendering flag (like `palette`/`dark`): toggles the medication-dose
+  // markers on the weight chart. Not sent to the backend and deliberately
+  // excluded from the chart refresh key so toggling never refetches.
+  showDoses: boolean;
 }
 
 // Enum-like constant. The project's tsconfig enables `erasableSyntaxOnly`,

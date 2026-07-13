@@ -9,6 +9,7 @@ import { ResidualsChart } from "../components/charts/ResidualsChart";
 import { AxisControls } from "../components/charts/AxisControls";
 import { ChartExplainer } from "../components/charts/ChartExplainer";
 import { ModelStatsStrip } from "../components/charts/ModelStatsStrip";
+import { DoseImpactTable } from "../components/charts/DoseImpactTable";
 import { WeightChartExplainer } from "../components/charts/explainers/WeightChartExplainer";
 import { DerivativeChartExplainer } from "../components/charts/explainers/DerivativeChartExplainer";
 import { ResidualsChartExplainer } from "../components/charts/explainers/ResidualsChartExplainer";
@@ -23,6 +24,7 @@ const HORIZON_OPTIONS = [
 
 export function AnalysisPage() {
   const { t } = useTranslation("analysis");
+  const { t: tMed } = useTranslation("medication");
   const { chartParams, setChartParams, refreshKey, setSelectedPoint, accent, unit } = useWeightTracker();
   const [axes, setAxes] = useState<ChartAxes>(AUTO_AXES);
   const [weightData, setWeightData] = useState<WeightChartData | null>(null);
@@ -131,6 +133,17 @@ export function AnalysisPage() {
               />
               {t("controls.showUncertaintyBand")}
             </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={chartParams.showDoses}
+                onChange={(e) =>
+                  setChartParams({ ...chartParams, showDoses: e.target.checked })
+                }
+                style={{ accentColor: accent }}
+              />
+              {tMed("chart.toggle")}
+            </label>
           </div>
         </div>
       </div>
@@ -150,6 +163,8 @@ export function AnalysisPage() {
       <ChartExplainer title={t("explainerTitles.weight")}>
         <WeightChartExplainer data={weightData} params={chartParams} unit={unit} />
       </ChartExplainer>
+
+      <DoseImpactTable refreshKey={refreshKey} unit={unit} />
 
       <DerivativeChart params={chartParams} refreshKey={refreshKey} />
       <ChartExplainer title={t("explainerTitles.derivative")}>
