@@ -479,3 +479,50 @@ class TestGoalEndpoint:
         data = client.get("/api/goal").json()
         assert data["on_track"] is True
         assert data["days_ahead_behind"] <= 0
+
+
+# -----------------------------------------------------------------------
+# Goal milestones
+# -----------------------------------------------------------------------
+
+
+class TestGoalMilestonesEndpoint:
+    """Tests for /api/goal/milestones endpoint."""
+
+    def test_no_goal_set(self) -> None:
+        """Without a goal, the projection reports has_goal=False."""
+        client = _make_client(seed=True)
+        data = client.get("/api/goal/milestones").json()
+        assert data["has_goal"] is False
+        assert data["milestones"] == []
+
+    def test_partial_progress(self) -> None:
+        """A goal partway reached returns 10 milestones, some achieved."""
+        client = _make_client(seed=True)
+        client.patch("/api/me", json={"goal_weight": 150.0})
+        data = client.get("/api/goal/milestones").json()
+        assert data["has_goal"] is True
+        assert len(data["milestones"]) == 10
+        assert data["current_milestone_index"] == 4
+        assert data["remaining_milestones"] == 6
+        assert data["next_milestone"] is not None
+        assert data["next_milestone"]["index"] == 5
+
+    def test_goal_already_reached(self) -> None:
+        """A goal already reached by the latest weight marks all milestones done."""
+        client = _make_client(seed=True)
+        client.patch("/api/me", json={"goal_weight": 170.0})
+        data = client.get("/api/goal/milestones").json()
+        assert data["current_milestone_index"] == 10
+        assert data["remaining_milestones"] == 0
+        assert data["next_milestone"] is None
+        assert data["percent_complete"] == 100.0
+
+    def test_goal_above_start_weight(self) -> None:
+        """A goal above the starting weight degrades gracefully."""
+        client = _make_client(seed=True)
+        client.patch("/api/me", json={"goal_weight": 200.0})
+        data = client.get("/api/goal/milestones").json()
+        assert data["has_goal"] is True
+        assert data["milestones"] == []
+        assert data["next_milestone"] is None

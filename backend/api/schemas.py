@@ -78,6 +78,42 @@ class GoalProjectionOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Goal milestones
+# ---------------------------------------------------------------------------
+
+
+class MilestoneOut(BaseModel):
+    """A single milestone checkpoint between the starting weight and the goal."""
+
+    index: int
+    target_weight: float
+    achieved: bool
+    achieved_date: datetime.date | None
+
+
+class NextMilestoneOut(BaseModel):
+    """The next unachieved milestone, with weight remaining to reach it."""
+
+    index: int
+    target_weight: float
+    kg_remaining: float
+
+
+class MilestonesProjectionOut(BaseModel):
+    """Response model for the goal milestones (/api/goal/milestones)."""
+
+    has_goal: bool
+    start_weight: float | None
+    goal_weight: float | None
+    milestones: list[MilestoneOut]
+    current_milestone_index: int
+    percent_complete: float
+    next_milestone: NextMilestoneOut | None
+    remaining_milestones: int
+    reason: str
+
+
+# ---------------------------------------------------------------------------
 # Charts — raw data series (rendering happens entirely on the frontend)
 # ---------------------------------------------------------------------------
 

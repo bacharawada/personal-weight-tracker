@@ -9,6 +9,7 @@ import math
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from analysis import (
     MODEL_EXP,
@@ -27,6 +28,7 @@ from analysis import (
     fit_exponential_decay,
     fit_recent_trend,
     project_goal,
+    project_milestones,
     trend_curve,
 )
 
@@ -336,6 +338,108 @@ class TestGoalProjection:
         assert far.on_track is True
         assert near.on_track is False
         assert near.days_ahead_behind is not None and near.days_ahead_behind > 0
+
+
+# -----------------------------------------------------------------------
+# Goal milestones
+# -----------------------------------------------------------------------
+
+
+class TestGoalMilestones:
+    """Tests for ``project_milestones()``."""
+
+    def test_no_goal(self, sample_df: pd.DataFrame) -> None:
+        """A ``None`` goal reports has_goal=False and no milestones."""
+        result = project_milestones(sample_df, goal_weight=None)
+        assert result["has_goal"] is False
+        assert result["milestones"] == []
+        assert result["next_milestone"] is None
+        assert "no goal" in result["reason"].lower()
+
+    def test_empty_data(self) -> None:
+        """No measurements yields an empty projection (no crash)."""
+        df = pd.DataFrame(columns=["date", "weight"])
+        result = project_milestones(df, goal_weight=70.0)
+        assert result["has_goal"] is True
+        assert result["milestones"] == []
+        assert "measurements" in result["reason"].lower()
+
+    def test_goal_above_start_weight(self, sample_df: pd.DataFrame) -> None:
+        """A goal at or above the starting weight cannot be milestoned."""
+        result = project_milestones(sample_df, goal_weight=200.0)
+        assert result["has_goal"] is True
+        assert result["milestones"] == []
+        assert result["next_milestone"] is None
+        assert "starting weight" in result["reason"].lower()
+
+    def test_goal_equal_to_start_weight(self, sample_df: pd.DataFrame) -> None:
+        """A goal exactly equal to the starting weight also degrades gracefully."""
+        start_weight = float(sample_df["weight"].iloc[0])
+        result = project_milestones(sample_df, goal_weight=start_weight)
+        assert result["has_goal"] is True
+        assert result["milestones"] == []
+
+    def test_nominal_progress(self, sample_df: pd.DataFrame) -> None:
+        """A goal partway reached yields a mix of achieved/unachieved milestones."""
+        result = project_milestones(sample_df, goal_weight=150.0)
+
+        assert result["has_goal"] is True
+        assert result["start_weight"] == 183.5
+        assert result["goal_weight"] == 150.0
+        assert len(result["milestones"]) == 10
+
+        # Milestones are equally spaced and the last one equals the goal.
+        assert result["milestones"][-1]["target_weight"] == 150.0
+        assert result["milestones"][0]["target_weight"] > result["milestones"][1]["target_weight"]
+
+        assert result["current_milestone_index"] == 4
+        assert result["remaining_milestones"] == 6
+        achieved_flags = [m["achieved"] for m in result["milestones"]]
+        assert achieved_flags == [True, True, True, True, False, False, False, False, False, False]
+        assert all(m["achieved_date"] is not None for m in result["milestones"][:4])
+        assert all(m["achieved_date"] is None for m in result["milestones"][4:])
+
+        next_milestone = result["next_milestone"]
+        assert next_milestone is not None
+        assert next_milestone["index"] == 5
+        assert next_milestone["target_weight"] == pytest.approx(166.75)
+        assert next_milestone["kg_remaining"] == pytest.approx(0.25)
+
+        expected_percent = (183.5 - 167.0) / (183.5 - 150.0) * 100.0
+        assert result["percent_complete"] == pytest.approx(expected_percent, abs=0.1)
+
+    def test_goal_already_reached(self, sample_df: pd.DataFrame) -> None:
+        """When the latest weight is already at/below the goal, all milestones
+        are achieved and percent_complete is clamped to 100."""
+        result = project_milestones(sample_df, goal_weight=170.0)
+
+        assert result["current_milestone_index"] == 10
+        assert result["remaining_milestones"] == 0
+        assert result["next_milestone"] is None
+        assert all(m["achieved"] for m in result["milestones"])
+        assert result["percent_complete"] == 100.0
+        assert "achieved" in result["reason"].lower()
+
+    def test_custom_milestone_count(self, sample_df: pd.DataFrame) -> None:
+        """A custom ``n`` produces exactly ``n`` equally-spaced milestones."""
+        result = project_milestones(sample_df, goal_weight=150.0, n=5)
+        assert len(result["milestones"]) == 5
+        assert [m["index"] for m in result["milestones"]] == [1, 2, 3, 4, 5]
+        assert result["milestones"][-1]["target_weight"] == 150.0
+
+    def test_kg_remaining_never_negative(self, sample_df: pd.DataFrame) -> None:
+        """kg_remaining is floored at 0 even if the latest weight briefly dipped
+        below the next milestone and bounced back above it."""
+        df = pd.DataFrame(
+            {
+                "date": pd.date_range("2025-06-01", periods=4, freq="7D"),
+                "weight": [100.0, 90.0, 95.0, 96.0],
+            }
+        )
+        result = project_milestones(df, goal_weight=80.0)
+        next_milestone = result["next_milestone"]
+        if next_milestone is not None:
+            assert next_milestone["kg_remaining"] >= 0.0
 
 
 # -----------------------------------------------------------------------

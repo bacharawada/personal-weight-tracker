@@ -19,6 +19,7 @@ from analysis.curve_fit import (
 )
 from analysis.derivative import compute_derivative
 from analysis.goal import GoalProjection, project_goal
+from analysis.milestones import DEFAULT_MILESTONE_COUNT, project_milestones
 from analysis.models import (
     MODEL_EXP,
     MODEL_LINEAR,
@@ -31,6 +32,7 @@ from analysis.stats import SummaryStats, compute_summary_stats
 from analysis.trend import TrendConfig, TrendFit, fit_recent_trend, trend_curve
 
 __all__ = [
+    "DEFAULT_MILESTONE_COUNT",
     "MODEL_EXP",
     "MODEL_LINEAR",
     "AnalysisConfig",
@@ -52,5 +54,6 @@ __all__ = [
     "fit_exponential_decay",
     "fit_recent_trend",
     "project_goal",
+    "project_milestones",
     "trend_curve",
 ]
