@@ -192,6 +192,37 @@ export interface GoalProjection {
   reason: string;
 }
 
+// ---------------------------------------------------------------------------
+// Plateau detection
+// ---------------------------------------------------------------------------
+
+export const PlateauState = {
+  Plateau: "plateau",
+  Losing: "losing",
+  Gaining: "gaining",
+} as const;
+export type PlateauState = (typeof PlateauState)[keyof typeof PlateauState];
+
+export interface PlateauZone {
+  start: string;
+  end: string;
+  duration_days: number;
+}
+
+export interface PlateauStatus {
+  has_data: boolean;
+  state: PlateauState | null;
+  in_plateau: boolean;
+  trend_per_week: number | null;
+  since_date: string | null;
+  duration_days: number | null;
+  history: PlateauZone[];
+  avg_duration_days: number | null;
+  history_available: boolean;
+  reason: string;
+  warning: string;
+}
+
 // CSV import
 export interface CsvPreviewRow {
   date: string;

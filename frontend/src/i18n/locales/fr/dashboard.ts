@@ -37,6 +37,21 @@ const dashboard: DashboardResource = {
       obese: "Obésité",
     },
   },
+  plateau: {
+    cardLabel: "Statut du plateau",
+    plateauBadge_one: "Plateau depuis {{count}} jour",
+    plateauBadge_other: "Plateau depuis {{count}} jours",
+    losingBadge: "Perte régulière",
+    gainingBadge: "Reprise",
+    recentRate: "Taux récent",
+    historySummary_one: "{{count}} plateau passé, moy. {{avgDays}} jour",
+    historySummary_other: "{{count}} plateaux passés, moy. {{avgDays}} jours",
+    noHistory: "Aucun plateau détecté dans votre historique pour le moment.",
+    historyUnavailable: "Pas assez d'historique pour rechercher d'anciens plateaux.",
+    explainer:
+      "Un plateau : votre tendance est restée sous 0,1 kg/semaine pendant au moins 14 jours.",
+    insufficientData: "Ajoutez quelques mesures pour voir votre statut de plateau.",
+  },
 };
 
 export default dashboard;
