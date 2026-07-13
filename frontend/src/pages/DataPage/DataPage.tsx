@@ -23,6 +23,7 @@ export function DataPage() {
   const tableColumns = [
     { label: t("table.date"), align: "left" as const },
     { label: t("table.weight", { unit: unitLabel(unit) }), align: "right" as const },
+    { label: t("table.note"), align: "left" as const },
     { label: t("table.actions"), align: "right" as const, className: "w-24" },
   ];
   const {
@@ -32,7 +33,7 @@ export function DataPage() {
     csvOpen, csvKey, openCsvModal, closeCsvModal,
     deleteTarget, setDeleteTarget,
     deleteAllOpen, setDeleteAllOpen,
-    editingDate, editWeight, setEditWeight, editError, setEditError,
+    editingDate, editWeight, setEditWeight, editNote, setEditNote, editError, setEditError,
     saving, inputRef,
     deleting, deletingAll,
     startEdit, cancelEdit, saveEdit, handleKeyDown,
@@ -120,6 +121,7 @@ export function DataPage() {
                       unit={unit}
                       isEditing={editingDate === m.date}
                       editWeight={editWeight}
+                      editNote={editNote}
                       editError={editError}
                       saving={saving}
                       inputRef={inputRef}
@@ -128,6 +130,7 @@ export function DataPage() {
                       onEditCancel={cancelEdit}
                       onKeyDown={handleKeyDown}
                       onWeightChange={setEditWeight}
+                      onNoteChange={setEditNote}
                       onErrorClear={() => setEditError(null)}
                       onDeleteRequest={setDeleteTarget}
                     />

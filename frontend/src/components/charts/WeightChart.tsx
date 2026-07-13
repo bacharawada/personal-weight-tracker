@@ -195,10 +195,11 @@ function WeightChartBody({
   const rawPx = project(data.raw);
   const smoothedPx = project(data.smoothed);
 
-  const hoverPoints: HoverPoint<{ date: string; value: number }>[] = data.raw.map((p) => ({
-    x: x(toMs(p.date)),
-    payload: p,
-  }));
+  const hoverPoints: HoverPoint<{ date: string; value: number; note: string | null }>[] =
+    data.raw.map((p) => ({
+      x: x(toMs(p.date)),
+      payload: p,
+    }));
 
   return (
     <>
@@ -272,6 +273,20 @@ function WeightChartBody({
       {rawPx.map((p, i) => (
         <circle key={i} cx={p.x} cy={p.y} r={3} fill={palette.raw} stroke={theme.tooltipBg} strokeWidth={0.5} />
       ))}
+      {/* Distinct ring around measurements that carry a note */}
+      {rawPx.map((p, i) =>
+        data.raw[i].note ? (
+          <circle
+            key={`note-${i}`}
+            cx={p.x}
+            cy={p.y}
+            r={6}
+            fill="none"
+            stroke={palette.accent}
+            strokeWidth={1.5}
+          />
+        ) : null,
+      )}
 
       {/* Rolling mean */}
       <path d={linePath(smoothedPx)} fill="none" stroke={palette.smoothed} strokeWidth={2.4} />
@@ -303,6 +318,9 @@ function WeightChartBody({
             value: t("weight.tooltip.weightValue", { value: p.value.toFixed(1) }),
             color: palette.raw,
           },
+          ...(p.note
+            ? [{ label: t("weight.tooltip.note"), value: p.note, color: palette.accent }]
+            : []),
         ]}
         dots={(p) => [{ y: y(p.value), color: palette.raw }]}
         onSelect={(p) => onPointClick({ date: p.date.slice(0, 10), weight: p.value })}

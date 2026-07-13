@@ -76,16 +76,21 @@ class TestGetAll:
         assert dates == sorted(dates)
 
     def test_returns_correct_columns(self, store: WeightDataStore) -> None:
-        """get_all() returns date and weight columns."""
+        """get_all() returns date, weight and note columns."""
         df = store.get_all(TEST_USER_SUB)
-        assert list(df.columns) == ["date", "weight"]
+        assert list(df.columns) == ["date", "weight", "note"]
 
     def test_empty_store_returns_empty_df(self, engine: sa.engine.Engine) -> None:
         """get_all() returns empty DataFrame when no data exists for user."""
         empty_store = WeightDataStore(engine)
         df = empty_store.get_all("unknown-user-sub")
         assert df.empty
-        assert list(df.columns) == ["date", "weight"]
+        assert list(df.columns) == ["date", "weight", "note"]
+
+    def test_note_defaults_to_none(self, store: WeightDataStore) -> None:
+        """Seeded measurements (added without a note) expose note == None."""
+        df = store.get_all(TEST_USER_SUB)
+        assert df["note"].isna().all()
 
     def test_data_isolation(self, engine: sa.engine.Engine) -> None:
         """Two different users see only their own measurements."""
@@ -146,6 +151,68 @@ class TestAdd:
         date = datetime.date(2025, 3, 15)
         s.add("user-x", date, 70.0)
         s.add("user-y", date, 75.0)  # Must not raise.
+
+    def test_insert_with_note(self, store: WeightDataStore) -> None:
+        """add() persists an optional note alongside the weight."""
+        date = datetime.date(2025, 11, 2)
+        store.add(TEST_USER_SUB, date, 164.0, note="Post-vacation weigh-in")
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["note"] == "Post-vacation weigh-in"
+
+    def test_insert_without_note_defaults_to_none(self, store: WeightDataStore) -> None:
+        """add() without a note leaves the column NULL."""
+        date = datetime.date(2025, 11, 3)
+        store.add(TEST_USER_SUB, date, 163.5)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["note"] is None
+
+
+# -----------------------------------------------------------------------
+# update
+# -----------------------------------------------------------------------
+
+
+class TestUpdate:
+    """Tests for ``WeightDataStore.update()``."""
+
+    def test_update_weight_only(self, store: WeightDataStore) -> None:
+        """Updating weight alone leaves an existing note untouched."""
+        date = datetime.date(2025, 6, 1)
+        store.update(TEST_USER_SUB, date, note="Before", note_provided=True)
+        store.update(TEST_USER_SUB, date, weight=182.0)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["weight"] == 182.0
+        assert row["note"] == "Before"
+
+    def test_update_note_only_leaves_weight_untouched(
+        self, store: WeightDataStore
+    ) -> None:
+        """Updating note alone (note-only PATCH) leaves the weight untouched."""
+        date = datetime.date(2025, 6, 1)
+        original = store.get_one(TEST_USER_SUB, date)
+        assert original is not None
+        store.update(TEST_USER_SUB, date, note="Sick this week", note_provided=True)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["weight"] == original["weight"]
+        assert row["note"] == "Sick this week"
+
+    def test_update_note_to_none_clears_it(self, store: WeightDataStore) -> None:
+        """Passing note=None with note_provided=True clears an existing note."""
+        date = datetime.date(2025, 6, 1)
+        store.update(TEST_USER_SUB, date, note="Temporary", note_provided=True)
+        store.update(TEST_USER_SUB, date, note=None, note_provided=True)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["note"] is None
+
+    def test_update_missing_date_raises(self, store: WeightDataStore) -> None:
+        """update() raises NotFoundError for a date with no measurement."""
+        with pytest.raises(NotFoundError):
+            store.update(TEST_USER_SUB, datetime.date(1999, 1, 1), weight=100.0)
 
 
 # -----------------------------------------------------------------------

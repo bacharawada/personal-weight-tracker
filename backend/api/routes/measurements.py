@@ -45,6 +45,7 @@ def list_measurements(
         {
             "date": row["date"].date() if hasattr(row["date"], "date") else row["date"],
             "weight": row["weight"],
+            "note": row["note"],
         }
         for _, row in df.iterrows()
     ]
@@ -78,11 +79,11 @@ def add_measurement(
         raise HTTPException(status_code=400, detail="Future dates are not allowed")
 
     try:
-        store.add(keycloak_sub, body.date, body.weight)
+        store.add(keycloak_sub, body.date, body.weight, body.note)
     except DuplicateDateError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-    return {"date": body.date, "weight": body.weight}
+    return {"date": body.date, "weight": body.weight, "note": body.note}
 
 
 @router.patch(
@@ -96,11 +97,15 @@ def update_measurement(
     keycloak_sub: str = Depends(get_current_user),
     store: WeightDataStore = Depends(get_store),
 ) -> dict:
-    """Update the weight for an existing measurement.
+    """Partially update an existing measurement's weight and/or note.
+
+    Only the fields present in the request body are modified — e.g. sending
+    only ``note`` leaves the weight untouched. ``weight`` cannot be cleared;
+    sending it as an explicit ``null`` is rejected.
 
     Args:
         date: The date of the measurement to update.
-        body: New weight value.
+        body: The fields to update (weight and/or note).
         keycloak_sub: Injected from the auth dependency.
         store: Injected data store.
 
@@ -108,14 +113,32 @@ def update_measurement(
         The updated measurement.
 
     Raises:
-        HTTPException: 404 if no measurement exists for this date.
+        HTTPException: 422 if the body is empty or ``weight`` is explicitly
+            null; 404 if no measurement exists for this date.
     """
+    fields_set = body.model_fields_set
+    if not fields_set:
+        raise HTTPException(
+            status_code=422, detail="At least one of weight or note must be provided"
+        )
+    if "weight" in fields_set and body.weight is None:
+        raise HTTPException(status_code=422, detail="weight cannot be null")
+
     try:
-        store.update(keycloak_sub, date, body.weight)
+        store.update(
+            keycloak_sub,
+            date,
+            weight=body.weight if "weight" in fields_set else None,
+            note=body.note if "note" in fields_set else None,
+            note_provided="note" in fields_set,
+        )
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    return {"date": date, "weight": body.weight}
+    updated = store.get_one(keycloak_sub, date)
+    if updated is None:  # pragma: no cover - defensive, row was just updated
+        raise HTTPException(status_code=404, detail=f"No measurement found for {date}")
+    return updated
 
 
 @router.delete(

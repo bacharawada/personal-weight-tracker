@@ -183,6 +183,116 @@ class TestMeasurementsEndpoints:
         )
         assert r.status_code == 422
 
+    def test_add_measurement_with_note(self) -> None:
+        """POST /api/measurements persists an optional note."""
+        client = _make_client(seed=True)
+        r = client.post(
+            "/api/measurements",
+            json={"date": "2025-05-02", "weight": 180.0, "note": "Post-vacation"},
+        )
+        assert r.status_code == 201
+        assert r.json()["note"] == "Post-vacation"
+
+        r = client.get("/api/measurements")
+        row = next(m for m in r.json() if m["date"] == "2025-05-02")
+        assert row["note"] == "Post-vacation"
+
+    def test_add_measurement_without_note_is_none(self) -> None:
+        """POST /api/measurements omitting note returns note == None."""
+        client = _make_client(seed=True)
+        r = client.post(
+            "/api/measurements",
+            json={"date": "2025-05-03", "weight": 180.0},
+        )
+        assert r.status_code == 201
+        assert r.json()["note"] is None
+
+    def test_add_measurement_blank_note_becomes_none(self) -> None:
+        """A whitespace-only note is normalized to None."""
+        client = _make_client(seed=True)
+        r = client.post(
+            "/api/measurements",
+            json={"date": "2025-05-04", "weight": 180.0, "note": "   "},
+        )
+        assert r.status_code == 201
+        assert r.json()["note"] is None
+
+    def test_add_measurement_note_is_trimmed(self) -> None:
+        """Leading/trailing whitespace is stripped from the note."""
+        client = _make_client(seed=True)
+        r = client.post(
+            "/api/measurements",
+            json={"date": "2025-05-05", "weight": 180.0, "note": "  hello  "},
+        )
+        assert r.status_code == 201
+        assert r.json()["note"] == "hello"
+
+    def test_add_measurement_note_too_long_returns_422(self) -> None:
+        """A note longer than 500 characters is rejected."""
+        client = _make_client(seed=True)
+        r = client.post(
+            "/api/measurements",
+            json={"date": "2025-05-06", "weight": 180.0, "note": "x" * 501},
+        )
+        assert r.status_code == 422
+
+    def test_patch_measurement_weight_only(self) -> None:
+        """PATCH /api/measurements/{date} with only weight updates the weight."""
+        client = _make_client(seed=True)
+        r = client.patch(
+            "/api/measurements/2025-06-01",
+            json={"weight": 182.0},
+        )
+        assert r.status_code == 200
+        assert r.json()["weight"] == 182.0
+        assert r.json()["note"] is None
+
+    def test_patch_measurement_note_only(self) -> None:
+        """PATCH /api/measurements/{date} with only note leaves weight untouched."""
+        client = _make_client(seed=True)
+        r = client.patch(
+            "/api/measurements/2025-06-01",
+            json={"note": "Felt bloated"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["note"] == "Felt bloated"
+        assert body["weight"] == 183.5  # unchanged from seed data
+
+    def test_patch_measurement_clears_note_with_empty_string(self) -> None:
+        """PATCH with note='' clears an existing note."""
+        client = _make_client(seed=True)
+        client.patch("/api/measurements/2025-06-01", json={"note": "Temp note"})
+        r = client.patch("/api/measurements/2025-06-01", json={"note": ""})
+        assert r.status_code == 200
+        assert r.json()["note"] is None
+
+    def test_patch_measurement_empty_body_returns_422(self) -> None:
+        """PATCH with no fields at all is rejected."""
+        client = _make_client(seed=True)
+        r = client.patch("/api/measurements/2025-06-01", json={})
+        assert r.status_code == 422
+
+    def test_patch_measurement_null_weight_returns_422(self) -> None:
+        """PATCH cannot explicitly clear the weight (NOT NULL column)."""
+        client = _make_client(seed=True)
+        r = client.patch("/api/measurements/2025-06-01", json={"weight": None})
+        assert r.status_code == 422
+
+    def test_patch_measurement_missing_date_returns_404(self) -> None:
+        """PATCH for a date with no measurement returns 404."""
+        client = _make_client(seed=True)
+        r = client.patch("/api/measurements/1999-01-01", json={"weight": 100.0})
+        assert r.status_code == 404
+
+    def test_patch_measurement_note_too_long_returns_422(self) -> None:
+        """PATCH note longer than 500 characters is rejected."""
+        client = _make_client(seed=True)
+        r = client.patch(
+            "/api/measurements/2025-06-01", json={"note": "x" * 501}
+        )
+        assert r.status_code == 422
+
     def test_delete_measurement(self) -> None:
         """DELETE /api/measurements/{date} removes a measurement."""
         client = _make_client(seed=True)
@@ -318,7 +428,19 @@ class TestChartEndpoints:
         body = r.json()
         assert {"raw", "smoothed", "models", "zones", "goal_weight"} <= set(body)
         assert len(body["raw"]) > 0
-        assert {"date", "value"} <= set(body["raw"][0])
+        assert {"date", "value", "note"} <= set(body["raw"][0])
+
+    def test_weight_chart_carries_note_on_raw_points(self) -> None:
+        """A measurement's note is carried on its raw chart point."""
+        client = _make_client(seed=True)
+        client.patch("/api/measurements/2025-06-01", json={"note": "Chart note"})
+        r = client.get("/api/charts/weight")
+        assert r.status_code == 200
+        raw = r.json()["raw"]
+        point = next(p for p in raw if p["date"] == "2025-06-01")
+        assert point["note"] == "Chart note"
+        other = next(p for p in raw if p["date"] != "2025-06-01")
+        assert other["note"] is None
 
     def test_derivative_chart(self) -> None:
         """GET /api/charts/derivative returns bars and a smoothed series."""
@@ -429,6 +551,17 @@ class TestExportEndpoints:
         assert r.status_code == 200
         assert "text/csv" in r.headers["content-type"]
         assert "date" in r.text
+
+    def test_csv_export_includes_note_column(self) -> None:
+        """The exported CSV has a note column with the persisted note."""
+        client = _make_client(seed=True)
+        client.patch("/api/measurements/2025-06-01", json={"note": "CSV note"})
+        r = client.get("/api/exports/csv")
+        assert r.status_code == 200
+        lines = r.text.splitlines()
+        assert lines[0].split(",") == ["date", "weight", "note"]
+        row = next(line for line in lines if line.startswith("2025-06-01"))
+        assert "CSV note" in row
 
     def test_csv_empty(self) -> None:
         """GET /api/exports/csv returns 204 when DB is empty."""

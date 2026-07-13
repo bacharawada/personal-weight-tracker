@@ -8,16 +8,19 @@
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Pencil, Trash2, X } from "lucide-react";
+import { Check, Pencil, StickyNote, Trash2, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import type { Measurement, WeightUnit } from "../../lib/types";
 import { kgToDisplay, weightBounds } from "../../lib/units";
+
+const NOTE_MAX_LENGTH = 500;
 
 interface MeasurementRowProps {
   measurement: Measurement;
   unit: WeightUnit;
   isEditing: boolean;
   editWeight: string;
+  editNote: string;
   editError: string | null;
   saving: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
@@ -26,6 +29,7 @@ interface MeasurementRowProps {
   onEditCancel: () => void;
   onKeyDown: (e: React.KeyboardEvent, date: string) => void;
   onWeightChange: (value: string) => void;
+  onNoteChange: (value: string) => void;
   onErrorClear: () => void;
   onDeleteRequest: (m: Measurement) => void;
 }
@@ -35,6 +39,7 @@ export function MeasurementRow({
   unit,
   isEditing,
   editWeight,
+  editNote,
   editError,
   saving,
   inputRef,
@@ -43,6 +48,7 @@ export function MeasurementRow({
   onEditCancel,
   onKeyDown,
   onWeightChange,
+  onNoteChange,
   onErrorClear,
   onDeleteRequest,
 }: MeasurementRowProps) {
@@ -100,6 +106,45 @@ export function MeasurementRow({
               className="font-mono text-gray-900 dark:text-gray-100"
             >
               {kgToDisplay(m.weight, unit).toFixed(2)}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </td>
+
+      {/* Note — static preview or inline edit input */}
+      <td className="px-4 py-2 max-w-[200px]">
+        <AnimatePresence mode="wait">
+          {isEditing ? (
+            <motion.div
+              key="edit-note"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+            >
+              <input
+                type="text"
+                value={editNote}
+                onChange={(e) => onNoteChange(e.target.value)}
+                onKeyDown={(e) => onKeyDown(e, m.date)}
+                onClick={(e) => e.stopPropagation()}
+                maxLength={NOTE_MAX_LENGTH}
+                placeholder={t("row.notePlaceholder")}
+                className="w-full rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+            </motion.div>
+          ) : (
+            <motion.span
+              key="display-note"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+              title={m.note ?? undefined}
+              className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 truncate"
+            >
+              {m.note && <StickyNote size={13} className="shrink-0 text-gray-400 dark:text-gray-500" />}
+              <span className="truncate">{m.note ?? ""}</span>
             </motion.span>
           )}
         </AnimatePresence>

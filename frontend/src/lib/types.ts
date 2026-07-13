@@ -3,11 +3,18 @@
 export interface Measurement {
   date: string;
   weight: number;
+  note: string | null;
 }
 
 export interface MeasurementIn {
   date: string;
   weight: number;
+  note?: string | null;
+}
+
+export interface MeasurementUpdate {
+  weight?: number;
+  note?: string | null;
 }
 
 export interface Stats {
@@ -61,6 +68,7 @@ export type ZoneKind = (typeof ZoneKind)[keyof typeof ZoneKind];
 export interface ChartPoint {
   date: string;
   value: number;
+  note: string | null;
 }
 
 export interface ChartBandPoint {

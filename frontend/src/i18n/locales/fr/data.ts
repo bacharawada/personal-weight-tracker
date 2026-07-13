@@ -15,6 +15,7 @@ const data: DataResource = {
   table: {
     date: "Date",
     weight: "Poids ({{unit}})",
+    note: "Note",
     actions: "Actions",
     empty: "Aucune mesure pour l'instant.",
     addFirst: "Ajoutez la première",
@@ -36,7 +37,8 @@ const data: DataResource = {
     addEntry: "Ajouter une entrée",
   },
   row: {
-    editWeight: "Modifier le poids",
+    editWeight: "Modifier",
+    notePlaceholder: "Ajouter une note…",
   },
   addModal: {
     title: "Ajouter une mesure",
@@ -67,6 +69,8 @@ const data: DataResource = {
     weightLabel: "Poids ({{unit}})",
     weightPlaceholderLb: "ex. 165",
     weightPlaceholderKg: "ex. 75,5",
+    noteLabel: "Note (facultatif)",
+    notePlaceholder: "ex. après les vacances",
     submitAdding: "Ajout…",
     submitAdd: "Ajouter",
     errorFillBoth: "Veuillez renseigner la date et le poids.",

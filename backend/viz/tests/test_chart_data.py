@@ -55,6 +55,21 @@ class TestBuildWeightChartData:
         assert len(data["raw"]) == len(sample_df)
         _assert_points(data["raw"])
 
+    def test_raw_series_note_defaults_to_none_without_note_column(
+        self, sample_df: pd.DataFrame
+    ) -> None:
+        """A DataFrame without a ``note`` column yields note=None everywhere."""
+        data = build_weight_chart_data(sample_df)
+        assert all(p["note"] is None for p in data["raw"])
+
+    def test_raw_series_carries_note(self, sample_df: pd.DataFrame) -> None:
+        """A DataFrame with a ``note`` column attaches it to matching raw points."""
+        df = sample_df.copy()
+        df["note"] = [None] * (len(df) - 1) + ["Last measurement note"]
+        data = build_weight_chart_data(df)
+        assert data["raw"][-1]["note"] == "Last measurement note"
+        assert all(p["note"] is None for p in data["raw"][:-1])
+
     def test_rolling_mean_present(self, sample_df: pd.DataFrame) -> None:
         """The smoothed series is populated and finite."""
         data = build_weight_chart_data(sample_df, smoothing_window=5)

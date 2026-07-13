@@ -98,6 +98,9 @@ measurements = sa.Table(
         sa.Float,
         nullable=False,
     ),
+    # Optional free-text note attached to a single measurement (e.g. "after
+    # vacation", "sick"). Purely descriptive — never used in analysis math.
+    sa.Column("note", sa.String(500), nullable=True),
     # Tracks when this row was last written; used by /api/db-mtime so the
     # frontend can detect real data changes instead of polling time.time().
     sa.Column(

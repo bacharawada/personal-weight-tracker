@@ -15,6 +15,7 @@ const data = {
   table: {
     date: "Date",
     weight: "Weight ({{unit}})",
+    note: "Note",
     actions: "Actions",
     empty: "No measurements yet.",
     addFirst: "Add your first one",
@@ -36,7 +37,8 @@ const data = {
     addEntry: "Add entry",
   },
   row: {
-    editWeight: "Edit weight",
+    editWeight: "Edit",
+    notePlaceholder: "Add a note…",
   },
   addModal: {
     title: "Add measurement",
@@ -67,6 +69,8 @@ const data = {
     weightLabel: "Weight ({{unit}})",
     weightPlaceholderLb: "e.g. 165",
     weightPlaceholderKg: "e.g. 75.5",
+    noteLabel: "Note (optional)",
+    notePlaceholder: "e.g. after vacation",
     submitAdding: "Adding…",
     submitAdd: "Add",
     errorFillBoth: "Please fill in both date and weight.",
