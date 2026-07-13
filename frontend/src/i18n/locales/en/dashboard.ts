@@ -37,6 +37,17 @@ const dashboard = {
       obese: "Obese",
     },
   },
+  milestones: {
+    label: "Milestones",
+    setupPrompt:
+      "Set a goal weight in Settings to track your milestones.",
+    counter: "{{achieved}}/{{total}}",
+    nextMilestone: "Next milestone",
+    kgRemaining: "{{value}} to go",
+    allAchieved: "All milestones reached — goal achieved!",
+    startWeight: "Start",
+    goalWeight: "Goal",
+  },
 };
 
 export type DashboardResource = typeof dashboard;

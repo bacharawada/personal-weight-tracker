@@ -192,6 +192,31 @@ export interface GoalProjection {
   reason: string;
 }
 
+export interface Milestone {
+  index: number;
+  target_weight: number;
+  achieved: boolean;
+  achieved_date: string | null;
+}
+
+export interface NextMilestone {
+  index: number;
+  target_weight: number;
+  kg_remaining: number;
+}
+
+export interface MilestonesProjection {
+  has_goal: boolean;
+  start_weight: number | null;
+  goal_weight: number | null;
+  milestones: Milestone[];
+  current_milestone_index: number;
+  percent_complete: number;
+  next_milestone: NextMilestone | null;
+  remaining_milestones: number;
+  reason: string;
+}
+
 // CSV import
 export interface CsvPreviewRow {
   date: string;

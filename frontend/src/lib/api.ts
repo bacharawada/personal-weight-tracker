@@ -14,6 +14,7 @@ import type {
   GoalProjection,
   Measurement,
   MeasurementIn,
+  MilestonesProjection,
   Mtime,
   ResidualsChartData,
   Stats,
@@ -147,6 +148,10 @@ export async function completeOnboarding(): Promise<UserProfile> {
 
 export async function getGoal(): Promise<GoalProjection> {
   return fetchJson<GoalProjection>(`${BASE}/goal`);
+}
+
+export async function getGoalMilestones(): Promise<MilestonesProjection> {
+  return fetchJson<MilestonesProjection>(`${BASE}/goal/milestones`);
 }
 
 // ---------------------------------------------------------------------------

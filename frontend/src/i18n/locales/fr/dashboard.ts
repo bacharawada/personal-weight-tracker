@@ -37,6 +37,17 @@ const dashboard: DashboardResource = {
       obese: "Obésité",
     },
   },
+  milestones: {
+    label: "Jalons",
+    setupPrompt:
+      "Définissez un poids cible dans les Paramètres pour suivre vos jalons.",
+    counter: "{{achieved}}/{{total}}",
+    nextMilestone: "Prochain jalon",
+    kgRemaining: "{{value}} restant",
+    allAchieved: "Tous les jalons atteints — objectif atteint !",
+    startWeight: "Départ",
+    goalWeight: "Objectif",
+  },
 };
 
 export default dashboard;

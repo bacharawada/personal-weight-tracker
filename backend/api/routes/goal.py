@@ -1,4 +1,4 @@
-"""Goal projection endpoint (/api/goal)."""
+"""Goal projection endpoints (/api/goal)."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends
 
-from analysis import project_goal
+from analysis import project_goal, project_milestones
 from api.deps import get_current_user, get_store
-from api.schemas import GoalProjectionOut
+from api.schemas import GoalProjectionOut, MilestonesProjectionOut
 
 if TYPE_CHECKING:
     from db import WeightDataStore
@@ -56,3 +56,27 @@ def get_goal_projection(
         "trend_per_week": projection.trend_per_week,
         "reason": projection.reason,
     }
+
+
+@router.get("/goal/milestones", response_model=MilestonesProjectionOut)
+def get_goal_milestones(
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Break the current user's goal into 10 equally-spaced milestones.
+
+    The starting weight is the user's first recorded measurement. Returns
+    a fully-populated projection even when no goal is set or there is no
+    data yet (see ``reason``).
+
+    Args:
+        keycloak_sub: Injected from the auth dependency.
+        store: Injected data store.
+
+    Returns:
+        Milestones projection dict.
+    """
+    profile = store.get_user_profile(keycloak_sub)
+    df = store.get_all(keycloak_sub)
+
+    return project_milestones(df, goal_weight=profile["goal_weight"])
