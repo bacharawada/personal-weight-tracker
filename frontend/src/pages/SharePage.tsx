@@ -63,6 +63,7 @@ export function SharePage() {
       showExp: true,
       showLinear: false,
       showBand: true,
+      showDoses: false,
     }),
     [isDark],
   );
