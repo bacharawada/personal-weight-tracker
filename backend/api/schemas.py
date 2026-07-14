@@ -94,6 +94,74 @@ class MeasurementUpdate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Medication doses
+# ---------------------------------------------------------------------------
+
+
+class MedicationDoseIn(BaseModel):
+    """Request body for logging a new medication dose."""
+
+    date: datetime.date = Field(..., description="Dose date (ISO 8601)")
+    medication: str = Field(
+        ..., min_length=1, max_length=100, description="Molecule name (free text)"
+    )
+    dose_mg: float | None = Field(
+        default=None, gt=0, description="Dose in milligrams (> 0 when given)"
+    )
+    note: str | None = Field(default=None, max_length=300)
+
+    @field_validator("medication")
+    @classmethod
+    def _strip_medication(cls, value: str) -> str:
+        """Trim surrounding whitespace and reject an empty molecule name."""
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("medication must not be blank")
+        return stripped
+
+    @field_validator("note")
+    @classmethod
+    def _normalise_note(cls, value: str | None) -> str | None:
+        """Trim the note and collapse an empty string to ``None``."""
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
+
+
+class MedicationDoseOut(BaseModel):
+    """Response model for a single medication dose."""
+
+    id: int
+    date: datetime.date
+    medication: str
+    dose_mg: float | None
+    note: str | None
+
+
+class DoseImpactOut(BaseModel):
+    """Response model for one dose-change impact row (/api/medications/impact).
+
+    Slopes are in kg/week and negative when losing weight. A ``None`` slope
+    means that side of the window had too few measurements to fit; the
+    frontend degrades gracefully in that case.
+    """
+
+    date: datetime.date
+    medication: str
+    dose_mg: float | None
+    previous_dose_mg: float | None
+    is_first: bool
+    slope_before_per_week: float | None
+    slope_after_per_week: float | None
+    n_before: int
+    n_after: int
+    delta_per_week: float | None
+    window_days: int
+    reason: str
+
+
+# ---------------------------------------------------------------------------
 # Stats
 # ---------------------------------------------------------------------------
 

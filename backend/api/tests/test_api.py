@@ -94,7 +94,7 @@ def _make_client(seed: bool = False) -> TestClient:
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
-    from api.routes import charts, exports, goal, stats
+    from api.routes import charts, exports, goal, medications, stats
     from api.routes import measurements as meas_routes
     from api.routes import users as user_routes
 
@@ -108,6 +108,7 @@ def _make_client(seed: bool = False) -> TestClient:
         allow_headers=["*"],
     )
     app.include_router(meas_routes.router, prefix="/api")
+    app.include_router(medications.router, prefix="/api")
     app.include_router(charts.router, prefix="/api")
     app.include_router(exports.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")
@@ -749,3 +750,207 @@ class TestGoalMilestonesEndpoint:
         assert data["has_goal"] is True
         assert data["milestones"] == []
         assert data["next_milestone"] is None
+
+
+# -----------------------------------------------------------------------
+# Medication doses
+# -----------------------------------------------------------------------
+
+
+class TestMedicationEndpoints:
+    """Tests for /api/medications CRUD endpoints."""
+
+    def test_list_empty(self) -> None:
+        """GET /api/medications returns an empty list with no doses."""
+        client = _make_client(seed=False)
+        r = client.get("/api/medications")
+        assert r.status_code == 200
+        assert r.json() == []
+
+    def test_add_dose(self) -> None:
+        """POST /api/medications logs a dose and echoes it back with an id."""
+        client = _make_client(seed=False)
+        r = client.post(
+            "/api/medications",
+            json={
+                "date": "2025-06-01",
+                "medication": "semaglutide",
+                "dose_mg": 0.25,
+                "note": "first injection",
+            },
+        )
+        assert r.status_code == 201
+        body = r.json()
+        assert isinstance(body["id"], int)
+        assert body["medication"] == "semaglutide"
+        assert body["dose_mg"] == 0.25
+        assert body["note"] == "first injection"
+
+    def test_add_dose_without_optional_fields(self) -> None:
+        """POST /api/medications works with only date + medication."""
+        client = _make_client(seed=False)
+        r = client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "tirzepatide"},
+        )
+        assert r.status_code == 201
+        body = r.json()
+        assert body["dose_mg"] is None
+        assert body["note"] is None
+
+    def test_add_dose_trims_medication(self) -> None:
+        """The medication name is trimmed of surrounding whitespace."""
+        client = _make_client(seed=False)
+        r = client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "  liraglutide  "},
+        )
+        assert r.status_code == 201
+        assert r.json()["medication"] == "liraglutide"
+
+    def test_list_returns_added_doses_sorted(self) -> None:
+        """GET /api/medications returns doses sorted by date ascending."""
+        client = _make_client(seed=False)
+        client.post(
+            "/api/medications",
+            json={"date": "2025-07-01", "medication": "semaglutide", "dose_mg": 0.5},
+        )
+        client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "semaglutide", "dose_mg": 0.25},
+        )
+        r = client.get("/api/medications")
+        assert r.status_code == 200
+        dates = [d["date"] for d in r.json()]
+        assert dates == ["2025-06-01", "2025-07-01"]
+
+    def test_add_future_date_returns_400(self) -> None:
+        """POST /api/medications with a future date returns 400."""
+        client = _make_client(seed=False)
+        future = (datetime.date.today() + datetime.timedelta(days=10)).isoformat()
+        r = client.post(
+            "/api/medications",
+            json={"date": future, "medication": "semaglutide"},
+        )
+        assert r.status_code == 400
+
+    def test_add_blank_medication_returns_422(self) -> None:
+        """POST /api/medications rejects a blank medication name."""
+        client = _make_client(seed=False)
+        r = client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "   "},
+        )
+        assert r.status_code == 422
+
+    def test_add_non_positive_dose_returns_422(self) -> None:
+        """POST /api/medications rejects a dose_mg that is not > 0."""
+        client = _make_client(seed=False)
+        r = client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "semaglutide", "dose_mg": 0.0},
+        )
+        assert r.status_code == 422
+        r = client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "semaglutide", "dose_mg": -1.0},
+        )
+        assert r.status_code == 422
+
+    def test_delete_dose(self) -> None:
+        """DELETE /api/medications/{id} removes the dose."""
+        client = _make_client(seed=False)
+        created = client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "semaglutide"},
+        ).json()
+        r = client.delete(f"/api/medications/{created['id']}")
+        assert r.status_code == 204
+        assert client.get("/api/medications").json() == []
+
+    def test_delete_missing_returns_404(self) -> None:
+        """DELETE /api/medications/{id} for an unknown id returns 404."""
+        client = _make_client(seed=False)
+        r = client.delete("/api/medications/999999")
+        assert r.status_code == 404
+
+
+class TestMedicationImpactEndpoint:
+    """Tests for GET /api/medications/impact."""
+
+    def test_impact_empty_without_doses(self) -> None:
+        """No doses means an empty impact list."""
+        client = _make_client(seed=True)
+        r = client.get("/api/medications/impact")
+        assert r.status_code == 200
+        assert r.json() == []
+
+    def test_impact_degrades_gracefully_with_sparse_data(self) -> None:
+        """Sparse measurements yield a row with null slopes and a reason."""
+        client = _make_client(seed=True)  # 5 monthly points — too sparse
+        client.post(
+            "/api/medications",
+            json={"date": "2025-08-01", "medication": "semaglutide", "dose_mg": 0.25},
+        )
+        r = client.get("/api/medications/impact")
+        assert r.status_code == 200
+        rows = r.json()
+        assert len(rows) == 1
+        assert rows[0]["is_first"] is True
+        assert rows[0]["previous_dose_mg"] is None
+        assert rows[0]["slope_before_per_week"] is None
+        assert rows[0]["reason"] != ""
+
+    def test_impact_reports_slopes_with_dense_data(self) -> None:
+        """Dense measurements around a dose yield before/after slopes."""
+        client = _make_client(seed=False)
+        # Five weekly points before and after a shared pivot on 2025-07-15.
+        weights = {
+            "2025-06-18": 100.0,
+            "2025-06-25": 99.0,
+            "2025-07-02": 98.0,
+            "2025-07-09": 97.0,
+            "2025-07-15": 96.0,
+            "2025-07-22": 94.0,
+            "2025-07-29": 92.0,
+            "2025-08-05": 90.0,
+            "2025-08-12": 88.0,
+        }
+        for date, weight in weights.items():
+            assert (
+                client.post(
+                    "/api/measurements", json={"date": date, "weight": weight}
+                ).status_code
+                == 201
+            )
+        client.post(
+            "/api/medications",
+            json={"date": "2025-07-15", "medication": "semaglutide", "dose_mg": 0.25},
+        )
+        rows = client.get("/api/medications/impact").json()
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["slope_before_per_week"] is not None
+        assert row["slope_after_per_week"] is not None
+        assert row["delta_per_week"] is not None
+        # Loss accelerated after the dose, so the after-slope is steeper.
+        assert row["slope_after_per_week"] < row["slope_before_per_week"]
+        assert row["reason"] == ""
+
+    def test_impact_flags_dose_change(self) -> None:
+        """A later dose of a different amount is flagged as a change event."""
+        client = _make_client(seed=False)
+        client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "semaglutide", "dose_mg": 0.25},
+        )
+        client.post(
+            "/api/medications",
+            json={"date": "2025-07-01", "medication": "semaglutide", "dose_mg": 0.5},
+        )
+        rows = client.get("/api/medications/impact").json()
+        assert len(rows) == 2
+        assert rows[0]["is_first"] is True
+        assert rows[1]["is_first"] is False
+        assert rows[1]["previous_dose_mg"] == 0.25
+        assert rows[1]["dose_mg"] == 0.5

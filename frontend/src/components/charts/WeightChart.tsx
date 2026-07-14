@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { format as formatDate } from "date-fns";
-import { getWeightChart } from "../../lib/api";
+import { getMedications, getWeightChart } from "../../lib/api";
 import { getChartTheme, getPalette, hexToRgba } from "../../lib/palettes";
 import { bandPath, linePath, type PixelPoint } from "../../lib/charts/geometry";
 import { exportSvgToPng } from "../../lib/charts/exportPng";
@@ -16,7 +16,14 @@ import {
   toMs,
   valueTicks,
 } from "../../lib/charts/scales";
-import { AUTO_AXES, ModelId, type ChartAxes, type ChartParams, type WeightChartData } from "../../lib/types";
+import {
+  AUTO_AXES,
+  ModelId,
+  type ChartAxes,
+  type ChartParams,
+  type MedicationDose,
+  type WeightChartData,
+} from "../../lib/types";
 import { ChartCard } from "./primitives/ChartCard";
 import { ChartFrame, type Margin } from "./primitives/ChartFrame";
 import { AxisBottom, AxisLeft } from "./primitives/Axes";
@@ -51,6 +58,7 @@ export function WeightChart({
   fetcher,
 }: WeightChartProps) {
   const { t } = useTranslation("charts");
+  const { t: tMed } = useTranslation("medication");
   const svgRef = useRef<SVGSVGElement>(null);
   const defaultFetcher = useCallback(() => getWeightChart(params), [params]);
   const activeFetcher = fetcher ?? defaultFetcher;
@@ -66,6 +74,23 @@ export function WeightChart({
   useEffect(() => {
     if (data) onDataLoaded?.(data);
   }, [data, onDataLoaded]);
+
+  // Medication doses are fetched independently (never part of the chart
+  // payload) and overlaid client-side. Refetch on data changes only.
+  const [doses, setDoses] = useState<MedicationDose[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getMedications()
+      .then((result) => {
+        if (!cancelled) setDoses(result);
+      })
+      .catch(() => {
+        if (!cancelled) setDoses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   const palette = getPalette(params.palette);
   const theme = getChartTheme(params.dark);
@@ -101,6 +126,12 @@ export function WeightChart({
         label: t("weight.legend.goal", { value: data.goal_weight.toFixed(1) }),
         color: palette.accent,
         dashed: true,
+      });
+    }
+    if (params.showDoses && doses.length > 0) {
+      legendItems.push({
+        label: tMed("chart.toggle"),
+        color: palette.accent,
       });
     }
   }
@@ -139,6 +170,7 @@ export function WeightChart({
                   innerWidth={innerWidth}
                   innerHeight={innerHeight}
                   onPointClick={onPointClick}
+                  doses={params.showDoses ? doses : []}
                 />
               )}
             </ChartFrame>
@@ -157,6 +189,7 @@ interface BodyProps {
   innerWidth: number;
   innerHeight: number;
   onPointClick: (point: { date: string; weight: number }) => void;
+  doses: MedicationDose[];
 }
 
 function WeightChartBody({
@@ -167,8 +200,11 @@ function WeightChartBody({
   innerWidth,
   innerHeight,
   onPointClick,
+  doses,
 }: BodyProps) {
   const { t } = useTranslation("charts");
+  const { t: tMed } = useTranslation("medication");
+  const [hoveredDoseId, setHoveredDoseId] = useState<number | null>(null);
   // -- Collect domains across every series ----------------------------------
   const allMs: number[] = [
     ...data.raw.map((p) => toMs(p.date)),
@@ -208,6 +244,16 @@ function WeightChartBody({
       x: x(toMs(p.date)),
       payload: p,
     }));
+
+  // Medication-dose markers, positioned with the same x-scale and clipped to
+  // the plotting area (a dose logged outside the visible date range is hidden).
+  const doseMarkers = doses
+    .map((dose) => ({ dose, x: x(toMs(dose.date)) }))
+    .filter((marker) => marker.x >= 0 && marker.x <= innerWidth);
+  const hoveredMarker =
+    hoveredDoseId != null
+      ? doseMarkers.find((marker) => marker.dose.id === hoveredDoseId) ?? null
+      : null;
 
   return (
     <>
@@ -333,6 +379,94 @@ function WeightChartBody({
         dots={(p) => [{ y: y(p.value), color: palette.raw }]}
         onSelect={(p) => onPointClick({ date: p.date.slice(0, 10), weight: p.value })}
       />
+
+      {/* Medication-dose markers — rendered on top of the hover layer so the
+          bottom glyphs stay hoverable. Discreet ticks + a diamond at the axis. */}
+      {doseMarkers.map(({ dose, x: mx }) => {
+        const isHovered = hoveredDoseId === dose.id;
+        return (
+          <g key={dose.id}>
+            <line
+              x1={mx}
+              x2={mx}
+              y1={0}
+              y2={innerHeight}
+              stroke={palette.accent}
+              strokeWidth={isHovered ? 1.5 : 1}
+              strokeDasharray="2 3"
+              opacity={isHovered ? 0.55 : 0.28}
+              pointerEvents="none"
+            />
+            <path
+              d={`M ${mx} ${innerHeight - 9} L ${mx + 5} ${innerHeight} L ${mx} ${innerHeight + 5} L ${mx - 5} ${innerHeight} Z`}
+              fill={palette.accent}
+              opacity={isHovered ? 1 : 0.85}
+              pointerEvents="none"
+            />
+            <rect
+              x={mx - 8}
+              y={innerHeight - 12}
+              width={16}
+              height={22}
+              fill="transparent"
+              style={{ cursor: "default" }}
+              onMouseEnter={() => setHoveredDoseId(dose.id)}
+              onMouseLeave={() =>
+                setHoveredDoseId((cur) => (cur === dose.id ? null : cur))
+              }
+            />
+          </g>
+        );
+      })}
+
+      {/* Dose tooltip */}
+      {hoveredMarker &&
+        (() => {
+          const { dose, x: mx } = hoveredMarker;
+          const doseText =
+            dose.dose_mg != null ? tMed("dose.mg", { value: dose.dose_mg }) : "";
+          const sub = doseText ? `${doseText} · ${dose.date}` : dose.date;
+          const pad = 8;
+          const lineHeight = 15;
+          const charWidth = 6.1;
+          const width =
+            pad * 2 +
+            Math.max(dose.medication.length, sub.length) * charWidth;
+          const height = pad * 2 + lineHeight * 2;
+          const flip = mx + width + 12 > innerWidth;
+          const boxX = flip ? mx - width - 10 : mx + 10;
+          const boxY = 4;
+          return (
+            <g pointerEvents="none" transform={`translate(${boxX}, ${boxY})`}>
+              <rect
+                width={width}
+                height={height}
+                rx={6}
+                fill={theme.tooltipBg}
+                stroke={theme.tooltipBorder}
+                strokeWidth={1}
+                opacity={0.97}
+              />
+              <text
+                x={pad}
+                y={pad + lineHeight - 4}
+                fontSize={11}
+                fontWeight={700}
+                fill={theme.tooltipText}
+              >
+                {dose.medication}
+              </text>
+              <text
+                x={pad}
+                y={pad + lineHeight * 2 - 4}
+                fontSize={11}
+                fill={theme.mutedText}
+              >
+                {sub}
+              </text>
+            </g>
+          );
+        })()}
     </>
   );
 }

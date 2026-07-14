@@ -70,6 +70,7 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
     showExp: true,
     showLinear: false,
     showBand: true,
+    showDoses: true,
   });
 
   const [hasData, setHasData] = useState(false);

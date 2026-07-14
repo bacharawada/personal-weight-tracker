@@ -340,6 +340,122 @@ class TestUserProfile:
 
 
 # -----------------------------------------------------------------------
+# Medication doses
+# -----------------------------------------------------------------------
+
+
+class TestMedicationDoses:
+    """Tests for the ``WeightDataStore`` medication-dose methods."""
+
+    def test_add_and_list(self, engine: sa.engine.Engine) -> None:
+        """add_dose() persists a dose that list_doses() returns."""
+        s = WeightDataStore(engine)
+        created = s.add_dose(
+            "dose-user",
+            datetime.date(2025, 6, 1),
+            "semaglutide",
+            dose_mg=0.25,
+            note="first",
+        )
+        assert isinstance(created["id"], int)
+        doses = s.list_doses("dose-user")
+        assert len(doses) == 1
+        assert doses[0]["medication"] == "semaglutide"
+        assert doses[0]["dose_mg"] == 0.25
+        assert doses[0]["note"] == "first"
+
+    def test_dose_mg_is_float_not_decimal(self, engine: sa.engine.Engine) -> None:
+        """dose_mg is normalised to a plain float (never Decimal)."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "tirzepatide", dose_mg=2.5)
+        dose = s.list_doses("dose-user")[0]
+        assert isinstance(dose["dose_mg"], float)
+
+    def test_add_dose_without_optional_fields(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """add_dose() allows a null dose_mg and note."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "liraglutide")
+        dose = s.list_doses("dose-user")[0]
+        assert dose["dose_mg"] is None
+        assert dose["note"] is None
+
+    def test_list_sorted_by_date(self, engine: sa.engine.Engine) -> None:
+        """list_doses() returns doses sorted ascending by date."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 7, 1), "semaglutide")
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "semaglutide")
+        dates = [d["date"] for d in s.list_doses("dose-user")]
+        assert dates == sorted(dates)
+
+    def test_list_date_range(self, engine: sa.engine.Engine) -> None:
+        """list_doses() honours the inclusive start/end filter."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "semaglutide")
+        s.add_dose("dose-user", datetime.date(2025, 7, 1), "semaglutide")
+        s.add_dose("dose-user", datetime.date(2025, 8, 1), "semaglutide")
+        doses = s.list_doses(
+            "dose-user",
+            start=datetime.date(2025, 6, 15),
+            end=datetime.date(2025, 7, 15),
+        )
+        assert [d["date"] for d in doses] == [datetime.date(2025, 7, 1)]
+
+    def test_delete_dose(self, engine: sa.engine.Engine) -> None:
+        """delete_dose() removes an owned dose."""
+        s = WeightDataStore(engine)
+        created = s.add_dose("dose-user", datetime.date(2025, 6, 1), "semaglutide")
+        s.delete_dose("dose-user", created["id"])
+        assert s.list_doses("dose-user") == []
+
+    def test_delete_missing_raises(self, engine: sa.engine.Engine) -> None:
+        """delete_dose() raises NotFoundError for an unknown id."""
+        s = WeightDataStore(engine)
+        with pytest.raises(NotFoundError):
+            s.delete_dose("dose-user", 999999)
+
+    def test_delete_other_users_dose_raises(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """A user cannot delete another user's dose (NotFoundError)."""
+        s = WeightDataStore(engine)
+        created = s.add_dose("owner-user", datetime.date(2025, 6, 1), "semaglutide")
+        with pytest.raises(NotFoundError):
+            s.delete_dose("intruder-user", created["id"])
+        # The dose still belongs to the owner.
+        assert len(s.list_doses("owner-user")) == 1
+
+    def test_dose_isolation_between_users(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """Two users only see their own doses."""
+        s = WeightDataStore(engine)
+        s.add_dose("user-a", datetime.date(2025, 6, 1), "semaglutide")
+        s.add_dose("user-b", datetime.date(2025, 6, 1), "tirzepatide")
+        assert len(s.list_doses("user-a")) == 1
+        assert s.list_doses("user-a")[0]["medication"] == "semaglutide"
+        assert len(s.list_doses("user-b")) == 1
+        assert s.list_doses("user-b")[0]["medication"] == "tirzepatide"
+
+    def test_update_dose(self, engine: sa.engine.Engine) -> None:
+        """update_dose() persists a partial update and returns the row."""
+        s = WeightDataStore(engine)
+        created = s.add_dose(
+            "dose-user", datetime.date(2025, 6, 1), "semaglutide", dose_mg=0.25
+        )
+        updated = s.update_dose("dose-user", created["id"], {"dose_mg": 0.5})
+        assert updated["dose_mg"] == 0.5
+        assert updated["medication"] == "semaglutide"
+
+    def test_update_missing_raises(self, engine: sa.engine.Engine) -> None:
+        """update_dose() raises NotFoundError for an unknown id."""
+        s = WeightDataStore(engine)
+        with pytest.raises(NotFoundError):
+            s.update_dose("dose-user", 999999, {"dose_mg": 0.5})
+
+
+# -----------------------------------------------------------------------
 # Migration
 # -----------------------------------------------------------------------
 

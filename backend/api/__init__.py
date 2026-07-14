@@ -21,6 +21,7 @@ from api.routes import (
     goal,
     imports,
     measurements,
+    medications,
     public,
     stats,
     users,
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
 
     # API routes.
     app.include_router(measurements.router, prefix="/api")
+    app.include_router(medications.router, prefix="/api")
     app.include_router(charts.router, prefix="/api")
     app.include_router(exports.router, prefix="/api")
     app.include_router(imports.router, prefix="/api")

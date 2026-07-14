@@ -1,0 +1,54 @@
+/**
+ * MedicationDoseRow — a single row in the medication-dose table.
+ *
+ * Read-only row (date, molecule, dose, note) with a hover-revealed delete
+ * action, mirroring MeasurementRow's interaction pattern.
+ */
+
+import { useTranslation } from "react-i18next";
+import { Trash2 } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import type { MedicationDose } from "../../lib/types";
+
+interface MedicationDoseRowProps {
+  dose: MedicationDose;
+  onDeleteRequest: (dose: MedicationDose) => void;
+}
+
+export function MedicationDoseRow({
+  dose,
+  onDeleteRequest,
+}: MedicationDoseRowProps) {
+  const { t } = useTranslation("medication");
+  return (
+    <tr className="group transition-colors">
+      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium whitespace-nowrap">
+        {dose.date}
+      </td>
+      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100">
+        {dose.medication}
+      </td>
+      <td className="px-4 py-2.5 text-right font-mono text-gray-900 dark:text-gray-100 whitespace-nowrap">
+        {dose.dose_mg != null
+          ? t("dose.mg", { value: dose.dose_mg })
+          : t("dose.none")}
+      </td>
+      <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 max-w-[16rem] truncate">
+        {dose.note ?? ""}
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        <div className="flex items-center justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onDeleteRequest(dose)}
+            title={t("actions.delete", { ns: "common" })}
+            className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px]"
+          >
+            <Trash2 size={14} />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}

@@ -147,6 +147,38 @@ share_tokens = sa.Table(
     ),
 )
 
+# ``medication_doses`` is a per-user journal of medication doses (GLP-1 and
+# similar) that the frontend annotates onto the weight chart. Unlike
+# ``measurements`` there is no unique-per-date constraint: a user may log
+# several doses (different molecules) on the same day.
+medication_doses = sa.Table(
+    "medication_doses",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+    # FK to users.id — every dose belongs to exactly one user.
+    sa.Column(
+        "user_id",
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    sa.Column("date", sa.Date, nullable=False),
+    # Free-text molecule name (with frontend datalist suggestions); e.g.
+    # "semaglutide", "tirzepatide". Free text is deliberately allowed.
+    sa.Column("medication", sa.String(100), nullable=False),
+    # Optional dose in milligrams. NUMERIC keeps the stored value exact;
+    # the store layer converts it to a plain float for callers.
+    sa.Column("dose_mg", sa.Numeric(7, 3), nullable=True),
+    sa.Column("note", sa.String(300), nullable=True),
+    # A positive dose when one is recorded (mirrors the API-level validation).
+    sa.CheckConstraint(
+        "dose_mg IS NULL OR dose_mg > 0",
+        name="ck_dose_mg_positive",
+    ),
+    # Query pattern is always "this user's doses, ordered by date".
+    sa.Index("ix_medication_doses_user_date", "user_id", "date"),
+)
+
 
 # ---------------------------------------------------------------------------
 # Custom exceptions

@@ -10,6 +10,7 @@ import { DataTable } from "../../components/ui/DataTable";
 import { exportCsv } from "../../lib/api";
 import { useDataPage } from "../../hooks/useDataPage";
 import { MeasurementRow } from "./MeasurementRow";
+import { MedicationSection } from "./MedicationSection";
 import { DataPageFAB } from "./DataPageFAB";
 import { AddMeasurementModal } from "./modals/AddMeasurementModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
@@ -61,10 +62,10 @@ export function DataPage() {
   return (
     <>
       <PageTransition>
-        <div className="h-full flex flex-col px-4 pt-4 pb-4 md:px-8 md:pt-8 gap-4 md:gap-6 min-h-0">
+        <div className="h-full overflow-y-auto px-4 pt-4 pb-nav md:px-8 md:pt-8 space-y-6">
 
           {/* Header */}
-          <div className="flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center justify-between gap-4 max-w-4xl mx-auto w-full">
             <PageTitle
               title={t("page.title")}
               subtitle={t("page.subtitle", { count: measurements.length })}
@@ -93,11 +94,11 @@ export function DataPage() {
           </div>
 
           {/* Body */}
-          <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full">
-            <div className="flex gap-5 h-full items-start">
+          <div className="max-w-4xl mx-auto w-full">
+            <div className="flex gap-5 items-start">
 
               {/* Table — full width on mobile, flex-1 on desktop */}
-              <div className="flex-1 min-w-0 min-h-0 h-full flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <div className="flex-1 min-w-0 flex flex-col max-h-[55vh] bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 <DataTable
                   columns={tableColumns}
                   loading={loading}
@@ -156,6 +157,9 @@ export function DataPage() {
 
             </div>
           </div>
+
+          {/* Medication (GLP-1) dose journal */}
+          <MedicationSection />
         </div>
       </PageTransition>
 

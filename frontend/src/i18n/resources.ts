@@ -14,6 +14,7 @@ import enDashboard from "./locales/en/dashboard";
 import enAnalysis from "./locales/en/analysis";
 import enCharts from "./locales/en/charts";
 import enData from "./locales/en/data";
+import enMedication from "./locales/en/medication";
 import enSettings from "./locales/en/settings";
 import enProfile from "./locales/en/profile";
 import enOnboarding from "./locales/en/onboarding";
@@ -27,6 +28,7 @@ import frDashboard from "./locales/fr/dashboard";
 import frAnalysis from "./locales/fr/analysis";
 import frCharts from "./locales/fr/charts";
 import frData from "./locales/fr/data";
+import frMedication from "./locales/fr/medication";
 import frSettings from "./locales/fr/settings";
 import frProfile from "./locales/fr/profile";
 import frOnboarding from "./locales/fr/onboarding";
@@ -44,6 +46,7 @@ export const resources = {
     analysis: enAnalysis,
     charts: enCharts,
     data: enData,
+    medication: enMedication,
     settings: enSettings,
     profile: enProfile,
     onboarding: enOnboarding,
@@ -58,6 +61,7 @@ export const resources = {
     analysis: frAnalysis,
     charts: frCharts,
     data: frData,
+    medication: frMedication,
     settings: frSettings,
     profile: frProfile,
     onboarding: frOnboarding,

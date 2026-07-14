@@ -24,6 +24,12 @@ from analysis.energy import (
     estimate_energy_balance,
 )
 from analysis.goal import GoalProjection, project_goal
+from analysis.medication import (
+    DoseChange,
+    TrendComparison,
+    compare_trend_around,
+    detect_dose_changes,
+)
 from analysis.milestones import DEFAULT_MILESTONE_COUNT, project_milestones
 from analysis.models import (
     MODEL_EXP,
@@ -43,20 +49,24 @@ __all__ = [
     "MODEL_EXP",
     "MODEL_LINEAR",
     "AnalysisConfig",
+    "DoseChange",
     "FitResult",
     "GoalProjection",
     "ModelCurve",
     "ModelDiagnostics",
     "PlateauConfig",
     "SummaryStats",
+    "TrendComparison",
     "TrendConfig",
     "TrendFit",
     "build_model_curve",
+    "compare_trend_around",
     "compute_derivative",
     "compute_plateau_status",
     "compute_rolling_mean",
     "compute_summary_stats",
     "detect_deviations",
+    "detect_dose_changes",
     "energy_series",
     "estimate_energy_balance",
     "exp_decay",
