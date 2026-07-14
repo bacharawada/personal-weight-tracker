@@ -28,8 +28,12 @@ from api.routes import (
 )
 
 
-def create_app() -> FastAPI:
+def create_app(frontend_dist: Path | None = None) -> FastAPI:
     """Build and configure the FastAPI application.
+
+    Args:
+        frontend_dist: Directory containing the built frontend. Defaults
+            to the repo-level ``frontend/dist``; overridable for tests.
 
     Returns:
         A fully configured ``FastAPI`` instance with all routes
@@ -65,17 +69,37 @@ def create_app() -> FastAPI:
     app.include_router(public.router, prefix="/api")
 
     # Serve React production build if the directory exists.
-    frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+    if frontend_dist is None:
+        frontend_dist = (
+            Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+        )
     if frontend_dist.is_dir():
+        dist_root = frontend_dist.resolve()
         app.mount(
             "/assets",
-            StaticFiles(directory=str(frontend_dist / "assets")),
+            StaticFiles(directory=str(dist_root / "assets")),
             name="assets",
         )
 
         @app.get("/{full_path:path}", include_in_schema=False)
         def serve_spa(full_path: str) -> FileResponse:
-            """Serve index.html for any non-API path (SPA catch-all)."""
-            return FileResponse(str(frontend_dist / "index.html"))
+            """Serve the requested dist file, or index.html (SPA catch-all).
+
+            Root-level static files (favicon.svg, manifest.webmanifest,
+            sw.js, ...) are served as-is with their real MIME type;
+            anything that doesn't resolve to a file inside the dist
+            directory falls back to index.html for client-side routing.
+            """
+            try:
+                candidate = (dist_root / full_path).resolve()
+            except (OSError, ValueError):
+                candidate = None
+            if (
+                candidate is not None
+                and candidate.is_relative_to(dist_root)
+                and candidate.is_file()
+            ):
+                return FileResponse(str(candidate))
+            return FileResponse(str(dist_root / "index.html"))
 
     return app
