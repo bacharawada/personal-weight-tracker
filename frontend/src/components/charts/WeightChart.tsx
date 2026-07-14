@@ -31,6 +31,12 @@ interface WeightChartProps {
   className?: string;
   /** Called with each fetched payload so the page can reuse the model diagnostics. */
   onDataLoaded?: (data: WeightChartData) => void;
+  /**
+   * Optional data source. Defaults to the authenticated `/api/charts/weight`
+   * endpoint; the public share page passes a fetcher hitting the token-scoped
+   * public endpoint instead. `params` still drives re-fetch dependencies.
+   */
+  fetcher?: () => Promise<WeightChartData>;
 }
 
 const MARGIN: Margin = { top: 12, right: 20, bottom: 30, left: 46 };
@@ -42,11 +48,13 @@ export function WeightChart({
   axes = AUTO_AXES,
   className,
   onDataLoaded,
+  fetcher,
 }: WeightChartProps) {
   const { t } = useTranslation("charts");
   const svgRef = useRef<SVGSVGElement>(null);
-  const fetcher = useCallback(() => getWeightChart(params), [params]);
-  const { data, loading, error } = useChartData<WeightChartData>(fetcher, [
+  const defaultFetcher = useCallback(() => getWeightChart(params), [params]);
+  const activeFetcher = fetcher ?? defaultFetcher;
+  const { data, loading, error } = useChartData<WeightChartData>(activeFetcher, [
     refreshKey,
     params.smoothing,
     params.horizon,

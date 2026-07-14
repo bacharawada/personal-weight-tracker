@@ -21,6 +21,7 @@ import type {
   Mtime,
   PlateauStatus,
   ResidualsChartData,
+  ShareStatus,
   Stats,
   UserProfile,
   UserProfileUpdate,
@@ -171,6 +172,58 @@ export async function getGoalMilestones(): Promise<MilestonesProjection> {
 
 export async function getEnergyBalance(): Promise<EnergyBalance> {
   return fetchJson<EnergyBalance>(`${BASE}/stats/energy`);
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard sharing (authenticated)
+// ---------------------------------------------------------------------------
+
+export async function getShareStatus(): Promise<ShareStatus> {
+  return fetchJson<ShareStatus>(`${BASE}/me/share`);
+}
+
+export async function createShareLink(): Promise<ShareStatus> {
+  return fetchJson<ShareStatus>(`${BASE}/me/share`, { method: "POST" });
+}
+
+export async function revokeShareLink(): Promise<void> {
+  const res = await fetch(`${BASE}/me/share`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public shared dashboard (no auth — token in the path)
+// ---------------------------------------------------------------------------
+// These deliberately never attach an Authorization header: the endpoints are
+// public and the share page renders outside the auth context.
+
+async function fetchPublicJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+  return res.json();
+}
+
+export async function getPublicStats(token: string): Promise<Stats> {
+  return fetchPublicJson<Stats>(`${BASE}/public/${encodeURIComponent(token)}/stats`);
+}
+
+export async function getPublicWeightChart(
+  token: string,
+  params: ChartParams,
+): Promise<WeightChartData> {
+  const query = chartQuery(params);
+  return fetchPublicJson<WeightChartData>(
+    `${BASE}/public/${encodeURIComponent(token)}/charts/weight?${query}`,
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import { PALETTE_NAMES, PALETTE_PREVIEWS, getPaletteAccent } from "../lib/palett
 import { Globe, Moon, Sun } from "lucide-react";
 import { GithubIcon } from "../components/ui/github-icon";
 import { Button } from "../components/ui/button";
+import { ShareSettings } from "../components/settings/ShareSettings";
 
 const APP_VERSION = "1.0.0";
 
@@ -91,6 +92,9 @@ export function SettingsPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* Sharing */}
+      <ShareSettings />
 
       {/* About */}
       <section>

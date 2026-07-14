@@ -14,6 +14,7 @@ from db.engine import (
     get_engine,
     measurements,
     metadata,
+    share_tokens,
     users,
 )
 from db.store import WeightDataStore
@@ -25,5 +26,6 @@ __all__ = [
     "get_engine",
     "measurements",
     "metadata",
+    "share_tokens",
     "users",
 ]

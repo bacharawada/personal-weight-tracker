@@ -12,40 +12,52 @@ import { LoginPage } from "./pages/LoginPage";
 import { AboutPage } from "./pages/AboutPage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { SilentRenewPage } from "./pages/SilentRenewPage";
+import { SharePage } from "./pages/SharePage";
 
 export default function App() {
   return (
     <BrowserRouter>
-      {/*
-        AuthProvider wraps everything — it initialises the OIDC session on
-        mount and provides auth state to all children.
-      */}
-      <AuthProvider>
-        <Routes>
-          {/* Public routes — no auth required */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/auth/callback" element={<AuthCallbackPage />} />
-          <Route path="/auth/silent-renew" element={<SilentRenewPage />} />
+      <Routes>
+        {/*
+          Public shared dashboard — deliberately mounted OUTSIDE AuthProvider
+          so it never initialises an OIDC session or requires a login. It
+          fetches only the token-scoped public endpoints.
+        */}
+        <Route path="/share/:token" element={<SharePage />} />
 
-          {/* Protected routes — require a valid session */}
-          <Route element={<ProtectedRoute />}>
-            <Route
-              element={
-                <WeightTrackerProvider>
-                  <AppLayout />
-                </WeightTrackerProvider>
-              }
-            >
-              <Route index element={<DashboardPage />} />
-              <Route path="analysis" element={<AnalysisPage />} />
-              <Route path="data" element={<DataPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
-          </Route>
-        </Routes>
-      </AuthProvider>
+        {/* Everything else runs inside the authenticated app tree. */}
+        <Route
+          path="/*"
+          element={
+            <AuthProvider>
+              <Routes>
+                {/* Public routes — no auth required */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                <Route path="/auth/silent-renew" element={<SilentRenewPage />} />
+
+                {/* Protected routes — require a valid session */}
+                <Route element={<ProtectedRoute />}>
+                  <Route
+                    element={
+                      <WeightTrackerProvider>
+                        <AppLayout />
+                      </WeightTrackerProvider>
+                    }
+                  >
+                    <Route index element={<DashboardPage />} />
+                    <Route path="analysis" element={<AnalysisPage />} />
+                    <Route path="data" element={<DataPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
+                  </Route>
+                </Route>
+              </Routes>
+            </AuthProvider>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 }

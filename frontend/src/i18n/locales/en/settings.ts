@@ -29,6 +29,30 @@ const settings = {
       Forest: "Forest",
     },
   },
+  share: {
+    heading: "Sharing",
+    description:
+      "Publish a read-only link to your weight chart. You can disable it at any time.",
+    off: "Public sharing is off",
+    on: "Public sharing is on",
+    enable: "Enable sharing",
+    linkLabel: "Public link",
+    copy: "Copy",
+    copied: "Copied",
+    regenerate: "Regenerate",
+    revoke: "Disable sharing",
+    warning:
+      "Anyone with this link can view your weight charts and stats. Only share it with people you trust.",
+    loadError: "Could not load sharing status.",
+    regenTitle: "Regenerate share link?",
+    regenBody:
+      "The current link will stop working immediately. Anyone using it will lose access.",
+    regenConfirm: "Regenerate",
+    revokeTitle: "Disable sharing?",
+    revokeBody:
+      "The link will stop working immediately and your dashboard will no longer be public.",
+    revokeConfirm: "Disable",
+  },
   about: {
     heading: "About",
     tagline: "Personal health dashboard",
