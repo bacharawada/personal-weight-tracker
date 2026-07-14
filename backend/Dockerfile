@@ -12,7 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system deps required by psycopg2 and kaleido
+# Install system deps required by psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \

@@ -3,6 +3,7 @@
  */
 
 import { Trash2 } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import { ConfirmModal } from "../../../components/modals/ConfirmModal";
 
 interface DeleteAllModalProps {
@@ -20,21 +21,21 @@ export function DeleteAllModal({
   loading,
   measurementCount,
 }: DeleteAllModalProps) {
+  const { t } = useTranslation("data");
   return (
     <ConfirmModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Delete all measurements"
+      title={t("deleteAllModal.title")}
       description={
-        <>
-          This will permanently delete all{" "}
-          <strong>
-            {measurementCount} measurement{measurementCount !== 1 ? "s" : ""}
-          </strong>
-          . This cannot be undone.
-        </>
+        <Trans
+          t={t}
+          i18nKey="deleteAllModal.description"
+          count={measurementCount}
+          components={{ strong: <strong /> }}
+        />
       }
-      confirmLabel="Delete all"
+      confirmLabel={t("deleteAllModal.confirmLabel")}
       confirmVariant="destructive"
       confirmIcon={<Trash2 size={14} />}
       onConfirm={onConfirm}

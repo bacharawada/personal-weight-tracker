@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 import { LogIn, Scale } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -19,6 +20,7 @@ import { GoogleIcon } from "../components/ui/google-icon";
 
 export function LoginPage() {
   const { login } = useAuth();
+  const { t } = useTranslation("auth");
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogin() {
@@ -41,11 +43,10 @@ export function LoginPage() {
             <Scale className="w-8 h-8 text-blue-500 dark:text-blue-400" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
-            Weight Tracker
+            {t("login.title")}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-            Track your weight, visualise your progress, and stay on top of your
-            goals — all in one place.
+            {t("login.tagline")}
           </p>
         </div>
 
@@ -64,13 +65,15 @@ export function LoginPage() {
             ) : (
               <LogIn className="w-4 h-4" />
             )}
-            Sign in with email
+            {t("login.signInWithEmail")}
           </Button>
 
           {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-            <span className="text-xs text-gray-400 dark:text-gray-500">or</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              {t("login.or")}
+            </span>
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
 
@@ -81,10 +84,10 @@ export function LoginPage() {
               size="lg"
               disabled
               className="w-full rounded-xl"
-              aria-label="Sign in with Google — coming soon"
+              aria-label={t("login.signInWithGoogleAria")}
             >
               <GoogleIcon className="w-4 h-4" />
-              Sign in with Google
+              {t("login.signInWithGoogle")}
             </Button>
             {/* Tooltip */}
             <div
@@ -98,26 +101,26 @@ export function LoginPage() {
                          after:-top-1 after:border-4 after:border-transparent
                          after:border-b-gray-900 dark:after:border-b-gray-100"
             >
-              Coming soon
+              {t("login.comingSoon")}
             </div>
           </div>
         </div>
 
         {/* Footer note */}
         <p className="text-xs text-center text-gray-400 dark:text-gray-500">
-          New here? Choose "Sign in with email" and create a free account.
+          {t("login.footerNote")}
         </p>
       </motion.div>
 
       {/* Attribution + about link */}
       <p className="mt-6 text-xs text-gray-400 dark:text-gray-600 flex items-center gap-2">
-        <span>Weight Tracker &mdash; personal health dashboard</span>
+        <span>{t("login.attribution")}</span>
         <span aria-hidden="true">&middot;</span>
         <Link
           to="/about"
           className="underline underline-offset-2 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
         >
-          About
+          {t("login.about")}
         </Link>
       </p>
     </div>

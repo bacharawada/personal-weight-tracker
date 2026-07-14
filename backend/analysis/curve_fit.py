@@ -38,12 +38,24 @@ class AnalysisConfig:
         fit_maxfev: Maximum number of function evaluations for curve_fit.
         deviation_threshold: Number of standard deviations for plateau /
             acceleration detection (0.5 by default).
+        fit_bounds: Lower/upper bounds for ``(a, b, c)`` passed to
+            ``curve_fit``. Bounding the fit keeps it physically plausible
+            (positive amplitude, positive decay rate, a sane asymptote) and
+            switches the solver to Trust Region Reflective.
+        recency_halflife_days: Half-life (days) for recency weighting. Points
+            this many days older than the latest get half the influence on
+            the fit. ``None`` disables recency weighting (equal weights).
     """
 
     smoothing_window: int = 5
     fit_p0: tuple[float, float, float] = (30.0, 0.003, 150.0)
     fit_maxfev: int = 8000
     deviation_threshold: float = 0.5
+    fit_bounds: tuple[tuple[float, float, float], tuple[float, float, float]] = (
+        (0.0, 1e-6, 30.0),
+        (500.0, 0.5, 300.0),
+    )
+    recency_halflife_days: float | None = 60.0
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +95,12 @@ class FitResult:
         std_residuals: Standard deviation of the residuals.
         success: Whether the fit converged.
         error_message: Description of why the fit failed (empty on success).
+        param_std: One-sigma standard error on each parameter
+            (``sqrt(diag(pcov))``); empty when the covariance is unusable.
+        pcov: Parameter covariance matrix from ``curve_fit``; empty when
+            non-finite (e.g. an under-determined fit).
+        warning: Non-fatal diagnostic — set when the fit succeeds but is
+            implausible (e.g. no real decay), empty otherwise.
     """
 
     params: tuple[float, float, float] = (0.0, 0.0, 0.0)
@@ -92,6 +110,9 @@ class FitResult:
     std_residuals: float = 0.0
     success: bool = False
     error_message: str = ""
+    param_std: tuple[float, float, float] | None = None
+    pcov: NDArray[np.floating] = field(default_factory=lambda: np.array([]))
+    warning: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -126,14 +147,28 @@ def fit_exponential_decay(
     days = (dates - dates.iloc[0]).dt.days.astype(float).values
     weights = df["weight"].values.astype(float)
 
+    # Recency weighting: older points get a larger sigma (less influence) so
+    # the fit tracks the current trajectory rather than ancient history.
+    # curve_fit minimises sum(((y - f) / sigma)**2); sigma = 0.5**(-age/2H)
+    # is the inverse-sqrt of a half-life weight, age measured from the latest
+    # measurement.
+    sigma = None
+    if config.recency_halflife_days is not None and config.recency_halflife_days > 0:
+        age = days.max() - days
+        sigma = np.power(0.5, -age / (2.0 * config.recency_halflife_days))
+
     try:
-        # NOTE: Levenberg-Marquardt (the default in curve_fit) is well
-        # suited for this smooth, monotonically-decaying signal.
-        popt, _ = curve_fit(
+        # Bounds switch curve_fit to Trust Region Reflective (TRF), which
+        # keeps the fit physically plausible; with bounds the solver is no
+        # longer Levenberg-Marquardt.
+        popt, pcov = curve_fit(
             exp_decay,
             days,
             weights,
             p0=list(config.fit_p0),
+            bounds=config.fit_bounds,
+            sigma=sigma,
+            absolute_sigma=False,
             maxfev=config.fit_maxfev,
         )
     except (RuntimeError, ValueError, TypeError) as exc:
@@ -157,6 +192,23 @@ def fit_exponential_decay(
     result.residuals = residuals
     result.std_residuals = std_res
     result.success = True
+
+    # Capture the covariance and per-parameter standard errors when usable.
+    pcov = np.asarray(pcov, dtype=float)
+    if pcov.shape == (3, 3) and np.all(np.isfinite(pcov)):
+        result.pcov = pcov
+        result.param_std = tuple(np.sqrt(np.diag(pcov)).astype(float))
+
+    # Plausibility: an asymptote at or above the latest weight means the model
+    # found no real decay left. Keep success=True (degrade gracefully) but flag
+    # it so the UI can warn instead of projecting a flat or rising "decay".
+    latest_weight = float(weights[-1])
+    if result.params[2] >= latest_weight:
+        result.warning = (
+            "Exponential model shows no further decay from the current weight; "
+            "its projection is unreliable."
+        )
+
     return result
 
 
@@ -190,6 +242,53 @@ def extrapolate_fit(
     x_extra = np.linspace(last_day, last_day + horizon_days, 200)
     y_extra = exp_decay(x_extra, *fit_result.params)
     return x_extra, y_extra
+
+
+def exp_decay_band(
+    x: NDArray[np.floating],
+    popt: tuple[float, float, float],
+    pcov: NDArray[np.floating],
+    n_samples: int = 200,
+    confidence: float = 0.95,
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Monte-Carlo confidence band for the exponential-decay curve.
+
+    Samples parameter sets from ``multivariate_normal(popt, pcov)``, evaluates
+    the model at each *x*, and returns the per-*x* percentile envelope. The
+    band reflects parameter uncertainty propagated through the (non-linear)
+    model — a more honest projection than a single line.
+
+    Args:
+        x: Day-offset values at which to evaluate the band.
+        popt: Fitted parameters ``(a, b, c)``.
+        pcov: Parameter covariance matrix (3x3). Must be finite.
+        n_samples: Number of Monte-Carlo parameter draws.
+        confidence: Central confidence level (0–1); the band spans the
+            symmetric percentile interval, e.g. 0.95 → [2.5%, 97.5%].
+
+    Returns:
+        A tuple ``(y_low, y_high)`` of the same length as *x*. Both arrays are
+        empty when *pcov* is unusable (non-finite or wrong shape).
+    """
+    pcov = np.asarray(pcov, dtype=float)
+    x = np.asarray(x, dtype=float)
+    if pcov.shape != (3, 3) or not np.all(np.isfinite(pcov)) or x.size == 0:
+        return np.array([]), np.array([])
+
+    # Seeded generator so the band is deterministic across identical requests.
+    rng = np.random.default_rng(0)
+    try:
+        samples = rng.multivariate_normal(np.asarray(popt, dtype=float), pcov, size=n_samples)
+    except (ValueError, np.linalg.LinAlgError):
+        return np.array([]), np.array([])
+
+    # curves[i] is the model evaluated for parameter draw i: shape (n_samples, len(x)).
+    curves = samples[:, 0:1] * np.exp(-samples[:, 1:2] * x[None, :]) + samples[:, 2:3]
+    lower_pct = (1.0 - confidence) / 2.0 * 100.0
+    upper_pct = (1.0 + confidence) / 2.0 * 100.0
+    y_low = np.percentile(curves, lower_pct, axis=0)
+    y_high = np.percentile(curves, upper_pct, axis=0)
+    return y_low, y_high
 
 
 # ---------------------------------------------------------------------------

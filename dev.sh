@@ -109,10 +109,15 @@ if [[ -f "$CNI_CONF" ]] && grep -q '"cniVersion": "1.0.0"' "$CNI_CONF" 2>/dev/nu
   rm -f "$CNI_CONF"
 fi
 
-# ── 2. Start infra containers ────────────────────────────────
-info "Starting Postgres + Keycloak + pgweb..."
-suppress podman-compose up postgres keycloak pgweb -d
-log "Containers started."
+# ── 2. Start Postgres ───────────────────────────────────────
+# Start postgres on its own first. Keycloak depends on postgres being
+# *healthy*, but rootless podman on WSL does not run health-check timers
+# automatically, so a plain `podman-compose up postgres keycloak -d` hangs
+# forever waiting for the healthy condition. We start postgres, wait for it
+# to accept connections, then manually run its health check to mark it
+# healthy before bringing up keycloak + pgweb.
+info "Starting Postgres..."
+suppress podman-compose up postgres -d
 
 # ── 3. Wait for Postgres ─────────────────────────────────────
 PG_CONTAINER=$(podman ps --format "{{.Names}}" 2>/dev/null | grep "postgres" | head -1)
@@ -134,6 +139,15 @@ until podman exec "$PG_CONTAINER" pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_D
 done
 spinner_stop
 log "Postgres is ready."
+
+# Manually mark postgres healthy so keycloak's depends_on condition is
+# satisfied. Rootless podman health-check timers do not run in WSL.
+podman healthcheck run "$PG_CONTAINER" > /dev/null 2>&1 || true
+
+# ── Start Keycloak + pgweb ───────────────────────────────────
+info "Starting Keycloak + pgweb..."
+suppress podman-compose up keycloak pgweb -d
+log "Containers started."
 
 # ── 4. Wait for Keycloak ─────────────────────────────────────
 spinner_start "Waiting for Keycloak..."
@@ -163,8 +177,17 @@ spinner_stop
 log "Migrations complete."
 
 # ── 6. Hand off to overmind ──────────────────────────────────
-echo ""
-info "Launching api + frontend via overmind  (Ctrl+C to stop all)"
+# Set NO_FRONTEND=1 to skip the frontend process (e.g. when the frontend
+# is launched separately on the host OS, as on Windows without WSL 2).
+OVERMIND_PROCESSES=""
+if [[ -n "${NO_FRONTEND:-}" ]]; then
+  OVERMIND_PROCESSES="api"
+  echo ""
+  info "Launching api via overmind  (Ctrl+C to stop all)"
+else
+  echo ""
+  info "Launching api + frontend via overmind  (Ctrl+C to stop all)"
+fi
 info "Attach to a single process:  overmind connect api"
 echo ""
 
@@ -176,4 +199,8 @@ mkdir -p "$OVERMIND_SOCKET_DIR"
 # Remove stale socket from a previous crashed/killed session.
 rm -f "$OVERMIND_SOCKET_DIR/overmind.sock"
 
-VENV="$VENV" OVERMIND_SOCKET="$OVERMIND_SOCKET_DIR/overmind.sock" exec overmind start
+if [[ -n "$OVERMIND_PROCESSES" ]]; then
+  VENV="$VENV" OVERMIND_SOCKET="$OVERMIND_SOCKET_DIR/overmind.sock" exec overmind start -l "$OVERMIND_PROCESSES"
+else
+  VENV="$VENV" OVERMIND_SOCKET="$OVERMIND_SOCKET_DIR/overmind.sock" exec overmind start
+fi

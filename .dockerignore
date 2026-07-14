@@ -1,0 +1,29 @@
+# Build artifacts and dependencies (regenerated inside the image)
+**/node_modules
+frontend/dist
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+
+# Local envs / secrets
+.venv
+.venv310
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Infrastructure / IaC (not part of the app image)
+infra/
+.github/
+
+# VCS and tooling
+.git
+.gitignore
+*.md
+
+# OS / editor
+.vscode
+.idea
+.DS_Store

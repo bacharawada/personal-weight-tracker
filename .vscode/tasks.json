@@ -7,20 +7,23 @@
     // ----------------------------------------------------------------
 
     {
-      // Single-terminal full-stack launcher via dev.sh + overmind.
-      // Runs in one terminal panel with colour-prefixed output per process.
+      // On Linux/macOS: single-terminal full-stack launcher via dev.sh + overmind.
+      // On Windows: compound task — backend (WSL) + frontend (native npm).
       //
       // What dev.sh does:
       //   1. podman-compose up postgres keycloak -d
       //   2. Poll until Postgres + Keycloak are healthy
       //   3. alembic upgrade head
-      //   4. overmind start  →  api + frontend in one multiplexed view
+      //   4. overmind start  →  api (+ frontend on non-Windows) in one multiplexed view
       //
       // Ctrl+C stops all processes cleanly.
       // To attach to a single process: overmind connect api  (in another terminal)
       "label": "Dev: Start",
       "type": "shell",
-      "command": "./dev.sh",
+      "command": "bash ./dev.sh",
+      "windows": {
+        "command": "wsl bash -l -c 'NO_FRONTEND=1 ./dev.sh'"
+      },
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -36,6 +39,20 @@
       },
       "problemMatcher": []
     },
+
+    {
+      // Windows-only compound: starts backend (WSL) + frontend (native npm) together.
+      // Use this instead of "Dev: Start" when on Windows.
+      "label": "Dev: Start (Windows)",
+      "dependsOn": ["Dev: Start", "Run Frontend Dev Server"],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": []
+    },
+
 
     {
       // Alternative: run everything inside Podman containers.

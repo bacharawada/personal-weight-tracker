@@ -1,0 +1,154 @@
+# ============================================================
+# Weight Tracker — Web app deployment pipeline
+#
+# Two sequential jobs:
+#   1. test    — runs pytest; blocks deploy if any test fails
+#   2. deploy  — builds Docker image, pushes to ACR, updates
+#                the Container App revision
+#
+# Trigger: push to main, or manual (workflow_dispatch).
+#
+# Required GitHub Actions secrets:
+#   AZURE_CLIENT_ID          Service principal client ID (OIDC)
+#   AZURE_TENANT_ID          Azure tenant ID
+#   AZURE_SUBSCRIPTION_ID    Azure subscription ID
+#   ACR_LOGIN_SERVER         e.g. crbawweighttrackerprd.azurecr.io
+#   VITE_KEYCLOAK_URL        https://weighttracker-auth.bawada.fr
+#   VITE_KEYCLOAK_REALM      weight-tracker
+#   VITE_KEYCLOAK_CLIENT_ID  weight-tracker-frontend
+# ============================================================
+
+name: App — Test & Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write  # Required for OIDC login to Azure
+  contents: read
+
+env:
+  RESOURCE_GROUP:    rg-baw-weighttracker-prd
+  CONTAINERAPP_NAME: ca-baw-weighttracker-prd
+  IMAGE_NAME:        ca-baw-weighttracker-prd
+
+jobs:
+  # ------------------------------------------------------------
+  # Job 1: Test
+  # Runs the full pytest suite. Deploy is blocked until this
+  # passes — a failing test never reaches production.
+  # ------------------------------------------------------------
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Tests use in-memory SQLite — no real DB connection needed.
+      # PYTHONPATH matches pyproject.toml [tool.pytest.ini_options].
+      - name: Run pytest
+        env:
+          PYTHONPATH: backend
+        run: pytest
+
+  # ------------------------------------------------------------
+  # Job 2: Deploy
+  # Only runs after the test job succeeds.
+  # ------------------------------------------------------------
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      # ----------------------------------------------------------
+      # 1. Checkout
+      # ----------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------
+      # 2. Log in to Azure via OIDC
+      # ----------------------------------------------------------
+      - name: Log in to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ----------------------------------------------------------
+      # 3. Log in to Azure Container Registry
+      # ----------------------------------------------------------
+      - name: Log in to ACR
+        run: az acr login --name crbawweighttrackerprd
+
+      # ----------------------------------------------------------
+      # 4. Build the production Docker image
+      #    VITE_* args are baked into the React JS bundle here.
+      # ----------------------------------------------------------
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
+          GIT_SHA="${{ github.sha }}"
+
+          docker build \
+            --build-arg VITE_KEYCLOAK_URL="${{ secrets.VITE_KEYCLOAK_URL }}" \
+            --build-arg VITE_KEYCLOAK_REALM="${{ secrets.VITE_KEYCLOAK_REALM }}" \
+            --build-arg VITE_KEYCLOAK_CLIENT_ID="${{ secrets.VITE_KEYCLOAK_CLIENT_ID }}" \
+            --tag "${IMAGE_TAG}:latest" \
+            --tag "${IMAGE_TAG}:${GIT_SHA}" \
+            .
+
+      # ----------------------------------------------------------
+      # 5. Push image to ACR
+      #    Both :latest and :<git-sha> are pushed.
+      #    The SHA tag enables precise rollback to any revision.
+      # ----------------------------------------------------------
+      - name: Push image to ACR
+        run: |
+          IMAGE_TAG="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
+          GIT_SHA="${{ github.sha }}"
+
+          docker push "${IMAGE_TAG}:latest"
+          docker push "${IMAGE_TAG}:${GIT_SHA}"
+
+      # ----------------------------------------------------------
+      # 6. Deploy new revision to the Container App
+      #    Uses the SHA-tagged image so the revision is traceable
+      #    back to an exact commit.
+      # ----------------------------------------------------------
+      - name: Deploy to Container App
+        run: |
+          IMAGE="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+          az containerapp update \
+            --name "${{ env.CONTAINERAPP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --image "$IMAGE"
+
+      # ----------------------------------------------------------
+      # 7. Print deployed URL
+      # ----------------------------------------------------------
+      - name: Print deployed URL
+        run: |
+          FQDN=$(az containerapp show \
+            --name "${{ env.CONTAINERAPP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "Deployed to: https://$FQDN"
+          echo "Custom domain: https://weighttracker.bawada.fr"

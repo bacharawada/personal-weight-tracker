@@ -13,10 +13,11 @@ import {
   deleteMeasurement,
   deleteAllMeasurements,
 } from "../lib/api";
-import type { CsvImportResult, Measurement } from "../lib/types";
+import type { CsvImportResult, Measurement, MeasurementUpdate } from "../lib/types";
+import { displayToKg, kgToDisplay, unitLabel, weightBounds } from "../lib/units";
 
 export function useDataPage() {
-  const { refreshKey, bump } = useWeightTracker();
+  const { refreshKey, bump, unit } = useWeightTracker();
 
   // ── Data ────────────────────────────────────────────────────────────────
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -40,6 +41,7 @@ export function useDataPage() {
   // ── Inline edit state ────────────────────────────────────────────────────
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [editWeight, setEditWeight] = useState("");
+  const [editNote, setEditNote] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,32 +59,45 @@ export function useDataPage() {
   const [deletingAll, setDeletingAll] = useState(false);
 
   // ── Callbacks ────────────────────────────────────────────────────────────
-  const startEdit = useCallback((m: Measurement, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDeleteTarget(null);
-    setEditingDate(m.date);
-    setEditWeight(String(m.weight));
-    setEditError(null);
-  }, []);
+  const startEdit = useCallback(
+    (m: Measurement, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setDeleteTarget(null);
+      setEditingDate(m.date);
+      setEditWeight(kgToDisplay(m.weight, unit).toFixed(2));
+      setEditNote(m.note ?? "");
+      setEditError(null);
+    },
+    [unit],
+  );
 
   const cancelEdit = useCallback(() => {
     setEditingDate(null);
     setEditWeight("");
+    setEditNote("");
     setEditError(null);
   }, []);
 
   const saveEdit = useCallback(
     async (date: string) => {
-      const w = parseFloat(editWeight);
-      if (isNaN(w) || w < 40 || w > 300) {
-        setEditError("Must be 40–300 kg");
+      const entered = parseFloat(editWeight);
+      const bounds = weightBounds(unit);
+      if (isNaN(entered) || entered < bounds.min || entered > bounds.max) {
+        setEditError(
+          `Must be ${bounds.min.toFixed(0)}–${bounds.max.toFixed(0)} ${unitLabel(unit)}`,
+        );
         return;
       }
       setSaving(true);
       try {
-        await updateMeasurement(date, w);
+        const patch: MeasurementUpdate = {
+          weight: displayToKg(entered, unit),
+          note: editNote.trim() || null,
+        };
+        await updateMeasurement(date, patch);
         setEditingDate(null);
         setEditWeight("");
+        setEditNote("");
         setEditError(null);
         bump();
       } catch (err: unknown) {
@@ -91,7 +106,7 @@ export function useDataPage() {
         setSaving(false);
       }
     },
-    [editWeight, bump],
+    [editWeight, editNote, bump, unit],
   );
 
   const handleKeyDown = useCallback(
@@ -165,6 +180,8 @@ export function useDataPage() {
     editingDate,
     editWeight,
     setEditWeight,
+    editNote,
+    setEditNote,
     editError,
     setEditError,
     saving,

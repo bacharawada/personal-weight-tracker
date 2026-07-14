@@ -6,15 +6,21 @@
  */
 
 import type { RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Pencil, Trash2, X } from "lucide-react";
+import { Check, Pencil, StickyNote, Trash2, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
-import type { Measurement } from "../../lib/types";
+import type { Measurement, WeightUnit } from "../../lib/types";
+import { kgToDisplay, weightBounds } from "../../lib/units";
+
+const NOTE_MAX_LENGTH = 500;
 
 interface MeasurementRowProps {
   measurement: Measurement;
+  unit: WeightUnit;
   isEditing: boolean;
   editWeight: string;
+  editNote: string;
   editError: string | null;
   saving: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
@@ -23,14 +29,17 @@ interface MeasurementRowProps {
   onEditCancel: () => void;
   onKeyDown: (e: React.KeyboardEvent, date: string) => void;
   onWeightChange: (value: string) => void;
+  onNoteChange: (value: string) => void;
   onErrorClear: () => void;
   onDeleteRequest: (m: Measurement) => void;
 }
 
 export function MeasurementRow({
   measurement: m,
+  unit,
   isEditing,
   editWeight,
+  editNote,
   editError,
   saving,
   inputRef,
@@ -39,9 +48,12 @@ export function MeasurementRow({
   onEditCancel,
   onKeyDown,
   onWeightChange,
+  onNoteChange,
   onErrorClear,
   onDeleteRequest,
 }: MeasurementRowProps) {
+  const { t } = useTranslation("data");
+  const bounds = weightBounds(unit);
   return (
     <tr
       className={`group transition-colors ${
@@ -75,8 +87,8 @@ export function MeasurementRow({
                 }}
                 onKeyDown={(e) => onKeyDown(e, m.date)}
                 onClick={(e) => e.stopPropagation()}
-                min={40}
-                max={300}
+                min={bounds.min}
+                max={bounds.max}
                 step={0.05}
                 className="w-28 text-right rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
               />
@@ -93,7 +105,46 @@ export function MeasurementRow({
               transition={{ duration: 0.1 }}
               className="font-mono text-gray-900 dark:text-gray-100"
             >
-              {m.weight.toFixed(2)}
+              {kgToDisplay(m.weight, unit).toFixed(2)}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </td>
+
+      {/* Note — static preview or inline edit input */}
+      <td className="px-4 py-2 max-w-[200px]">
+        <AnimatePresence mode="wait">
+          {isEditing ? (
+            <motion.div
+              key="edit-note"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+            >
+              <input
+                type="text"
+                value={editNote}
+                onChange={(e) => onNoteChange(e.target.value)}
+                onKeyDown={(e) => onKeyDown(e, m.date)}
+                onClick={(e) => e.stopPropagation()}
+                maxLength={NOTE_MAX_LENGTH}
+                placeholder={t("row.notePlaceholder")}
+                className="w-full rounded-md border border-yellow-400 dark:border-yellow-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+            </motion.div>
+          ) : (
+            <motion.span
+              key="display-note"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+              title={m.note ?? undefined}
+              className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 truncate"
+            >
+              {m.note && <StickyNote size={13} className="shrink-0 text-gray-400 dark:text-gray-500" />}
+              <span className="truncate">{m.note ?? ""}</span>
             </motion.span>
           )}
         </AnimatePresence>
@@ -111,7 +162,7 @@ export function MeasurementRow({
               size="icon-sm"
               onClick={() => onEditSave(m.date)}
               disabled={saving}
-              title="Save"
+              title={t("actions.save", { ns: "common" })}
               className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
             >
               <Check size={15} />
@@ -120,7 +171,7 @@ export function MeasurementRow({
               variant="ghost"
               size="icon-sm"
               onClick={onEditCancel}
-              title="Cancel"
+              title={t("actions.cancel", { ns: "common" })}
             >
               <X size={15} />
             </Button>
@@ -131,8 +182,8 @@ export function MeasurementRow({
               variant="ghost"
               size="icon-sm"
               onClick={(e) => onEditStart(m, e)}
-              title="Edit weight"
-              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 min-w-[36px] min-h-[36px]"
+              title={t("row.editWeight")}
+              className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px]"
             >
               <Pencil size={14} />
             </Button>
@@ -143,8 +194,8 @@ export function MeasurementRow({
                 e.stopPropagation();
                 onDeleteRequest(m);
               }}
-              title="Delete"
-              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 min-w-[36px] min-h-[36px]"
+              title={t("actions.delete", { ns: "common" })}
+              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px]"
             >
               <Trash2 size={14} />
             </Button>

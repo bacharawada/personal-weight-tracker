@@ -1,0 +1,36 @@
+# ============================================================
+# Weight Tracker — Terraform variable values template
+#
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — never commit it.
+# ============================================================
+
+# Your Azure subscription ID.
+# Find it with: az account show --query id -o tsv
+subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Your GitHub repository in org/repo format.
+# Used to scope the OIDC federated credential to your repo's main branch.
+github_repo = "<your-github-username>/weight_analysis"
+
+# Optional overrides (defaults follow Microsoft naming convention)
+# resource_group_name  = "rg-baw-weighttracker-prd"
+# location             = "francecentral"
+# acr_name             = "crbawweighttrackerprd"       # alphanumeric only — Azure constraint
+# storage_account_name = "stbawweighttrackerprd"       # alphanumeric only — Azure constraint
+
+# -----------------------------------------------------------
+# PostgreSQL (Azure Flexible Server, private)
+# -----------------------------------------------------------
+# The server, both databases, and the admin password are all
+# managed by Terraform — nothing to provision beforehand.
+# The admin password is generated (random_password); you only
+# override the login here if you want something other than the
+# default "pgadmin".
+# postgres_admin_username = "pgadmin"
+
+# -----------------------------------------------------------
+# Keycloak admin
+# -----------------------------------------------------------
+keycloak_admin          = "admin"
+keycloak_admin_password = "<strong-password>"

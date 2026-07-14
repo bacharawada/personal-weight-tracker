@@ -76,16 +76,21 @@ class TestGetAll:
         assert dates == sorted(dates)
 
     def test_returns_correct_columns(self, store: WeightDataStore) -> None:
-        """get_all() returns date and weight columns."""
+        """get_all() returns date, weight and note columns."""
         df = store.get_all(TEST_USER_SUB)
-        assert list(df.columns) == ["date", "weight"]
+        assert list(df.columns) == ["date", "weight", "note"]
 
     def test_empty_store_returns_empty_df(self, engine: sa.engine.Engine) -> None:
         """get_all() returns empty DataFrame when no data exists for user."""
         empty_store = WeightDataStore(engine)
         df = empty_store.get_all("unknown-user-sub")
         assert df.empty
-        assert list(df.columns) == ["date", "weight"]
+        assert list(df.columns) == ["date", "weight", "note"]
+
+    def test_note_defaults_to_none(self, store: WeightDataStore) -> None:
+        """Seeded measurements (added without a note) expose note == None."""
+        df = store.get_all(TEST_USER_SUB)
+        assert df["note"].isna().all()
 
     def test_data_isolation(self, engine: sa.engine.Engine) -> None:
         """Two different users see only their own measurements."""
@@ -146,6 +151,68 @@ class TestAdd:
         date = datetime.date(2025, 3, 15)
         s.add("user-x", date, 70.0)
         s.add("user-y", date, 75.0)  # Must not raise.
+
+    def test_insert_with_note(self, store: WeightDataStore) -> None:
+        """add() persists an optional note alongside the weight."""
+        date = datetime.date(2025, 11, 2)
+        store.add(TEST_USER_SUB, date, 164.0, note="Post-vacation weigh-in")
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["note"] == "Post-vacation weigh-in"
+
+    def test_insert_without_note_defaults_to_none(self, store: WeightDataStore) -> None:
+        """add() without a note leaves the column NULL."""
+        date = datetime.date(2025, 11, 3)
+        store.add(TEST_USER_SUB, date, 163.5)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["note"] is None
+
+
+# -----------------------------------------------------------------------
+# update
+# -----------------------------------------------------------------------
+
+
+class TestUpdate:
+    """Tests for ``WeightDataStore.update()``."""
+
+    def test_update_weight_only(self, store: WeightDataStore) -> None:
+        """Updating weight alone leaves an existing note untouched."""
+        date = datetime.date(2025, 6, 1)
+        store.update(TEST_USER_SUB, date, note="Before", note_provided=True)
+        store.update(TEST_USER_SUB, date, weight=182.0)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["weight"] == 182.0
+        assert row["note"] == "Before"
+
+    def test_update_note_only_leaves_weight_untouched(
+        self, store: WeightDataStore
+    ) -> None:
+        """Updating note alone (note-only PATCH) leaves the weight untouched."""
+        date = datetime.date(2025, 6, 1)
+        original = store.get_one(TEST_USER_SUB, date)
+        assert original is not None
+        store.update(TEST_USER_SUB, date, note="Sick this week", note_provided=True)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["weight"] == original["weight"]
+        assert row["note"] == "Sick this week"
+
+    def test_update_note_to_none_clears_it(self, store: WeightDataStore) -> None:
+        """Passing note=None with note_provided=True clears an existing note."""
+        date = datetime.date(2025, 6, 1)
+        store.update(TEST_USER_SUB, date, note="Temporary", note_provided=True)
+        store.update(TEST_USER_SUB, date, note=None, note_provided=True)
+        row = store.get_one(TEST_USER_SUB, date)
+        assert row is not None
+        assert row["note"] is None
+
+    def test_update_missing_date_raises(self, store: WeightDataStore) -> None:
+        """update() raises NotFoundError for a date with no measurement."""
+        with pytest.raises(NotFoundError):
+            store.update(TEST_USER_SUB, datetime.date(1999, 1, 1), weight=100.0)
 
 
 # -----------------------------------------------------------------------
@@ -223,6 +290,170 @@ class TestUserProfile:
         profile = s.get_user_profile("onboard-test-user")
         assert profile["onboarding_completed"] is True
 
+    def test_profile_defaults(self, engine: sa.engine.Engine) -> None:
+        """New users have null profile fields and a 'kg' unit preference."""
+        s = WeightDataStore(engine)
+        profile = s.get_user_profile("profile-defaults-user")
+        assert profile["height_cm"] is None
+        assert profile["goal_weight"] is None
+        assert profile["target_date"] is None
+        assert profile["unit_preference"] == "kg"
+
+    def test_update_profile(self, engine: sa.engine.Engine) -> None:
+        """update_profile() persists supplied fields."""
+        import datetime
+
+        s = WeightDataStore(engine)
+        s.update_profile(
+            "profile-update-user",
+            {
+                "height_cm": 175.0,
+                "goal_weight": 70.0,
+                "target_date": datetime.date(2026, 12, 31),
+                "unit_preference": "lb",
+            },
+        )
+        profile = s.get_user_profile("profile-update-user")
+        assert profile["height_cm"] == 175.0
+        assert profile["goal_weight"] == 70.0
+        assert profile["target_date"] == datetime.date(2026, 12, 31)
+        assert profile["unit_preference"] == "lb"
+
+    def test_update_profile_partial(self, engine: sa.engine.Engine) -> None:
+        """update_profile() leaves unspecified fields untouched."""
+        s = WeightDataStore(engine)
+        s.update_profile("partial-user", {"goal_weight": 80.0})
+        s.update_profile("partial-user", {"unit_preference": "lb"})
+        profile = s.get_user_profile("partial-user")
+        assert profile["goal_weight"] == 80.0
+        assert profile["unit_preference"] == "lb"
+
+    def test_update_profile_ignores_unknown_keys(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """update_profile() silently drops keys outside the allowed set."""
+        s = WeightDataStore(engine)
+        s.update_profile("safe-user", {"id": 999, "goal_weight": 65.0})
+        profile = s.get_user_profile("safe-user")
+        assert profile["goal_weight"] == 65.0
+        assert profile["id"] != 999
+
+
+# -----------------------------------------------------------------------
+# Medication doses
+# -----------------------------------------------------------------------
+
+
+class TestMedicationDoses:
+    """Tests for the ``WeightDataStore`` medication-dose methods."""
+
+    def test_add_and_list(self, engine: sa.engine.Engine) -> None:
+        """add_dose() persists a dose that list_doses() returns."""
+        s = WeightDataStore(engine)
+        created = s.add_dose(
+            "dose-user",
+            datetime.date(2025, 6, 1),
+            "semaglutide",
+            dose_mg=0.25,
+            note="first",
+        )
+        assert isinstance(created["id"], int)
+        doses = s.list_doses("dose-user")
+        assert len(doses) == 1
+        assert doses[0]["medication"] == "semaglutide"
+        assert doses[0]["dose_mg"] == 0.25
+        assert doses[0]["note"] == "first"
+
+    def test_dose_mg_is_float_not_decimal(self, engine: sa.engine.Engine) -> None:
+        """dose_mg is normalised to a plain float (never Decimal)."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "tirzepatide", dose_mg=2.5)
+        dose = s.list_doses("dose-user")[0]
+        assert isinstance(dose["dose_mg"], float)
+
+    def test_add_dose_without_optional_fields(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """add_dose() allows a null dose_mg and note."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "liraglutide")
+        dose = s.list_doses("dose-user")[0]
+        assert dose["dose_mg"] is None
+        assert dose["note"] is None
+
+    def test_list_sorted_by_date(self, engine: sa.engine.Engine) -> None:
+        """list_doses() returns doses sorted ascending by date."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 7, 1), "semaglutide")
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "semaglutide")
+        dates = [d["date"] for d in s.list_doses("dose-user")]
+        assert dates == sorted(dates)
+
+    def test_list_date_range(self, engine: sa.engine.Engine) -> None:
+        """list_doses() honours the inclusive start/end filter."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "semaglutide")
+        s.add_dose("dose-user", datetime.date(2025, 7, 1), "semaglutide")
+        s.add_dose("dose-user", datetime.date(2025, 8, 1), "semaglutide")
+        doses = s.list_doses(
+            "dose-user",
+            start=datetime.date(2025, 6, 15),
+            end=datetime.date(2025, 7, 15),
+        )
+        assert [d["date"] for d in doses] == [datetime.date(2025, 7, 1)]
+
+    def test_delete_dose(self, engine: sa.engine.Engine) -> None:
+        """delete_dose() removes an owned dose."""
+        s = WeightDataStore(engine)
+        created = s.add_dose("dose-user", datetime.date(2025, 6, 1), "semaglutide")
+        s.delete_dose("dose-user", created["id"])
+        assert s.list_doses("dose-user") == []
+
+    def test_delete_missing_raises(self, engine: sa.engine.Engine) -> None:
+        """delete_dose() raises NotFoundError for an unknown id."""
+        s = WeightDataStore(engine)
+        with pytest.raises(NotFoundError):
+            s.delete_dose("dose-user", 999999)
+
+    def test_delete_other_users_dose_raises(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """A user cannot delete another user's dose (NotFoundError)."""
+        s = WeightDataStore(engine)
+        created = s.add_dose("owner-user", datetime.date(2025, 6, 1), "semaglutide")
+        with pytest.raises(NotFoundError):
+            s.delete_dose("intruder-user", created["id"])
+        # The dose still belongs to the owner.
+        assert len(s.list_doses("owner-user")) == 1
+
+    def test_dose_isolation_between_users(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """Two users only see their own doses."""
+        s = WeightDataStore(engine)
+        s.add_dose("user-a", datetime.date(2025, 6, 1), "semaglutide")
+        s.add_dose("user-b", datetime.date(2025, 6, 1), "tirzepatide")
+        assert len(s.list_doses("user-a")) == 1
+        assert s.list_doses("user-a")[0]["medication"] == "semaglutide"
+        assert len(s.list_doses("user-b")) == 1
+        assert s.list_doses("user-b")[0]["medication"] == "tirzepatide"
+
+    def test_update_dose(self, engine: sa.engine.Engine) -> None:
+        """update_dose() persists a partial update and returns the row."""
+        s = WeightDataStore(engine)
+        created = s.add_dose(
+            "dose-user", datetime.date(2025, 6, 1), "semaglutide", dose_mg=0.25
+        )
+        updated = s.update_dose("dose-user", created["id"], {"dose_mg": 0.5})
+        assert updated["dose_mg"] == 0.5
+        assert updated["medication"] == "semaglutide"
+
+    def test_update_missing_raises(self, engine: sa.engine.Engine) -> None:
+        """update_dose() raises NotFoundError for an unknown id."""
+        s = WeightDataStore(engine)
+        with pytest.raises(NotFoundError):
+            s.update_dose("dose-user", 999999, {"dose_mg": 0.5})
+
 
 # -----------------------------------------------------------------------
 # Migration
@@ -287,3 +518,69 @@ class TestMigration:
         assert summary1["rows_inserted"] == 1
         assert summary2["rows_inserted"] == 0
         assert summary2["rows_skipped"] == 1
+
+
+# -----------------------------------------------------------------------
+# Share tokens
+# -----------------------------------------------------------------------
+
+
+class TestShareTokens:
+    """Tests for the share-token store methods."""
+
+    def test_no_token_by_default(self, store: WeightDataStore) -> None:
+        """A user with no share token returns None."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        assert store.get_share_token(user_id) is None
+
+    def test_create_and_get(self, store: WeightDataStore) -> None:
+        """Creating a token makes it retrievable and resolvable."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        token = store.create_share_token(user_id)
+        assert isinstance(token, str)
+        assert len(token) > 0
+        assert store.get_share_token(user_id) == token
+        assert store.resolve_share_token(token) == user_id
+
+    def test_regenerate_revokes_previous(self, store: WeightDataStore) -> None:
+        """Re-creating a token revokes the old one (single active token)."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        first = store.create_share_token(user_id)
+        second = store.create_share_token(user_id)
+        assert first != second
+        assert store.get_share_token(user_id) == second
+        # Old token no longer resolves.
+        assert store.resolve_share_token(first) is None
+        assert store.resolve_share_token(second) == user_id
+
+    def test_revoke(self, store: WeightDataStore) -> None:
+        """Revoking clears the active token and stops resolution."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        token = store.create_share_token(user_id)
+        store.revoke_share_token(user_id)
+        assert store.get_share_token(user_id) is None
+        assert store.resolve_share_token(token) is None
+
+    def test_revoke_is_idempotent(self, store: WeightDataStore) -> None:
+        """Revoking when nothing is active does not raise."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        store.revoke_share_token(user_id)
+        store.revoke_share_token(user_id)
+        assert store.get_share_token(user_id) is None
+
+    def test_resolve_unknown_token(self, store: WeightDataStore) -> None:
+        """An unknown token resolves to None."""
+        assert store.resolve_share_token("does-not-exist") is None
+
+    def test_get_goal_weight_by_user_id(self, store: WeightDataStore) -> None:
+        """Goal weight is readable by internal user id."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        assert store.get_goal_weight_by_user_id(user_id) is None
+        store.update_profile(TEST_USER_SUB, {"goal_weight": 150.0})
+        assert store.get_goal_weight_by_user_id(user_id) == 150.0
+
+    def test_get_all_by_user_id(self, store: WeightDataStore) -> None:
+        """Measurements are readable by internal user id."""
+        user_id = store.get_or_create_user(TEST_USER_SUB)
+        df = store.get_all_by_user_id(user_id)
+        assert len(df) == 10

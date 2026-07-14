@@ -10,12 +10,25 @@ import type {
   CsvImportResult,
   CsvPreview,
   CsvPreviewRow,
+  DerivativeChartData,
+  DoseImpact,
+  EnergyBalance,
+  EnergyChartData,
+  GoalProjection,
   Measurement,
   MeasurementIn,
+  MeasurementUpdate,
+  MedicationDose,
+  MedicationDoseIn,
+  MilestonesProjection,
   Mtime,
-  Palettes,
+  PlateauStatus,
+  ResidualsChartData,
+  ShareStatus,
   Stats,
   UserProfile,
+  UserProfileUpdate,
+  WeightChartData,
 } from "./types";
 
 const BASE = "/api";
@@ -73,11 +86,14 @@ export async function addMeasurement(data: MeasurementIn): Promise<Measurement> 
   });
 }
 
-export async function updateMeasurement(date: string, weight: number): Promise<Measurement> {
+export async function updateMeasurement(
+  date: string,
+  patch: MeasurementUpdate,
+): Promise<Measurement> {
   return fetchJson<Measurement>(`${BASE}/measurements/${date}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ weight }),
+    body: JSON.stringify(patch),
   });
 }
 
@@ -104,6 +120,39 @@ export async function deleteAllMeasurements(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Medication doses
+// ---------------------------------------------------------------------------
+
+export async function getMedications(): Promise<MedicationDose[]> {
+  return fetchJson<MedicationDose[]>(`${BASE}/medications`);
+}
+
+export async function addMedicationDose(
+  data: MedicationDoseIn,
+): Promise<MedicationDose> {
+  return fetchJson<MedicationDose>(`${BASE}/medications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteMedicationDose(id: number): Promise<void> {
+  const res = await fetch(`${BASE}/medications/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+}
+
+export async function getMedicationImpact(): Promise<DoseImpact[]> {
+  return fetchJson<DoseImpact[]>(`${BASE}/medications/impact`);
+}
+
+// ---------------------------------------------------------------------------
 // Stats, palettes, polling
 // ---------------------------------------------------------------------------
 
@@ -115,8 +164,8 @@ export async function getDbMtime(): Promise<Mtime> {
   return fetchJson<Mtime>(`${BASE}/db-mtime`);
 }
 
-export async function getPalettes(): Promise<Palettes> {
-  return fetchJson<Palettes>(`${BASE}/palettes`);
+export async function getPlateauStatus(): Promise<PlateauStatus> {
+  return fetchJson<PlateauStatus>(`${BASE}/stats/plateau`);
 }
 
 // ---------------------------------------------------------------------------
@@ -127,10 +176,90 @@ export async function getMe(): Promise<UserProfile> {
   return fetchJson<UserProfile>(`${BASE}/me`);
 }
 
+export async function updateProfile(patch: UserProfileUpdate): Promise<UserProfile> {
+  return fetchJson<UserProfile>(`${BASE}/me`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+}
+
 export async function completeOnboarding(): Promise<UserProfile> {
   return fetchJson<UserProfile>(`${BASE}/me/complete-onboarding`, {
     method: "POST",
   });
+}
+
+// ---------------------------------------------------------------------------
+// Goal projection
+// ---------------------------------------------------------------------------
+
+export async function getGoal(): Promise<GoalProjection> {
+  return fetchJson<GoalProjection>(`${BASE}/goal`);
+}
+
+export async function getGoalMilestones(): Promise<MilestonesProjection> {
+  return fetchJson<MilestonesProjection>(`${BASE}/goal/milestones`);
+}
+
+// ---------------------------------------------------------------------------
+// Energy balance
+// ---------------------------------------------------------------------------
+
+export async function getEnergyBalance(): Promise<EnergyBalance> {
+  return fetchJson<EnergyBalance>(`${BASE}/stats/energy`);
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard sharing (authenticated)
+// ---------------------------------------------------------------------------
+
+export async function getShareStatus(): Promise<ShareStatus> {
+  return fetchJson<ShareStatus>(`${BASE}/me/share`);
+}
+
+export async function createShareLink(): Promise<ShareStatus> {
+  return fetchJson<ShareStatus>(`${BASE}/me/share`, { method: "POST" });
+}
+
+export async function revokeShareLink(): Promise<void> {
+  const res = await fetch(`${BASE}/me/share`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public shared dashboard (no auth — token in the path)
+// ---------------------------------------------------------------------------
+// These deliberately never attach an Authorization header: the endpoints are
+// public and the share page renders outside the auth context.
+
+async function fetchPublicJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+  return res.json();
+}
+
+export async function getPublicStats(token: string): Promise<Stats> {
+  return fetchPublicJson<Stats>(`${BASE}/public/${encodeURIComponent(token)}/stats`);
+}
+
+export async function getPublicWeightChart(
+  token: string,
+  params: ChartParams,
+): Promise<WeightChartData> {
+  const query = chartQuery(params);
+  return fetchPublicJson<WeightChartData>(
+    `${BASE}/public/${encodeURIComponent(token)}/charts/weight?${query}`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -167,37 +296,51 @@ export async function confirmCsvImport(
 // Charts
 // ---------------------------------------------------------------------------
 
+// Only data-affecting params reach the backend. Colour palette and theme are
+// pure rendering concerns handled entirely on the frontend.
 function chartQuery(params: ChartParams): string {
+  const models = [
+    ...(params.showExp ? ["exp"] : []),
+    ...(params.showLinear ? ["linear"] : []),
+  ].join(",");
   const q = new URLSearchParams({
     smoothing: String(params.smoothing),
     horizon: String(params.horizon),
-    palette: params.palette,
-    dark: String(params.dark),
+    models,
+    band: String(params.showBand),
   });
   return q.toString();
 }
 
-export async function getWeightChart(params: ChartParams): Promise<object> {
-  return fetchJson<object>(`${BASE}/charts/weight?${chartQuery(params)}`);
+export async function getWeightChart(params: ChartParams): Promise<WeightChartData> {
+  return fetchJson<WeightChartData>(`${BASE}/charts/weight?${chartQuery(params)}`);
 }
 
-export async function getDerivativeChart(params: ChartParams): Promise<object> {
-  return fetchJson<object>(`${BASE}/charts/derivative?${chartQuery(params)}`);
+export async function getDerivativeChart(params: ChartParams): Promise<DerivativeChartData> {
+  return fetchJson<DerivativeChartData>(`${BASE}/charts/derivative?${chartQuery(params)}`);
 }
 
-export async function getResidualsChart(params: ChartParams): Promise<object> {
-  return fetchJson<object>(`${BASE}/charts/residuals?${chartQuery(params)}`);
+export async function getResidualsChart(params: ChartParams): Promise<ResidualsChartData> {
+  return fetchJson<ResidualsChartData>(`${BASE}/charts/residuals?${chartQuery(params)}`);
+}
+
+export async function getEnergyChart(params: ChartParams): Promise<EnergyChartData> {
+  return fetchJson<EnergyChartData>(`${BASE}/charts/energy?${chartQuery(params)}`);
 }
 
 // ---------------------------------------------------------------------------
-// Export URLs (opened directly in the browser, token in query param not
-// feasible — user must be authenticated when the browser follows the link)
+// Exports
 // ---------------------------------------------------------------------------
+// A plain <a href> link cannot carry the Bearer token, so the request must go
+// through the authenticated fetch client and download the response as a blob.
 
-export function exportPngUrl(params: ChartParams): string {
-  return `${BASE}/exports/png?${chartQuery(params)}`;
-}
-
-export function exportCsvUrl(): string {
-  return `${BASE}/exports/csv`;
+export async function exportCsv(): Promise<Blob> {
+  const res = await fetch(`${BASE}/exports/csv`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+  return res.blob();
 }

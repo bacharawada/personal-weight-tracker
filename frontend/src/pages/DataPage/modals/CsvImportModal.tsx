@@ -5,6 +5,7 @@
  * CsvImport's internal state is cleanly reset.
  */
 
+import { Trans, useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -34,14 +35,14 @@ export function CsvImportModal({
   onComplete,
   onBack,
 }: CsvImportModalProps) {
+  const { t } = useTranslation("data");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Import CSV</DialogTitle>
+          <DialogTitle>{t("csvModal.title")}</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with <code>date</code> and <code>weight</code>{" "}
-            columns. Delimiter and date format are detected automatically.
+            <Trans t={t} i18nKey="csvModal.description" components={{ code: <code /> }} />
           </DialogDescription>
         </DialogHeader>
         <CsvImport

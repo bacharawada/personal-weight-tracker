@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { FileUp, Plus, X } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -16,6 +17,7 @@ interface DataPageFABProps {
 }
 
 export function DataPageFAB({ onAdd, onImport }: DataPageFABProps) {
+  const { t } = useTranslation("data");
   const [open, setOpen] = useState(false);
 
   function handleAction(fn: () => void) {
@@ -41,7 +43,7 @@ export function DataPageFAB({ onAdd, onImport }: DataPageFABProps) {
               className="flex items-center gap-2 bg-white dark:bg-gray-800 shadow-lg rounded-full pl-4 pr-5 py-2.5 text-sm font-medium text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 active:scale-95 transition-transform"
             >
               <FileUp size={16} style={{ color: "var(--color-accent)" }} />
-              Import CSV
+              {t("fab.importCsv")}
             </button>
 
             {/* Add entry action */}
@@ -50,7 +52,7 @@ export function DataPageFAB({ onAdd, onImport }: DataPageFABProps) {
               className="flex items-center gap-2 bg-white dark:bg-gray-800 shadow-lg rounded-full pl-4 pr-5 py-2.5 text-sm font-medium text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 active:scale-95 transition-transform"
             >
               <Plus size={16} style={{ color: "var(--color-accent)" }} />
-              Add entry
+              {t("fab.addEntry")}
             </button>
           </motion.div>
         )}
@@ -69,7 +71,7 @@ export function DataPageFAB({ onAdd, onImport }: DataPageFABProps) {
           // @ts-ignore
           "--tw-ring-color": "var(--color-accent)",
         }}
-        aria-label={open ? "Close actions" : "Open actions"}
+        aria-label={open ? t("fab.closeActions") : t("fab.openActions")}
       >
         <motion.div
           animate={{ rotate: open ? 45 : 0 }}

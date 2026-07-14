@@ -1,19 +1,26 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { getStats } from "../../lib/api";
 import type { Stats } from "../../lib/types";
+import { useWeightTracker } from "../../context/WeightTrackerContext";
+import { kgToDisplay, unitLabel } from "../../lib/units";
 
 interface StatsCardsProps {
   refreshKey: number;
 }
 
 export function StatsCards({ refreshKey }: StatsCardsProps) {
+  const { t } = useTranslation("dashboard");
+  const { unit } = useWeightTracker();
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     console.log("[StatsCards] fetching — refreshKey:", refreshKey);
     getStats().then(setStats).catch(console.error);
   }, [refreshKey]);
+
+  const u = unitLabel(unit);
 
   const trendColor =
     !stats || stats.current_trend === 0
@@ -27,27 +34,27 @@ export function StatsCards({ refreshKey }: StatsCardsProps) {
   const cards = stats
     ? [
         {
-          label: "Total Loss",
-          value: `${stats.total_loss_kg > 0 ? "-" : "+"}${Math.abs(stats.total_loss_kg).toFixed(1)} kg`,
+          label: t("stats.totalLoss"),
+          value: `${stats.total_loss_kg > 0 ? "-" : "+"}${kgToDisplay(Math.abs(stats.total_loss_kg), unit).toFixed(1)} ${u}`,
           color: stats.total_loss_kg > 0 ? "text-green-600" : "text-red-600",
         },
         {
-          label: "Avg Loss/Week",
-          value: `${stats.avg_loss_per_week >= 0 ? "+" : ""}${stats.avg_loss_per_week.toFixed(2)} kg/wk`,
+          label: t("stats.avgLossPerWeek"),
+          value: `${stats.avg_loss_per_week >= 0 ? "+" : ""}${kgToDisplay(stats.avg_loss_per_week, unit).toFixed(2)} ${u}/wk`,
           color: "text-gray-900 dark:text-gray-100",
         },
         {
-          label: "Current Trend",
-          value: `${stats.current_trend >= 0 ? "+" : ""}${stats.current_trend.toFixed(2)} kg/wk`,
+          label: t("stats.currentTrend"),
+          value: `${stats.current_trend >= 0 ? "+" : ""}${kgToDisplay(stats.current_trend, unit).toFixed(2)} ${u}/wk`,
           color: trendColor,
         },
         {
-          label: "Days Tracked",
+          label: t("stats.daysTracked"),
           value: String(stats.days_tracked),
           color: "text-gray-900 dark:text-gray-100",
         },
         {
-          label: "Measurements",
+          label: t("stats.measurements"),
           value: String(stats.measurement_count),
           color: "text-gray-900 dark:text-gray-100",
         },

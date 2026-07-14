@@ -1,0 +1,95 @@
+# ============================================================
+# Weight Tracker — Infrastructure provisioning pipeline
+#
+# Runs Terraform to provision / update all Azure resources.
+#
+# Trigger: manual only (workflow_dispatch).
+#          Infrastructure changes are intentional — never fire
+#          automatically on a code push.
+#
+# Required GitHub Actions secrets:
+#   AZURE_CLIENT_ID           Service principal client ID (OIDC)
+#   AZURE_TENANT_ID           Azure tenant ID
+#   AZURE_SUBSCRIPTION_ID     Azure subscription ID
+#
+# Required GitHub Actions secrets (passed as TF_VAR_* to Terraform):
+#   TF_VAR_subscription_id          Azure subscription ID
+#   TF_VAR_keycloak_admin_password  Keycloak admin password
+#   TF_VAR_github_repo              e.g. bawada/weight_analysis
+#
+# The PostgreSQL server and its admin password are managed by
+# Terraform (random_password), so no database secrets are needed.
+# ============================================================
+
+name: Infrastructure — Terraform
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write  # Required for OIDC login to Azure
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    env:
+      # Terraform reads TF_VAR_* automatically as input variables.
+      # Sensitive values are stored as GitHub secrets and never logged.
+      TF_VAR_subscription_id:         ${{ secrets.TF_VAR_subscription_id }}
+      TF_VAR_keycloak_admin_password: ${{ secrets.TF_VAR_keycloak_admin_password }}
+      TF_VAR_github_repo:             ${{ secrets.TF_VAR_github_repo }}
+
+    steps:
+      # ----------------------------------------------------------
+      # 1. Checkout
+      # ----------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------
+      # 2. Log in to Azure via OIDC
+      # ----------------------------------------------------------
+      - name: Log in to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ----------------------------------------------------------
+      # 3. Set up Terraform
+      # ----------------------------------------------------------
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+
+      # ----------------------------------------------------------
+      # 4. terraform init
+      # ----------------------------------------------------------
+      - name: Terraform init
+        run: terraform init
+
+      # ----------------------------------------------------------
+      # 5. terraform plan
+      #    Output is saved to a file and echoed into the job
+      #    summary so it's readable directly in the GitHub UI.
+      # ----------------------------------------------------------
+      - name: Terraform plan
+        run: |
+          terraform plan -out=tfplan -no-color 2>&1 | tee plan.txt
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat plan.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # ----------------------------------------------------------
+      # 6. terraform apply
+      # ----------------------------------------------------------
+      - name: Terraform apply
+        run: terraform apply -auto-approve tfplan

@@ -12,13 +12,18 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { Scale, FileUp, PenLine, ArrowRight, CheckCircle, Plus } from "lucide-react";
-import { completeOnboarding } from "../../lib/api";
+import { completeOnboarding, updateProfile } from "../../lib/api";
 import type { CsvImportResult } from "../../lib/types";
+import { WeightUnit } from "../../lib/types";
+import { displayToKg, unitLabel } from "../../lib/units";
 import { CsvImport } from "./CsvImport";
 import { AddMeasurement } from "../forms/AddMeasurement";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import { ActionCard } from "../ui/ActionCard";
 
 interface Props {
@@ -27,7 +32,7 @@ interface Props {
   accent: string;
 }
 
-type Step = "welcome" | "csv" | "manual" | "done";
+type Step = "profile" | "welcome" | "csv" | "manual" | "done";
 
 interface Summary {
   mode: "csv" | "manual" | "skipped";
@@ -36,10 +41,39 @@ interface Summary {
 }
 
 export function OnboardingWizard({ onComplete, accent }: Props) {
-  const [step, setStep] = useState<Step>("welcome");
+  const { t } = useTranslation("onboarding");
+  const [step, setStep] = useState<Step>("profile");
   const [summary, setSummary] = useState<Summary>({ mode: "skipped", manualCount: 0 });
   const [manualCount, setManualCount] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
+
+  // Optional profile capture (first step).
+  const [profileUnit, setProfileUnit] = useState<WeightUnit>(WeightUnit.Kg);
+  const [profileHeight, setProfileHeight] = useState("");
+  const [profileGoal, setProfileGoal] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  async function saveProfileAndContinue() {
+    const hasInput = profileHeight.trim() !== "" || profileGoal.trim() !== "";
+    if (hasInput || profileUnit !== WeightUnit.Kg) {
+      try {
+        setSavingProfile(true);
+        await updateProfile({
+          unit_preference: profileUnit,
+          height_cm: profileHeight.trim() === "" ? null : parseFloat(profileHeight),
+          goal_weight:
+            profileGoal.trim() === ""
+              ? null
+              : displayToKg(parseFloat(profileGoal), profileUnit),
+        });
+      } catch {
+        // non-fatal — the user can set these later in Settings
+      } finally {
+        setSavingProfile(false);
+      }
+    }
+    setStep("welcome");
+  }
 
   async function finish(s: Summary) {
     setSummary(s);
@@ -83,8 +117,9 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
             style={{ backgroundColor: "var(--color-accent)" }}
             animate={{
               width:
-                step === "welcome" ? "25%"
-                : step === "csv" || step === "manual" ? "60%"
+                step === "profile" ? "20%"
+                : step === "welcome" ? "40%"
+                : step === "csv" || step === "manual" ? "70%"
                 : "100%",
             }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
@@ -93,6 +128,101 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
 
         <div className="p-5 sm:p-8 overflow-y-auto flex-1">
           <AnimatePresence mode="wait">
+            {/* ---- Profile (optional) ---- */}
+            {step === "profile" && (
+              <motion.div
+                key="profile"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col gap-5"
+              >
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}>
+                    <Scale className="w-8 h-8" style={{ color: "var(--color-accent)" }} />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">
+                    {t("profile.title")}
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                    {t("profile.description")}
+                  </p>
+                </div>
+
+                {/* Units */}
+                <div className="flex items-center justify-center gap-2">
+                  {[WeightUnit.Kg, WeightUnit.Lb].map((option) => {
+                    const isActive = profileUnit === option;
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => setProfileUnit(option)}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                          isActive
+                            ? "text-white border-transparent"
+                            : "text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                        }`}
+                        style={isActive ? { backgroundColor: "var(--color-accent)" } : undefined}
+                      >
+                        {unitLabel(option)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="onb-height" className="text-xs text-muted-foreground">{t("profile.heightLabel")}</Label>
+                    <Input
+                      id="onb-height"
+                      type="number"
+                      value={profileHeight}
+                      onChange={(e) => setProfileHeight(e.target.value)}
+                      min={50}
+                      max={300}
+                      step={0.5}
+                      placeholder={t("profile.heightPlaceholder")}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="onb-goal" className="text-xs text-muted-foreground">
+                      {t("profile.goalLabel", { unit: unitLabel(profileUnit) })}
+                    </Label>
+                    <Input
+                      id="onb-goal"
+                      type="number"
+                      value={profileGoal}
+                      onChange={(e) => setProfileGoal(e.target.value)}
+                      step={0.1}
+                      placeholder={profileUnit === WeightUnit.Lb ? t("profile.goalPlaceholderLb") : t("profile.goalPlaceholderKg")}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-between pt-2">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => setStep("welcome")}
+                    className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {t("profile.skip")}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={saveProfileAndContinue}
+                    disabled={savingProfile}
+                  >
+                    {t("actions.continue", { ns: "common" })} <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
             {/* ---- Welcome ---- */}
             {step === "welcome" && (
               <motion.div
@@ -108,11 +238,10 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                     <Scale className="w-8 h-8" style={{ color: "var(--color-accent)" }} />
                   </div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">
-                    Welcome to Weight Tracker
+                    {t("welcome.title")}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-                    Your dashboard is empty for now. Let's get your measurements in — you
-                    can import a CSV file or add entries manually.
+                    {t("welcome.description")}
                   </p>
                 </div>
 
@@ -121,15 +250,15 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                   <ActionCard
                     variant="onboarding"
                     icon={<FileUp className="w-5 h-5" />}
-                    title="Import a CSV file"
-                    description="Upload an existing export from a scale app or spreadsheet."
+                    title={t("welcome.csvCardTitle")}
+                    description={t("welcome.csvCardDescription")}
                     onClick={() => setStep("csv")}
                   />
                   <ActionCard
                     variant="onboarding"
                     icon={<PenLine className="w-5 h-5" />}
-                    title="Add measurements manually"
-                    description="Enter your weight entries one by one."
+                    title={t("welcome.manualCardTitle")}
+                    description={t("welcome.manualCardDescription")}
                     onClick={() => setStep("manual")}
                   />
                 </div>
@@ -140,7 +269,7 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                   onClick={handleSkip}
                   className="self-center text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
-                  Skip for now — I'll add data later
+                  {t("welcome.skip")}
                 </Button>
               </motion.div>
             )}
@@ -155,7 +284,7 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                 transition={{ duration: 0.25 }}
               >
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">
-                  Import CSV
+                  {t("csvStep.heading")}
                 </h2>
                 <CsvImport
                   onComplete={handleCsvComplete}
@@ -176,10 +305,10 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                 className="flex flex-col gap-4"
               >
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-                  Add measurements
+                  {t("manual.title")}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Add as many entries as you like. Click "Done" when you're ready.
+                  {t("manual.description")}
                 </p>
 
                 {/* Reuse the existing AddMeasurement form */}
@@ -194,7 +323,7 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                     className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" />
-                    {manualCount} measurement{manualCount !== 1 ? "s" : ""} added
+                    {t("manual.added", { count: manualCount })}
                   </motion.p>
                 )}
 
@@ -204,14 +333,14 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                     size="sm"
                     onClick={() => setStep("welcome")}
                   >
-                    ← Back
+                    ← {t("actions.back", { ns: "common" })}
                   </Button>
                   <Button
                     variant="primary"
                     size="sm"
                     onClick={handleManualDone}
                   >
-                    Done <ArrowRight className="w-4 h-4" />
+                    {t("actions.finish", { ns: "common" })} <ArrowRight className="w-4 h-4" />
                   </Button>
                 </div>
               </motion.div>
@@ -229,25 +358,20 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                 <CheckCircle className="w-14 h-14 text-green-500" />
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">
-                    You're all set!
+                    {t("done.title")}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs">
                     {summary.mode === "csv" && summary.csvResult && (
-                      <>
-                        {summary.csvResult.inserted} measurement
-                        {summary.csvResult.inserted !== 1 ? "s" : ""} imported successfully.
-                      </>
+                      <>{t("done.csvSummary", { count: summary.csvResult.inserted })}</>
                     )}
                     {summary.mode === "manual" && (
                       <>
                         {summary.manualCount > 0
-                          ? `${summary.manualCount} measurement${summary.manualCount !== 1 ? "s" : ""} added.`
-                          : "Your dashboard is ready whenever you are."}
+                          ? t("done.manualSummary", { count: summary.manualCount })
+                          : t("done.manualEmpty")}
                       </>
                     )}
-                    {summary.mode === "skipped" && (
-                      <>Head to the Data page to add your measurements whenever you're ready.</>
-                    )}
+                    {summary.mode === "skipped" && <>{t("done.skippedSummary")}</>}
                   </p>
                 </div>
 
@@ -258,7 +382,7 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                   disabled={isFinishing}
                   className="rounded-xl"
                 >
-                  Go to dashboard <ArrowRight className="w-4 h-4" />
+                  {t("done.goToDashboard")} <ArrowRight className="w-4 h-4" />
                 </Button>
               </motion.div>
             )}

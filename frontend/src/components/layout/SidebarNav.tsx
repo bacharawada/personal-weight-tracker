@@ -7,22 +7,27 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   BarChart2,
   ChevronLeft,
   ChevronRight,
   CircleUser,
   Database,
+  Globe,
   LayoutDashboard,
   LogOut,
   Moon,
   Settings,
   Sun,
   TrendingDown,
+  UserCog,
 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { useAuth } from "../../context/AuthContext";
+import type { Language } from "../../i18n/config";
+import { LANGUAGE_LABELS } from "../../i18n/config";
 import { cn } from "../../lib/cn";
 import { Button } from "../ui/button";
 import {
@@ -35,19 +40,26 @@ import {
 } from "../ui/dropdown-menu";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/analysis", label: "Analysis", icon: TrendingDown },
-  { to: "/data", label: "Data", icon: Database },
-  { to: "/settings", label: "Settings", icon: Settings },
-];
+  { to: "/", labelKey: "links.dashboard", icon: LayoutDashboard, end: true },
+  { to: "/analysis", labelKey: "links.analysis", icon: TrendingDown, end: false },
+  { to: "/data", labelKey: "links.data", icon: Database, end: false },
+  { to: "/settings", labelKey: "links.settings", icon: Settings, end: false },
+] as const;
 
 export function SidebarNav() {
+  const { t, i18n } = useTranslation("nav");
   const { isDark, toggleTheme } = useWeightTracker();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
+  const currentLanguage: Language = i18n.language.startsWith("fr") ? "fr" : "en";
+  const nextLanguage: Language = currentLanguage === "fr" ? "en" : "fr";
+  const nextLanguageLabel = LANGUAGE_LABELS[nextLanguage];
+
   const displayName =
-    user?.name || (user?.email ? user.email.split("@")[0] : "Account");
+    user?.name ||
+    (user?.email ? user.email.split("@")[0] : t("account.fallback"));
   const displayEmail = user?.email ?? "";
 
   return (
@@ -80,7 +92,7 @@ export function SidebarNav() {
               className="font-bold text-sm whitespace-nowrap overflow-hidden"
               style={{ color: "var(--color-accent)" }}
             >
-              Weight Tracker
+              {t("appName", { ns: "common" })}
             </motion.span>
           </AnimatePresence>
         )}
@@ -89,7 +101,7 @@ export function SidebarNav() {
           size="icon-sm"
           onClick={() => setCollapsed((c) => !c)}
           className={cn("shrink-0 text-gray-400", collapsed ? "" : "ml-auto")}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </Button>
@@ -97,12 +109,12 @@ export function SidebarNav() {
 
       {/* ── Navigation ─────────────────────────────────────── */}
       <nav className="flex-1 px-2 py-3 space-y-1 relative">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+        {NAV_ITEMS.map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
-            title={collapsed ? label : undefined}
+            title={collapsed ? t(labelKey) : undefined}
             className={({ isActive }) =>
               cn(
                 "relative flex items-center rounded-lg text-sm font-medium transition-colors z-10",
@@ -135,7 +147,7 @@ export function SidebarNav() {
                 <AnimatePresence initial={false}>
                   {!collapsed && (
                     <motion.span
-                      key={label}
+                      key={labelKey}
                       initial={{ opacity: 0, width: 0 }}
                       animate={{ opacity: 1, width: "auto" }}
                       exit={{ opacity: 0, width: 0 }}
@@ -143,7 +155,7 @@ export function SidebarNav() {
                       className="relative z-10 overflow-hidden whitespace-nowrap"
                       style={isActive ? { color: "var(--color-accent)" } : {}}
                     >
-                      {label}
+                      {t(labelKey)}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -153,12 +165,41 @@ export function SidebarNav() {
         ))}
       </nav>
 
+      {/* ── Language switcher ──────────────────────────────── */}
+      <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
+        <Button
+          variant="ghost"
+          onClick={() => void i18n.changeLanguage(nextLanguage)}
+          title={t("language.switchTo", { language: nextLanguageLabel })}
+          className={cn(
+            "text-sm font-medium text-gray-600 dark:text-gray-400 w-full overflow-hidden",
+            collapsed ? "justify-center p-2 h-auto" : "gap-3 px-3 py-2 h-auto",
+          )}
+        >
+          <Globe size={18} className="shrink-0" />
+          <AnimatePresence initial={false}>
+            {!collapsed && (
+              <motion.span
+                key={`lang-label-${nextLanguage}`}
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.13 }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                {nextLanguageLabel}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Button>
+      </div>
+
       {/* ── Theme toggle ───────────────────────────────────── */}
       <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
         <Button
           variant="ghost"
           onClick={toggleTheme}
-          title={isDark ? "Light mode" : "Dark mode"}
+          title={isDark ? t("theme.light") : t("theme.dark")}
           className={cn(
             "text-sm font-medium text-gray-600 dark:text-gray-400 w-full overflow-hidden",
             collapsed ? "justify-center p-2 h-auto" : "gap-3 px-3 py-2 h-auto",
@@ -179,7 +220,7 @@ export function SidebarNav() {
                 transition={{ duration: 0.13 }}
                 className="overflow-hidden whitespace-nowrap"
               >
-                {isDark ? "Light mode" : "Dark mode"}
+                {isDark ? t("theme.light") : t("theme.dark")}
               </motion.span>
             )}
           </AnimatePresence>
@@ -241,12 +282,17 @@ export function SidebarNav() {
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate("/profile")}>
+              <UserCog size={14} />
+              {t("account.profile")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20"
               onSelect={() => logout()}
             >
               <LogOut size={14} />
-              Sign out
+              {t("account.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,440 +1,366 @@
-"""Plotly figure-building functions.
+"""Chart data builders.
 
 Every function in this module is **pure**: it accepts a DataFrame (and
-optional configuration) and returns a ``plotly.graph_objects.Figure``.
-No side effects, no global state, no Dash imports.
+optional configuration) and returns a JSON-ready ``dict`` of plain data
+series — points, bands, zones — with **no rendering concerns** (no colours,
+no theme, no layout). The frontend owns all rendering.
+
+Dates are emitted as ``datetime.date`` objects (FastAPI serialises them to
+ISO-8601 strings). Non-finite values (``NaN`` / ``inf``) are dropped so the
+payload is always valid JSON.
+
+This module is UI-agnostic — no FastAPI, DB, or plotting-library imports.
 """
 
 from __future__ import annotations
 
+import dataclasses
+import math
+from typing import TYPE_CHECKING
+
 import pandas as pd
-import plotly.graph_objects as go
 
-from analysis import (
-    FitResult,
-    compute_derivative,
-    compute_rolling_mean,
-    detect_deviations,
-    extrapolate_fit,
-)
-from viz.palettes import PALETTES, PaletteConfig
+from analysis import MODEL_EXP, compute_derivative, compute_rolling_mean, energy_series
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from analysis import ModelCurve, ModelDiagnostics
 
 # ---------------------------------------------------------------------------
-# Helper
+# Helpers
 # ---------------------------------------------------------------------------
 
 
-def _plotly_template(dark: bool) -> str:
-    """Return the Plotly template name for the current theme.
+def _points(dates: Iterable[pd.Timestamp], values: Iterable[float]) -> list[dict]:
+    """Zip dates and values into ``{date, value}`` points, dropping non-finite values.
 
     Args:
-        dark: Whether dark mode is active.
+        dates: Iterable of pandas Timestamps (rows align with *values*).
+        values: Iterable of numeric values.
 
     Returns:
-        ``"plotly_dark"`` or ``"plotly_white"``.
+        A list of ``{"date": date, "value": float}`` dicts. Points whose value
+        is ``NaN`` or infinite are omitted (the frontend renders a gap).
     """
-    return "plotly_dark" if dark else "plotly_white"
+    out: list[dict] = []
+    for ts, value in zip(dates, values, strict=True):
+        fvalue = float(value)
+        if math.isfinite(fvalue):
+            out.append({"date": ts.date(), "value": fvalue})
+    return out
 
 
-def _title(text: str, color: str) -> dict:
-    """Return a Plotly title dict styled with the active palette accent color.
+def _raw_points(
+    dates: Iterable[pd.Timestamp],
+    values: Iterable[float],
+    notes: Iterable[str | None],
+) -> list[dict]:
+    """Zip dates, values and notes into ``{date, value, note}`` points.
+
+    Same finite-value filtering as ``_points``, plus a pass-through
+    ``note`` field carried only on the raw measurements series.
 
     Args:
-        text: Title text.
-        color: Hex color string from the active palette.
+        dates: Iterable of pandas Timestamps (rows align with *values*).
+        values: Iterable of numeric values.
+        notes: Iterable of optional note strings, aligned with *values*.
 
     Returns:
-        A dict suitable for use as the ``title`` argument in
-        ``fig.update_layout()``.
+        A list of ``{"date": date, "value": float, "note": str | None}``
+        dicts. Points whose value is ``NaN`` or infinite are omitted.
     """
-    return dict(
-        text=f"<b>{text}</b>",
-        font=dict(size=16, color=color),
-        x=0,
-        xanchor="left",
-        pad=dict(l=16, t=8, b=4),
+    out: list[dict] = []
+    for ts, value, note in zip(dates, values, notes, strict=True):
+        fvalue = float(value)
+        if math.isfinite(fvalue):
+            out.append({"date": ts.date(), "value": fvalue, "note": note or None})
+    return out
+
+
+def _offset_dates(first_date: pd.Timestamp, offsets: Iterable[float]) -> list[pd.Timestamp]:
+    """Convert day-offsets from the first measurement into Timestamps.
+
+    Args:
+        first_date: Timestamp of the first measurement (the x-origin).
+        offsets: Day-offsets (``ModelCurve`` x-values are days from origin).
+
+    Returns:
+        A list of Timestamps, one per offset.
+    """
+    return [first_date + pd.Timedelta(days=float(offset)) for offset in offsets]
+
+
+def _diagnostics_dict(diagnostics: ModelDiagnostics | None) -> dict | None:
+    """Serialise fit diagnostics to a JSON-ready dict, dropping non-finite floats.
+
+    Args:
+        diagnostics: The model's diagnostics, or ``None`` when the fit failed.
+
+    Returns:
+        A dict matching the ``ModelDiagnosticsOut`` schema, with any
+        non-finite float replaced by ``None``; ``None`` when *diagnostics*
+        is ``None``.
+    """
+    if diagnostics is None:
+        return None
+    out = dataclasses.asdict(diagnostics)
+    for key, value in out.items():
+        if isinstance(value, float) and not math.isfinite(value):
+            out[key] = None
+    return out
+
+
+def _model_series(curve: ModelCurve, first_date: pd.Timestamp, show_band: bool) -> dict:
+    """Reduce a successful ``ModelCurve`` to its drawable JSON series.
+
+    Args:
+        curve: A successful model curve.
+        first_date: Timestamp of the first measurement (x-origin for offsets).
+        show_band: Whether to include the uncertainty band.
+
+    Returns:
+        A dict matching the ``ModelSeriesOut`` schema.
+    """
+    fit = _points(_offset_dates(first_date, curve.x_fit), curve.y_fit)
+
+    projection: list[dict] = []
+    band: list[dict] = []
+    if len(curve.x_extra) > 0:
+        extra_dates = _offset_dates(first_date, curve.x_extra)
+        projection = _points(extra_dates, curve.y_extra)
+        has_band = (
+            show_band
+            and len(curve.y_extra_low) == len(curve.x_extra)
+            and len(curve.y_extra_high) == len(curve.x_extra)
+        )
+        if has_band:
+            for ts, low, high in zip(
+                extra_dates, curve.y_extra_low, curve.y_extra_high, strict=True
+            ):
+                flow, fhigh = float(low), float(high)
+                if math.isfinite(flow) and math.isfinite(fhigh):
+                    band.append({"date": ts.date(), "lower": flow, "upper": fhigh})
+
+    asymptote = (
+        float(curve.hline_y)
+        if curve.hline_y is not None and math.isfinite(curve.hline_y)
+        else None
     )
 
+    return {
+        "id": curve.kind,
+        "label": curve.legend_label,
+        "fit": fit,
+        "projection": projection,
+        "band": band,
+        "asymptote": asymptote,
+        "asymptote_label": curve.hline_label,
+        "warning": curve.warning,
+        "diagnostics": _diagnostics_dict(curve.diagnostics),
+    }
+
+
+def _deviation_zones(df: pd.DataFrame, exp_curve: ModelCurve) -> list[dict]:
+    """Derive plateau / acceleration zones from the exponential-fit residuals.
+
+    A measurement whose residual exceeds +0.5σ is a plateau (above the fit);
+    below -0.5σ is an acceleration. Each flagged measurement yields a ±3-day
+    zone centred on its date.
+
+    Args:
+        df: DataFrame with a ``date`` column (rows align with the residuals).
+        exp_curve: A successful exponential ``ModelCurve``.
+
+    Returns:
+        A list of dicts matching the ``DeviationZoneOut`` schema (possibly
+        empty).
+    """
+    residuals = exp_curve.residuals
+    if exp_curve.std_residuals <= 0 or len(residuals) != len(df):
+        return []
+
+    threshold = 0.5 * exp_curve.std_residuals
+    dates = pd.to_datetime(df["date"]).reset_index(drop=True)
+    zones: list[dict] = []
+    for i, residual in enumerate(residuals):
+        value = float(residual)
+        if value > threshold:
+            kind = "plateau"
+        elif value < -threshold:
+            kind = "acceleration"
+        else:
+            continue
+        row_date = dates.iloc[i]
+        zones.append(
+            {
+                "start": (row_date - pd.Timedelta(days=3)).date(),
+                "end": (row_date + pd.Timedelta(days=3)).date(),
+                "kind": kind,
+            }
+        )
+    return zones
+
 
 # ---------------------------------------------------------------------------
-# Main weight chart (Panel 1)
+# Weight chart
 # ---------------------------------------------------------------------------
 
 
-def build_weight_figure(
+def build_weight_chart_data(
     df: pd.DataFrame,
-    fit_result: FitResult | None = None,
-    palette: PaletteConfig | None = None,
-    dark: bool = False,
+    model_curves: list[ModelCurve] | None = None,
     smoothing_window: int = 5,
-    extrapolation_days: int = 0,
-) -> go.Figure:
-    """Build the main weight-progression figure.
+    goal_weight: float | None = None,
+    show_band: bool = True,
+) -> dict:
+    """Build the data series for the main weight-progression chart.
 
-    Includes raw data, rolling mean, exponential-decay fit (with optional
-    extrapolation), deviation zones, and an asymptote annotation.
+    Includes raw measurements, the rolling mean, any number of selected
+    prediction-model overlays (each with optional projection and uncertainty
+    band), deviation zones from the exponential model, and an optional goal
+    weight.
 
     Args:
         df: DataFrame with ``date`` and ``weight`` columns.
-        fit_result: Optional fit result from ``fit_exponential_decay()``.
-        palette: Colour palette.  Defaults to ``Classic``.
-        dark: Whether dark mode is active.
+        model_curves: Prediction-model overlays. Empty / ``None`` yields raw
+            data and the rolling mean only.
         smoothing_window: Window size for the rolling mean.
-        extrapolation_days: Number of days to extrapolate beyond data.
+        goal_weight: Optional target weight (kg).
+        show_band: Whether to include each model's uncertainty band.
 
     Returns:
-        A ``plotly.graph_objects.Figure``.
+        A dict matching the ``WeightChartData`` schema.
     """
-    if palette is None:
-        palette = PALETTES["Classic"]
-
-    fig = go.Figure()
-    template = _plotly_template(dark)
+    curves = [c for c in (model_curves or []) if c.success]
 
     if df.empty:
-        fig.update_layout(
-            template=template,
-            title=_title("Weight Progression", palette.accent),
-            xaxis_title="Date",
-            yaxis_title="Weight (kg)",
-            annotations=[
-                dict(
-                    text="No data available. Add measurements to get started.",
-                    xref="paper",
-                    yref="paper",
-                    x=0.5,
-                    y=0.5,
-                    showarrow=False,
-                    font=dict(size=16),
-                )
-            ],
-        )
-        return fig
+        return {
+            "raw": [],
+            "smoothed": [],
+            "smoothing_window": smoothing_window,
+            "models": [],
+            "zones": [],
+            "goal_weight": goal_weight,
+        }
 
     dates = pd.to_datetime(df["date"])
+    first_date = dates.iloc[0]
 
-    # -- Deviation zones ---------------------------------------------------
-    if fit_result and fit_result.success:
-        dev_df = detect_deviations(df, fit_result)
-        for _, row in dev_df.iterrows():
-            row_date = pd.to_datetime(row["date"])
-            if row["plateau"]:
-                fig.add_vrect(
-                    x0=row_date - pd.Timedelta(days=3),
-                    x1=row_date + pd.Timedelta(days=3),
-                    fillcolor=palette.residual_above,
-                    opacity=0.08,
-                    line_width=0,
-                    layer="below",
-                )
-            if row["accel"]:
-                fig.add_vrect(
-                    x0=row_date - pd.Timedelta(days=3),
-                    x1=row_date + pd.Timedelta(days=3),
-                    fillcolor=palette.residual_below,
-                    opacity=0.08,
-                    line_width=0,
-                    layer="below",
-                )
-
-    # -- Raw data ----------------------------------------------------------
-    fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=df["weight"],
-            mode="lines+markers",
-            name="Raw measurements",
-            line=dict(color=palette.raw, width=1.4),
-            marker=dict(color=palette.raw, size=7, line=dict(color="white", width=0.5)),
-            opacity=0.8,
-        )
-    )
-
-    # -- Rolling mean ------------------------------------------------------
+    notes = df["note"] if "note" in df.columns else pd.Series([None] * len(df), index=df.index)
+    raw = _raw_points(dates, df["weight"], notes)
     rolling = compute_rolling_mean(df, window=smoothing_window)
-    fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=rolling,
-            mode="lines",
-            name=f"Rolling mean ({smoothing_window}-pt)",
-            line=dict(color=palette.smoothed, width=2.4),
-        )
-    )
+    smoothed = _points(dates, rolling)
 
-    # -- Exponential-decay fit (solid over data) ---------------------------
-    if fit_result and fit_result.success:
-        first_date = dates.iloc[0]
-        fit_dates = first_date + pd.to_timedelta(fit_result.x_fit, unit="D")
-        fig.add_trace(
-            go.Scatter(
-                x=fit_dates,
-                y=fit_result.y_fit,
-                mode="lines",
-                name=(
-                    f"Exp. decay fit (a={fit_result.params[0]:.1f}, "
-                    f"\u03bb={fit_result.params[1] * 365:.2f}/yr)"
-                ),
-                line=dict(color=palette.fit, width=1.8),
-            )
-        )
+    models = [_model_series(c, first_date, show_band) for c in curves]
 
-        # -- Extrapolation (dashed) ----------------------------------------
-        if extrapolation_days > 0:
-            last_date = dates.iloc[-1].date()
-            x_extra, y_extra = extrapolate_fit(
-                fit_result,
-                last_date=last_date,
-                first_date=dates.iloc[0].date(),
-                horizon_days=extrapolation_days,
-            )
-            if len(x_extra) > 0:
-                extra_dates = first_date + pd.to_timedelta(x_extra, unit="D")
-                fig.add_trace(
-                    go.Scatter(
-                        x=extra_dates,
-                        y=y_extra,
-                        mode="lines",
-                        name="Extrapolation",
-                        line=dict(color=palette.fit, width=1.8, dash="dash"),
-                        opacity=0.6,
-                    )
-                )
+    exp_curve = next((c for c in curves if c.kind == MODEL_EXP), None)
+    zones = _deviation_zones(df, exp_curve) if exp_curve is not None else []
 
-        # -- Asymptote annotation ------------------------------------------
-        c_value = fit_result.params[2]
-        fig.add_hline(
-            y=c_value,
-            line_dash="dash",
-            line_color=palette.fit,
-            opacity=0.5,
-            annotation_text=f"Predicted equilibrium: ~{c_value:.1f} kg",
-            annotation_position="top left",
-        )
-
-    # -- Layout ------------------------------------------------------------
-    fig.update_layout(
-        template=template,
-        title=_title("Body Weight Progression", palette.accent),
-        xaxis_title="Date",
-        yaxis_title="Weight (kg)",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        hovermode="x unified",
-        xaxis=dict(
-            rangeselector=dict(
-                buttons=[
-                    dict(count=1, label="1M", step="month", stepmode="backward"),
-                    dict(count=3, label="3M", step="month", stepmode="backward"),
-                    dict(count=6, label="6M", step="month", stepmode="backward"),
-                    dict(count=1, label="YTD", step="year", stepmode="todate"),
-                    dict(label="All", step="all"),
-                ]
-            ),
-            rangeslider=dict(visible=True),
-        ),
-        margin=dict(l=60, r=30, t=80, b=40),
-    )
-
-    return fig
+    return {
+        "raw": raw,
+        "smoothed": smoothed,
+        "smoothing_window": smoothing_window,
+        "models": models,
+        "zones": zones,
+        "goal_weight": goal_weight,
+    }
 
 
 # ---------------------------------------------------------------------------
-# Derivative chart (Panel 2)
+# Derivative chart
 # ---------------------------------------------------------------------------
 
 
-def build_derivative_figure(
-    df: pd.DataFrame,
-    palette: PaletteConfig | None = None,
-    dark: bool = False,
-) -> go.Figure:
-    """Build the rate-of-change (kg/week) bar + line chart.
+def build_derivative_chart_data(df: pd.DataFrame) -> dict:
+    """Build the data series for the rate-of-change (kg/week) chart.
 
     Args:
         df: DataFrame with ``date`` and ``weight`` columns.
-        palette: Colour palette.  Defaults to ``Classic``.
-        dark: Whether dark mode is active.
 
     Returns:
-        A ``plotly.graph_objects.Figure``.
+        A dict matching the ``DerivativeChartData`` schema. The raw rate of the
+        first measurement is undefined and therefore omitted.
     """
-    if palette is None:
-        palette = PALETTES["Classic"]
-
-    fig = go.Figure()
-    template = _plotly_template(dark)
-
     if df.empty or len(df) < 2:
-        fig.update_layout(
-            template=template,
-            title=_title("Rate of Change (kg/week)", palette.accent),
-            xaxis_title="Date",
-            yaxis_title="Rate (kg/week)",
-        )
-        return fig
+        return {"bars": [], "smoothed": []}
 
     deriv_df = compute_derivative(df)
     dates = pd.to_datetime(deriv_df["date"])
 
-    # Colour bars: green when losing, red when gaining.
-    bar_colors = [
-        palette.derivative if v < 0 else palette.derivative_pos
-        for v in deriv_df["deriv_kgweek"].fillna(0)
-    ]
+    bars: list[dict] = []
+    for ts, rate in zip(dates, deriv_df["deriv_kgweek"], strict=True):
+        frate = float(rate)
+        if math.isfinite(frate):
+            bars.append({"date": ts.date(), "rate": frate})
 
-    fig.add_trace(
-        go.Bar(
-            x=dates,
-            y=deriv_df["deriv_kgweek"],
-            name="Rate (kg/week)",
-            marker_color=bar_colors,
-            opacity=0.55,
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=deriv_df["deriv_smooth"],
-            mode="lines",
-            name="Smoothed rate",
-            line=dict(color=palette.derivative_smooth, width=1.8),
-        )
-    )
-
-    fig.add_hline(y=0, line_dash="dash", line_color="grey", opacity=0.5)
-
-    fig.update_layout(
-        template=template,
-        title=_title("Rate of Change", palette.accent),
-        xaxis_title="Date",
-        yaxis_title="Rate (kg/week)",
-        hovermode="x unified",
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=60, r=30, t=60, b=40),
-    )
-
-    return fig
+    smoothed = _points(dates, deriv_df["deriv_smooth"])
+    return {"bars": bars, "smoothed": smoothed}
 
 
 # ---------------------------------------------------------------------------
-# Residuals chart (Panel 3)
+# Energy-balance chart
 # ---------------------------------------------------------------------------
 
 
-def build_residuals_figure(
-    df: pd.DataFrame,
-    fit_result: FitResult | None = None,
-    palette: PaletteConfig | None = None,
-    dark: bool = False,
-) -> go.Figure:
-    """Build the residuals-vs-model chart.
+def build_energy_chart_data(df: pd.DataFrame, window: int = 5) -> dict:
+    """Build the data series for the estimated daily energy-balance chart.
+
+    Each bar is the estimated daily energy balance (kcal) at a measurement,
+    derived from the smoothed weight-change rate (negative = deficit). The
+    frontend renders the bars, the zero baseline and the tooltip.
 
     Args:
         df: DataFrame with ``date`` and ``weight`` columns.
-        fit_result: Result from ``fit_exponential_decay()``.
-        palette: Colour palette.  Defaults to ``Classic``.
-        dark: Whether dark mode is active.
+        window: Centred rolling-mean window passed through to
+            :func:`analysis.energy_series`.
 
     Returns:
-        A ``plotly.graph_objects.Figure``.
+        A dict matching the ``EnergyChartData`` schema. Empty ``bars`` when
+        there are fewer than two measurements.
     """
-    if palette is None:
-        palette = PALETTES["Classic"]
+    return {"bars": energy_series(df, window)}
 
-    fig = go.Figure()
-    template = _plotly_template(dark)
 
-    if fit_result is None or not fit_result.success or df.empty:
-        fig.update_layout(
-            template=template,
-            title=_title("Residuals vs. Model", palette.accent),
-            xaxis_title="Date",
-            yaxis_title="Residual (kg)",
-            annotations=[
-                dict(
-                    text="Residuals unavailable (fit failed or no data)",
-                    xref="paper",
-                    yref="paper",
-                    x=0.5,
-                    y=0.5,
-                    showarrow=False,
-                    font=dict(size=14),
-                )
-            ],
-        )
-        return fig
+# ---------------------------------------------------------------------------
+# Residuals chart
+# ---------------------------------------------------------------------------
+
+
+def build_residuals_chart_data(
+    df: pd.DataFrame,
+    model_curves: list[ModelCurve] | None = None,
+) -> dict:
+    """Build the data series for the residuals-vs-model chart.
+
+    Each successful model whose residuals align with the data contributes one
+    residual series. The ±1σ band magnitude is taken from the first such model.
+
+    Args:
+        df: DataFrame with ``date`` and ``weight`` columns.
+        model_curves: Prediction-model overlays whose residuals to plot.
+
+    Returns:
+        A dict matching the ``ResidualsChartData`` schema.
+    """
+    curves = [
+        c
+        for c in (model_curves or [])
+        if c.success and len(c.residuals) == len(df)
+    ]
+
+    if df.empty or not curves:
+        return {"series": [], "sigma": 0.0}
 
     dates = pd.to_datetime(df["date"])
-    residuals = fit_result.residuals
-    pos_mask = residuals >= 0
-    neg_mask = residuals < 0
+    series = [
+        {
+            "id": curve.kind,
+            "label": f"{curve.legend_label} residuals",
+            "points": _points(dates, curve.residuals),
+        }
+        for curve in curves
+    ]
 
-    # Above model (plateau zones)
-    fig.add_trace(
-        go.Scatter(
-            x=dates[pos_mask],
-            y=residuals[pos_mask],
-            mode="markers",
-            name="Above model (plateau)",
-            marker=dict(color=palette.residual_above, size=8),
-            fill="tozeroy",
-            fillcolor=palette.residual_above,
-            opacity=0.4,
-        )
-    )
-
-    # Below model (acceleration zones)
-    fig.add_trace(
-        go.Scatter(
-            x=dates[neg_mask],
-            y=residuals[neg_mask],
-            mode="markers",
-            name="Below model (acceleration)",
-            marker=dict(color=palette.residual_below, size=8),
-            fill="tozeroy",
-            fillcolor=palette.residual_below,
-            opacity=0.4,
-        )
-    )
-
-    # Connecting line
-    fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=residuals,
-            mode="lines",
-            name="Residuals",
-            line=dict(color="grey", width=1),
-            opacity=0.5,
-            showlegend=False,
-        )
-    )
-
-    fig.add_hline(y=0, line_dash="dash", line_color=palette.fit, opacity=0.7)
-
-    # +/- 1 sigma band
-    if fit_result.std_residuals > 0:
-        fig.add_hrect(
-            y0=-fit_result.std_residuals,
-            y1=fit_result.std_residuals,
-            fillcolor="grey",
-            opacity=0.05,
-            line_width=0,
-            annotation_text="\u00b11\u03c3",
-            annotation_position="top left",
-        )
-
-    fig.update_layout(
-        template=template,
-        title=_title("Residuals vs. Exponential Decay Model", palette.accent),
-        xaxis_title="Date",
-        yaxis_title="Residual (kg)",
-        hovermode="x unified",
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=60, r=30, t=60, b=40),
-    )
-
-    return fig
+    sigma = float(curves[0].std_residuals) if curves[0].std_residuals > 0 else 0.0
+    return {"series": series, "sigma": sigma}

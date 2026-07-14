@@ -6,6 +6,7 @@
  */
 
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { BarChart2, ArrowLeft, Globe } from "lucide-react";
 import { GithubIcon } from "../components/ui/github-icon";
@@ -14,6 +15,8 @@ import { Button } from "../components/ui/button";
 const APP_VERSION = "1.0.0";
 
 export function AboutPage() {
+  const { t } = useTranslation("about");
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-12">
       <motion.div
@@ -29,26 +32,23 @@ export function AboutPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
-              Weight Tracker
+              {t("appName", { ns: "common" })}
             </h1>
             <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
-              v{APP_VERSION}
+              {t("version", { version: APP_VERSION })}
             </span>
           </div>
         </div>
 
         {/* Description */}
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center leading-relaxed">
-          A personal health dashboard for tracking your weight over time.
-          Log measurements, visualise trends with interactive charts, model
-          your progression with an exponential decay fit, and export your
-          data whenever you need it.
+          {t("description")}
         </p>
 
         {/* Developer */}
         <div className="flex flex-col gap-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 text-center">
-            Built by
+            {t("builtBy")}
           </p>
           <div className="flex flex-col gap-2">
             <a
@@ -60,10 +60,10 @@ export function AboutPage() {
               <GithubIcon className="shrink-0 w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  @bacharawada
+                  {t("links.githubName")}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  github.com/bacharawada
+                  {t("links.githubUrl")}
                 </p>
               </div>
             </a>
@@ -80,10 +80,10 @@ export function AboutPage() {
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  Portfolio
+                  {t("links.portfolioName")}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  portfolio.bawada.fr
+                  {t("links.portfolioUrl")}
                 </p>
               </div>
             </a>
@@ -94,7 +94,7 @@ export function AboutPage() {
         <Button variant="ghost" size="sm" asChild className="self-center">
           <Link to="/login">
             <ArrowLeft size={15} />
-            Back to sign in
+            {t("backToSignIn")}
           </Link>
         </Button>
       </motion.div>

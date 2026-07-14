@@ -2,6 +2,7 @@
  * AddMeasurementModal — dialog wrapper around the AddMeasurement form.
  */
 
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -22,13 +23,14 @@ export function AddMeasurementModal({
   onOpenChange,
   onSuccess,
 }: AddMeasurementModalProps) {
+  const { t } = useTranslation("data");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add measurement</DialogTitle>
+          <DialogTitle>{t("addModal.title")}</DialogTitle>
           <DialogDescription>
-            Enter a date and your weight in kilograms.
+            {t("addModal.description")}
           </DialogDescription>
         </DialogHeader>
         <AddMeasurement onSuccess={onSuccess} />

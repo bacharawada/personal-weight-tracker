@@ -98,3 +98,11 @@ frontend/dist/
 
 # AI agent instructions
 agent_instructions.md
+
+# Terraform — state files and local provider cache contain secrets / machine-specific data
+infra/terraform.tfvars
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/.terraform/
+# Lock file IS committed — it pins provider versions (like package-lock.json)
+# !infra/.terraform.lock.hcl

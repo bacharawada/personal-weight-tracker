@@ -1,44 +1,64 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { addMeasurement } from "../../lib/api";
 import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useWeightTracker } from "../../context/WeightTrackerContext";
+import { displayToKg, unitLabel, weightBounds } from "../../lib/units";
+
+const NOTE_MAX_LENGTH = 500;
 
 interface AddMeasurementProps {
   onSuccess: () => void;
 }
 
 export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
+  const { t } = useTranslation("data");
+  const { unit } = useWeightTracker();
   const [date, setDate] = useState("");
   const [weight, setWeight] = useState("");
+  const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const u = unitLabel(unit);
+  const bounds = weightBounds(unit);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!date || !weight) {
-      setFeedback({ type: "error", msg: "Please fill in both date and weight." });
+      setFeedback({ type: "error", msg: t("form.errorFillBoth") });
       return;
     }
 
-    const w = parseFloat(weight);
-    if (isNaN(w) || w < 40 || w > 300) {
-      setFeedback({ type: "error", msg: "Weight must be between 40 and 300 kg." });
+    const entered = parseFloat(weight);
+    if (isNaN(entered) || entered < bounds.min || entered > bounds.max) {
+      setFeedback({
+        type: "error",
+        msg: t("form.errorRange", {
+          min: bounds.min.toFixed(0),
+          max: bounds.max.toFixed(0),
+          unit: u,
+        }),
+      });
       return;
     }
 
+    const w = displayToKg(entered, unit);
     setLoading(true);
     try {
-      await addMeasurement({ date, weight: w });
-      setFeedback({ type: "success", msg: `Added: ${date} — ${w} kg` });
+      await addMeasurement({ date, weight: w, note: note.trim() || undefined });
+      setFeedback({ type: "success", msg: t("form.added", { date, weight: entered, unit: u }) });
       setDate("");
       setWeight("");
+      setNote("");
       onSuccess();
       setTimeout(() => setFeedback(null), 4000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
+      const msg = err instanceof Error ? err.message : t("form.errorUnknown");
       setFeedback({ type: "error", msg });
     } finally {
       setLoading(false);
@@ -47,12 +67,9 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-        Add Measurement
-      </h3>
       <form onSubmit={handleSubmit} className="space-y-2">
         <div className="space-y-1">
-          <Label htmlFor="add-date" className="text-xs text-muted-foreground">Date</Label>
+          <Label htmlFor="add-date" className="text-xs text-muted-foreground">{t("form.dateLabel")}</Label>
           <Input
             id="add-date"
             type="date"
@@ -63,18 +80,33 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="add-weight" className="text-xs text-muted-foreground">Weight (kg)</Label>
+          <Label htmlFor="add-weight" className="text-xs text-muted-foreground">{t("form.weightLabel", { unit: u })}</Label>
           <Input
             id="add-weight"
             type="number"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            min={40}
-            max={300}
+            min={bounds.min}
+            max={bounds.max}
             step={0.05}
-            placeholder="e.g. 75.5"
+            placeholder={u === "lb" ? t("form.weightPlaceholderLb") : t("form.weightPlaceholderKg")}
             className="h-8 text-sm"
           />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="add-note" className="text-xs text-muted-foreground">{t("form.noteLabel")}</Label>
+          <Input
+            id="add-note"
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={NOTE_MAX_LENGTH}
+            placeholder={t("form.notePlaceholder")}
+            className="h-8 text-sm"
+          />
+          <p className="text-[10px] text-muted-foreground text-right">
+            {note.length}/{NOTE_MAX_LENGTH}
+          </p>
         </div>
         <Button
           type="submit"
@@ -83,7 +115,7 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
           disabled={loading}
           className="w-full"
         >
-          <Plus size={14} /> {loading ? "Adding…" : "Add"}
+          <Plus size={14} /> {loading ? t("form.submitAdding") : t("form.submitAdd")}
         </Button>
       </form>
 
