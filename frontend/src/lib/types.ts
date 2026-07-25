@@ -1,5 +1,7 @@
 /** TypeScript types matching the FastAPI Pydantic schemas. */
 
+import type { Language } from "../i18n/config";
+
 export interface Measurement {
   date: string;
   weight: number;
@@ -118,6 +120,12 @@ export const DateSeparator = {
   Dash: "-",
 } as const;
 export type DateSeparator = (typeof DateSeparator)[keyof typeof DateSeparator];
+
+export const Theme = {
+  Light: "light",
+  Dark: "dark",
+} as const;
+export type Theme = (typeof Theme)[keyof typeof Theme];
 
 export const ModelId = {
   Exp: "exp",
@@ -281,6 +289,10 @@ export interface UserProfile {
   unit_preference: WeightUnit;
   date_order: DateOrder;
   date_separator: DateSeparator;
+  theme: Theme;
+  palette: string;
+  /** `null` when never picked — the language is then detected from the browser. */
+  language: Language | null;
 }
 
 export interface UserProfileUpdate {
@@ -290,6 +302,9 @@ export interface UserProfileUpdate {
   unit_preference?: WeightUnit;
   date_order?: DateOrder;
   date_separator?: DateSeparator;
+  theme?: Theme;
+  palette?: string;
+  language?: Language | null;
 }
 
 /**

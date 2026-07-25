@@ -25,7 +25,7 @@ const SEPARATORS = [DateSeparator.Slash, DateSeparator.Dash] as const;
 
 export function DisplayFormatSettings() {
   const { t } = useTranslation("settings");
-  const { profile, unit, saveProfile } = useWeightTracker();
+  const { profile, unit, savePreference } = useWeightTracker();
 
   const dateOrder = profile?.date_order ?? DateOrder.Dmy;
   const dateSeparator = profile?.date_separator ?? DateSeparator.Slash;
@@ -35,17 +35,17 @@ export function DisplayFormatSettings() {
 
   async function handleUnitChange(next: WeightUnit) {
     if (next === unit) return;
-    await saveProfile({ unit_preference: next });
+    await savePreference({ unit_preference: next });
   }
 
   async function handleOrderChange(next: DateOrder) {
     if (next === dateOrder) return;
-    await saveProfile({ date_order: next });
+    await savePreference({ date_order: next });
   }
 
   async function handleSeparatorChange(next: DateSeparator) {
     if (next === dateSeparator) return;
-    await saveProfile({ date_separator: next });
+    await savePreference({ date_separator: next });
   }
 
   return (

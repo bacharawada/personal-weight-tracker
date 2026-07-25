@@ -450,15 +450,19 @@ class UserProfileOut(BaseModel):
     unit_preference: Literal["kg", "lb"]
     date_order: Literal["dmy", "mdy", "ymd"]
     date_separator: Literal["/", "-"]
+    theme: Literal["light", "dark"]
+    palette: str
+    language: Literal["en", "fr"] | None
 
 
 class UserProfileUpdate(BaseModel):
     """Request body for PATCH /api/me — all fields optional (partial update).
 
     Fields omitted from the request are left unchanged; sending an explicit
-    ``null`` clears the corresponding value. The three display preferences
-    (``unit_preference``, ``date_order``, ``date_separator``) are ``NOT NULL``
-    columns, so ``null`` is treated as "leave unchanged" for them.
+    ``null`` clears the corresponding value. ``unit_preference``,
+    ``date_order``, ``date_separator``, ``theme`` and ``palette`` back
+    ``NOT NULL`` columns, so ``null`` is treated as "leave unchanged" for them.
+    ``language`` is genuinely nullable: clearing it restores browser detection.
     """
 
     height_cm: float | None = Field(default=None, ge=50.0, le=300.0)
@@ -467,6 +471,9 @@ class UserProfileUpdate(BaseModel):
     unit_preference: Literal["kg", "lb"] | None = None
     date_order: Literal["dmy", "mdy", "ymd"] | None = None
     date_separator: Literal["/", "-"] | None = None
+    theme: Literal["light", "dark"] | None = None
+    palette: str | None = Field(default=None, max_length=20)
+    language: Literal["en", "fr"] | None = None
 
 
 class DisplayPreferencesOut(BaseModel):

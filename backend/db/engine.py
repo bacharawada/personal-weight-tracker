@@ -76,6 +76,27 @@ users = sa.Table(
         nullable=False,
         server_default="/",
     ),
+    # -- Appearance --------------------------------------------------------
+    # 'light' or 'dark'. The frontend also caches this in localStorage so the
+    # first paint is correct before the profile request resolves.
+    sa.Column(
+        "theme",
+        sa.String(5),
+        nullable=False,
+        server_default="light",
+    ),
+    # Chart palette name. Deliberately unconstrained: the palette catalogue
+    # lives in the frontend (lib/palettes.ts) and falls back to 'Classic' for
+    # an unknown name, so adding a palette needs no migration.
+    sa.Column(
+        "palette",
+        sa.String(20),
+        nullable=False,
+        server_default="Classic",
+    ),
+    # UI language, or NULL when the user has never picked one — in that case
+    # the frontend keeps detecting it from the browser.
+    sa.Column("language", sa.String(2), nullable=True),
     sa.Column(
         "created_at",
         sa.DateTime(timezone=True),
@@ -101,6 +122,14 @@ users = sa.Table(
     sa.CheckConstraint(
         "date_separator IN ('/', '-')",
         name="ck_date_separator",
+    ),
+    sa.CheckConstraint(
+        "theme IN ('light', 'dark')",
+        name="ck_theme",
+    ),
+    sa.CheckConstraint(
+        "language IS NULL OR language IN ('en', 'fr')",
+        name="ck_language",
     ),
 )
 

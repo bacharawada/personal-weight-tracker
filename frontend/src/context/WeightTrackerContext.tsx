@@ -4,6 +4,13 @@
  * Provides chart configuration, refresh/polling state, selected
  * point for deletion, and the theme toggle — all accessible from
  * any page without prop drilling.
+ *
+ * Appearance preferences (theme, palette, language) are owned by the server so
+ * they follow the account across devices. Because theme and language must be
+ * right on the very first paint — long before `/api/me` resolves — the browser
+ * keeps a local copy (localStorage for the theme, i18next's own store for the
+ * language) and this provider reconciles the two once the profile arrives, then
+ * persists every later change.
  */
 
 import {
@@ -24,7 +31,9 @@ import type {
   UserProfile,
   UserProfileUpdate,
 } from "../lib/types";
-import { WeightUnit } from "../lib/types";
+import { Theme, WeightUnit } from "../lib/types";
+import i18n from "../i18n";
+import { isLanguage } from "../i18n/config";
 import { usePolling } from "../hooks/usePolling";
 import { useTheme } from "../hooks/useTheme";
 import { DisplayPreferencesProvider } from "./DisplayPreferencesContext";
@@ -56,7 +65,10 @@ interface WeightTrackerContextValue {
   // User profile (height, goal, units)
   profile: UserProfile | null;
   unit: WeightUnit;
+  /** Persist profile data and refetch — for height, goal weight, target date. */
   saveProfile: (patch: UserProfileUpdate) => Promise<void>;
+  /** Persist a rendering preference without triggering a chart refetch. */
+  savePreference: (patch: UserProfileUpdate) => Promise<void>;
 
   // Point selection (for deletion)
   selectedPoint: SelectedPoint | null;
@@ -66,7 +78,7 @@ interface WeightTrackerContextValue {
 export const WeightTrackerContext = createContext<WeightTrackerContextValue | null>(null);
 
 export function WeightTrackerProvider({ children }: { children: React.ReactNode }) {
-  const { isDark, toggle } = useTheme();
+  const { isDark, setTheme } = useTheme();
   const { refreshKey, bump } = usePolling();
 
   const [chartParams, setChartParams] = useState<ChartParams>({
@@ -123,6 +135,65 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
       bump();
     },
     [bump],
+  );
+
+  const savePreference = useCallback(async (patch: UserProfileUpdate) => {
+    const updated = await updateProfile(patch);
+    setProfile(updated);
+    // Deliberately no bump(): units, date format, theme, palette and language
+    // are pure rendering concerns. The server returns the same numbers either
+    // way, so refetching every chart would be wasted work.
+  }, []);
+
+  // Adopt the server's appearance once per user rather than on every profile
+  // write: a later PATCH response must not clobber a change made in between.
+  const appearanceSyncedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (profile == null || appearanceSyncedFor.current === profile.id) return;
+    appearanceSyncedFor.current = profile.id;
+
+    setTheme(profile.theme);
+    setChartParams((prev) =>
+      prev.palette === profile.palette ? prev : { ...prev, palette: profile.palette },
+    );
+    // A null language means the user never picked one — keep whatever the
+    // browser detected instead of forcing a default on them.
+    if (profile.language != null && profile.language !== i18n.language) {
+      void i18n.changeLanguage(profile.language);
+    }
+  }, [profile, setTheme]);
+
+  // Persist any language switch, wherever in the UI it was triggered.
+  useEffect(() => {
+    function handleLanguageChanged(language: string) {
+      if (!isLanguage(language)) return;
+      // Skip the echo of the reconciliation above, and the initial detection
+      // for a user whose profile has not loaded yet.
+      if (profile == null || profile.language === language) return;
+      void savePreference({ language });
+    }
+    i18n.on("languageChanged", handleLanguageChanged);
+    return () => {
+      i18n.off("languageChanged", handleLanguageChanged);
+    };
+  }, [profile, savePreference]);
+
+  const toggleTheme = useCallback(() => {
+    const next = isDark ? Theme.Light : Theme.Dark;
+    setTheme(next);
+    void savePreference({ theme: next });
+  }, [isDark, setTheme, savePreference]);
+
+  // Palette lives in chartParams for the charts' benefit, but it is a stored
+  // preference — persist it whenever it actually changes.
+  const applyChartParams = useCallback(
+    (next: ChartParams) => {
+      setChartParams(next);
+      if (next.palette !== chartParams.palette) {
+        void savePreference({ palette: next.palette });
+      }
+    },
+    [chartParams.palette, savePreference],
   );
 
   const unit = profile?.unit_preference ?? WeightUnit.Kg;
@@ -183,12 +254,12 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
   const value = useMemo<WeightTrackerContextValue>(
     () => ({
       isDark,
-      toggleTheme: toggle,
+      toggleTheme,
       // chartParams already has dark kept in sync via the useEffect above —
       // do NOT spread a new object here, that creates a new reference every
       // render and triggers unnecessary chart re-fetches.
       chartParams,
-      setChartParams,
+      setChartParams: applyChartParams,
       accent,
       refreshKey: chartRefreshKey,
       bump,
@@ -196,13 +267,15 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
       profile,
       unit,
       saveProfile,
+      savePreference,
       selectedPoint,
       setSelectedPoint,
     }),
     [
       isDark,
-      toggle,
+      toggleTheme,
       chartParams,
+      applyChartParams,
       accent,
       chartRefreshKey,
       bump,
@@ -210,6 +283,7 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
       profile,
       unit,
       saveProfile,
+      savePreference,
       selectedPoint,
     ]
   );

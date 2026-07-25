@@ -656,6 +656,40 @@ class TestUserEndpoints:
         assert data["unit_preference"] == "kg"
         assert data["date_order"] == "dmy"
         assert data["date_separator"] == "/"
+        assert data["theme"] == "light"
+        assert data["palette"] == "Classic"
+        assert data["language"] is None
+
+    def test_patch_profile_updates_appearance(self) -> None:
+        """PATCH /api/me persists theme, palette and language."""
+        client = _make_client(seed=False)
+        r = client.patch(
+            "/api/me",
+            json={"theme": "dark", "palette": "Forest", "language": "fr"},
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["theme"] == "dark"
+        assert data["palette"] == "Forest"
+        assert data["language"] == "fr"
+
+    def test_patch_profile_clears_language(self) -> None:
+        """An explicit null on language restores browser detection."""
+        client = _make_client(seed=False)
+        client.patch("/api/me", json={"language": "fr"})
+        r = client.patch("/api/me", json={"language": None})
+        assert r.status_code == 200
+        assert r.json()["language"] is None
+
+    def test_patch_profile_rejects_bad_theme(self) -> None:
+        """PATCH /api/me rejects an unknown theme."""
+        client = _make_client(seed=False)
+        assert client.patch("/api/me", json={"theme": "sepia"}).status_code == 422
+
+    def test_patch_profile_rejects_bad_language(self) -> None:
+        """PATCH /api/me rejects an unsupported language."""
+        client = _make_client(seed=False)
+        assert client.patch("/api/me", json={"language": "de"}).status_code == 422
 
     def test_patch_profile_updates_fields(self) -> None:
         """PATCH /api/me persists profile fields."""

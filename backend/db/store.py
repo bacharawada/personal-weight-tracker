@@ -77,7 +77,8 @@ class WeightDataStore:
         Returns:
             Dict with keys ``id``, ``keycloak_sub``, ``onboarding_completed``,
             ``height_cm``, ``goal_weight``, ``target_date``,
-            ``unit_preference``, ``date_order`` and ``date_separator``.
+            ``unit_preference``, ``date_order``, ``date_separator``, ``theme``,
+            ``palette`` and ``language``.
         """
         user_id = self.get_or_create_user(keycloak_sub)
         with self._engine.connect() as conn:
@@ -92,6 +93,9 @@ class WeightDataStore:
                     users.c.unit_preference,
                     users.c.date_order,
                     users.c.date_separator,
+                    users.c.theme,
+                    users.c.palette,
+                    users.c.language,
                 ).where(users.c.id == user_id)
             ).fetchone()
         if row is None:
@@ -106,6 +110,9 @@ class WeightDataStore:
             "unit_preference": row[6],
             "date_order": row[7],
             "date_separator": row[8],
+            "theme": row[9],
+            "palette": row[10],
+            "language": row[11],
         }
 
     def get_display_preferences_by_user_id(self, user_id: int) -> dict:
@@ -146,17 +153,26 @@ class WeightDataStore:
 
         Only the keys present in *fields* are written, so callers can
         perform partial (PATCH-style) updates. Allowed keys: ``height_cm``,
-        ``goal_weight``, ``target_date``, ``unit_preference``, ``date_order``,
-        ``date_separator``. A ``None`` value clears the corresponding column,
-        except for the display preferences, which are ``NOT NULL``: passing
-        ``None`` for those leaves them unchanged rather than raising.
+        ``goal_weight``, ``target_date``, ``language``, ``unit_preference``,
+        ``date_order``, ``date_separator``, ``theme``, ``palette``. A ``None``
+        value clears the corresponding column, except for the ``NOT NULL``
+        preferences: passing ``None`` for those leaves them unchanged rather
+        than raising.
 
         Args:
             keycloak_sub: The ``sub`` claim from the Keycloak JWT.
             fields: Mapping of column names to new values.
         """
-        nullable = {"height_cm", "goal_weight", "target_date"}
-        non_nullable = {"unit_preference", "date_order", "date_separator"}
+        # ``language`` is nullable: clearing it means "go back to detecting the
+        # language from the browser".
+        nullable = {"height_cm", "goal_weight", "target_date", "language"}
+        non_nullable = {
+            "unit_preference",
+            "date_order",
+            "date_separator",
+            "theme",
+            "palette",
+        }
         values = {
             k: v
             for k, v in fields.items()

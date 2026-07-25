@@ -300,6 +300,9 @@ class TestUserProfile:
         assert profile["unit_preference"] == "kg"
         assert profile["date_order"] == "dmy"
         assert profile["date_separator"] == "/"
+        assert profile["theme"] == "light"
+        assert profile["palette"] == "Classic"
+        assert profile["language"] is None
 
     def test_update_profile(self, engine: sa.engine.Engine) -> None:
         """update_profile() persists supplied fields."""
@@ -362,6 +365,28 @@ class TestUserProfile:
         assert profile["unit_preference"] == "lb"
         assert profile["date_order"] == "dmy"
         assert profile["date_separator"] == "/"
+
+    def test_update_profile_appearance(self, engine: sa.engine.Engine) -> None:
+        """update_profile() persists theme, palette and language."""
+        s = WeightDataStore(engine)
+        s.update_profile(
+            "appearance-user",
+            {"theme": "dark", "palette": "Teal", "language": "fr"},
+        )
+        profile = s.get_user_profile("appearance-user")
+        assert profile["theme"] == "dark"
+        assert profile["palette"] == "Teal"
+        assert profile["language"] == "fr"
+
+    def test_update_profile_clears_language(self, engine: sa.engine.Engine) -> None:
+        """A None language is cleared (back to browser detection), not kept."""
+        s = WeightDataStore(engine)
+        s.update_profile("lang-clear-user", {"language": "fr", "theme": "dark"})
+        s.update_profile("lang-clear-user", {"language": None, "theme": None})
+        profile = s.get_user_profile("lang-clear-user")
+        assert profile["language"] is None
+        # theme is NOT NULL, so its None was ignored rather than applied.
+        assert profile["theme"] == "dark"
 
     def test_display_preferences_by_user_id(self, engine: sa.engine.Engine) -> None:
         """get_display_preferences_by_user_id() returns no identity fields."""
