@@ -1,9 +1,12 @@
 /**
  * `dashboard` namespace (English — source of truth).
  *
- * Copy for the dashboard page: page title/subtitle, stat card labels, the
- * goal-progress panel, and the BMI panel (including standard BMI category
- * names).
+ * Copy for every dashboard module: the insight headline, the welcome and locked
+ * states, the trajectory panel, the goal ring, pace, consistency, momentum,
+ * energy, BMI (including the standard category names) and the event timeline.
+ *
+ * The `stats.*` block outlives the stat row it was written for: the public share
+ * page still renders those five labels.
  */
 
 const dashboard = {
@@ -53,7 +56,6 @@ const dashboard = {
     needHeight: "Add your height in Settings to unlock this.",
   },
   trajectory: {
-    label: "Trajectory",
     currentWeight: "Current weight",
     noWeight: "Add a measurement to start your trajectory.",
     last7Days: "7 days",
@@ -70,8 +72,6 @@ const dashboard = {
     measurements: "Measurements",
   },
   goal: {
-    setupPrompt:
-      "Set a goal weight and height in Settings to track your progress and BMI.",
     label: "Goal",
     onTrack: "On track",
     behind: "Behind",
@@ -79,8 +79,6 @@ const dashboard = {
     remaining: "{{value}} to go",
     projectedDate: "Projected {{date}}",
     ringLabel: "{{percent}}% of the way to your goal",
-    daysToGo_one: "~{{count}} day to go",
-    daysToGo_other: "~{{count}} days to go",
     // Projection summaries. The backend returns a status plus raw numbers;
     // `goal` and `rate` arrive already converted to the user's unit and `date`
     // already formatted to their date preference.
@@ -162,17 +160,9 @@ const dashboard = {
   },
   milestones: {
     label: "Milestones",
-    setupPrompt:
-      "Set a goal weight in Settings to track your milestones.",
     counter: "{{achieved}}/{{total}}",
-    nextMilestone: "Next milestone",
-    kgRemaining: "{{value}} to go",
-    allAchieved: "All milestones reached — goal achieved!",
-    startWeight: "Start",
-    goalWeight: "Goal",
   },
   plateau: {
-    cardLabel: "Plateau Status",
     plateauBadge_one: "Plateau for {{count}} day",
     plateauBadge_other: "Plateau for {{count}} days",
     losingBadge: "Steady loss",
@@ -180,8 +170,6 @@ const dashboard = {
     recentRate: "Recent rate",
     historySummary_one: "{{count}} past plateau, avg {{avgDays}} day",
     historySummary_other: "{{count}} past plateaus, avg {{avgDays}} days",
-    noHistory: "No past plateaus in your history yet.",
-    historyUnavailable: "Not enough history to look for past plateaus.",
     explainer:
       "A plateau: your trend has stayed within 0.1 kg/week for at least 14 days.",
     insufficientData: "Add a few more measurements to see your plateau status.",

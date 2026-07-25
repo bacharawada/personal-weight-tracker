@@ -52,7 +52,6 @@ const dashboard: DashboardResource = {
     needHeight: "Ajoutez votre taille dans les Paramètres pour débloquer ceci.",
   },
   trajectory: {
-    label: "Trajectoire",
     currentWeight: "Poids actuel",
     noWeight: "Ajoutez une mesure pour démarrer votre trajectoire.",
     last7Days: "7 jours",
@@ -68,8 +67,6 @@ const dashboard: DashboardResource = {
     measurements: "Mesures",
   },
   goal: {
-    setupPrompt:
-      "Définissez un poids cible et une taille dans les Paramètres pour suivre votre progression et votre IMC.",
     label: "Objectif",
     onTrack: "Sur la bonne voie",
     behind: "En retard",
@@ -77,8 +74,6 @@ const dashboard: DashboardResource = {
     remaining: "Reste {{value}}",
     projectedDate: "Projeté au {{date}}",
     ringLabel: "{{percent}} % du chemin vers votre objectif",
-    daysToGo_one: "~{{count}} jour restant",
-    daysToGo_other: "~{{count}} jours restants",
     status: {
       noGoal: "Aucun poids cible défini.",
       noData: "Ajoutez des mesures pour projeter votre objectif.",
@@ -161,17 +156,9 @@ const dashboard: DashboardResource = {
   },
   milestones: {
     label: "Jalons",
-    setupPrompt:
-      "Définissez un poids cible dans les Paramètres pour suivre vos jalons.",
     counter: "{{achieved}}/{{total}}",
-    nextMilestone: "Prochain jalon",
-    kgRemaining: "{{value}} restant",
-    allAchieved: "Tous les jalons atteints — objectif atteint !",
-    startWeight: "Départ",
-    goalWeight: "Objectif",
   },
   plateau: {
-    cardLabel: "Statut du plateau",
     plateauBadge_one: "Plateau depuis {{count}} jour",
     plateauBadge_other: "Plateau depuis {{count}} jours",
     losingBadge: "Perte régulière",
@@ -179,8 +166,6 @@ const dashboard: DashboardResource = {
     recentRate: "Taux récent",
     historySummary_one: "{{count}} plateau passé, moy. {{avgDays}} jour",
     historySummary_other: "{{count}} plateaux passés, moy. {{avgDays}} jours",
-    noHistory: "Aucun plateau détecté dans votre historique pour le moment.",
-    historyUnavailable: "Pas assez d'historique pour rechercher d'anciens plateaux.",
     explainer:
       "Un plateau : votre tendance est restée sous 0,1 kg/semaine pendant au moins 14 jours.",
     insufficientData: "Ajoutez quelques mesures pour voir votre statut de plateau.",
