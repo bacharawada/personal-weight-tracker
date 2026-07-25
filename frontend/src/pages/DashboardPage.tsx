@@ -9,6 +9,7 @@ import { EnergyCard } from "../components/dashboard/EnergyCard";
 import { TrajectoryPanel } from "../components/dashboard/TrajectoryPanel";
 import { GoalRingTile } from "../components/dashboard/GoalRingTile";
 import { BmiTile } from "../components/dashboard/BmiTile";
+import { PaceTile } from "../components/dashboard/PaceTile";
 import { useDashboardData } from "../hooks/useDashboardData";
 
 export function DashboardPage() {
@@ -43,6 +44,10 @@ export function DashboardPage() {
             milestones={milestones}
             latestWeight={latest?.weight ?? null}
           />
+          <PaceTile goal={goal} latestWeight={latest?.weight ?? null} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <BmiTile latestWeight={latest?.weight ?? null} />
         </div>
 

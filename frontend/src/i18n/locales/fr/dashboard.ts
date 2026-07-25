@@ -63,6 +63,21 @@ const dashboard: DashboardResource = {
       earliest: "Le {{date}} au plus tôt ; plus tard si votre rythme ralentit.",
     },
   },
+  pace: {
+    label: "Rythme",
+    required: "requis {{value}}",
+    typicalRange: "Plage de perte usuelle {{from}}–{{to}} {{unit}}/semaine",
+    meterLabel: "Rythme actuel {{value}}",
+    insufficient: "Ajoutez quelques mesures pour voir votre rythme.",
+    noTargetDate:
+      "Définissez une date cible dans les Paramètres pour voir le rythme nécessaire.",
+    targetDatePassed: "Votre date cible est dépassée.",
+    badge: {
+      onTrack: "Rythme suffisant",
+      tooSlow: "Trop lent",
+      notMoving: "À l'arrêt",
+    },
+  },
   bmi: {
     label: "Indice de masse corporelle",
     addMeasurement: "Ajoutez une mesure pour voir votre IMC.",

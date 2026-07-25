@@ -64,6 +64,20 @@ const dashboard = {
       earliest: "{{date}} at the earliest; later if your rate slows.",
     },
   },
+  pace: {
+    label: "Pace",
+    required: "needed {{value}}",
+    typicalRange: "Typical loss range {{from}}–{{to}} {{unit}}/week",
+    meterLabel: "Current pace {{value}}",
+    insufficient: "Add a few more measurements to see your pace.",
+    noTargetDate: "Set a target date in Settings to see the pace you need.",
+    targetDatePassed: "Your target date has passed.",
+    badge: {
+      onTrack: "Fast enough",
+      tooSlow: "Too slow",
+      notMoving: "Not moving",
+    },
+  },
   bmi: {
     label: "Body Mass Index",
     addMeasurement: "Add a measurement to see your BMI.",
