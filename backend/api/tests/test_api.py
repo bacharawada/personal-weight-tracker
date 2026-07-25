@@ -654,6 +654,8 @@ class TestUserEndpoints:
         assert data["goal_weight"] is None
         assert data["target_date"] is None
         assert data["unit_preference"] == "kg"
+        assert data["date_order"] == "dmy"
+        assert data["date_separator"] == "/"
 
     def test_patch_profile_updates_fields(self) -> None:
         """PATCH /api/me persists profile fields."""
@@ -694,6 +696,44 @@ class TestUserEndpoints:
         client = _make_client(seed=False)
         r = client.patch("/api/me", json={"unit_preference": "stone"})
         assert r.status_code == 422
+
+    def test_patch_profile_updates_date_format(self) -> None:
+        """PATCH /api/me persists the date order and separator."""
+        client = _make_client(seed=False)
+        r = client.patch(
+            "/api/me",
+            json={"date_order": "mdy", "date_separator": "-"},
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["date_order"] == "mdy"
+        assert data["date_separator"] == "-"
+
+    def test_patch_profile_rejects_bad_date_order(self) -> None:
+        """PATCH /api/me rejects an unknown date order."""
+        client = _make_client(seed=False)
+        r = client.patch("/api/me", json={"date_order": "ydm"})
+        assert r.status_code == 422
+
+    def test_patch_profile_rejects_bad_date_separator(self) -> None:
+        """PATCH /api/me rejects a separator outside the allowed set."""
+        client = _make_client(seed=False)
+        r = client.patch("/api/me", json={"date_separator": "."})
+        assert r.status_code == 422
+
+    def test_patch_profile_null_preference_is_a_noop(self) -> None:
+        """An explicit null on a NOT NULL preference leaves it unchanged."""
+        client = _make_client(seed=False)
+        client.patch("/api/me", json={"date_order": "ymd"})
+        r = client.patch(
+            "/api/me",
+            json={"unit_preference": None, "date_order": None, "date_separator": None},
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["unit_preference"] == "kg"
+        assert data["date_order"] == "ymd"
+        assert data["date_separator"] == "/"
 
 
 # -----------------------------------------------------------------------

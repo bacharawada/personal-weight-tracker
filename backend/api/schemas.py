@@ -437,19 +437,38 @@ class UserProfileOut(BaseModel):
     goal_weight: float | None
     target_date: datetime.date | None
     unit_preference: Literal["kg", "lb"]
+    date_order: Literal["dmy", "mdy", "ymd"]
+    date_separator: Literal["/", "-"]
 
 
 class UserProfileUpdate(BaseModel):
     """Request body for PATCH /api/me — all fields optional (partial update).
 
     Fields omitted from the request are left unchanged; sending an explicit
-    ``null`` clears the corresponding value.
+    ``null`` clears the corresponding value. The three display preferences
+    (``unit_preference``, ``date_order``, ``date_separator``) are ``NOT NULL``
+    columns, so ``null`` is treated as "leave unchanged" for them.
     """
 
     height_cm: float | None = Field(default=None, ge=50.0, le=300.0)
     goal_weight: float | None = Field(default=None, ge=40.0, le=300.0)
     target_date: datetime.date | None = None
     unit_preference: Literal["kg", "lb"] | None = None
+    date_order: Literal["dmy", "mdy", "ymd"] | None = None
+    date_separator: Literal["/", "-"] | None = None
+
+
+class DisplayPreferencesOut(BaseModel):
+    """Response model for the public share display preferences.
+
+    Returned by ``/api/public/{token}/preferences`` so the read-only dashboard
+    renders in the unit and date format chosen by the link owner. Carries no
+    identity information.
+    """
+
+    unit_preference: Literal["kg", "lb"]
+    date_order: Literal["dmy", "mdy", "ymd"]
+    date_separator: Literal["/", "-"]
 
 
 # ---------------------------------------------------------------------------

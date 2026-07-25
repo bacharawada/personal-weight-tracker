@@ -188,11 +188,45 @@ class TestPublicAccess:
         assert {"total_loss_kg", "days_tracked", "measurement_count"} <= set(body)
         assert body["measurement_count"] == len(_A_ROWS)
 
+    def test_public_preferences_returns_owner_choices(self) -> None:
+        """The public preferences endpoint mirrors the owner's own settings."""
+        client, _ = _build()
+        client.patch(
+            "/api/me",
+            json={
+                "unit_preference": "lb",
+                "date_order": "mdy",
+                "date_separator": "-",
+            },
+        )
+        token = self._make_token(client)
+        r = client.get(f"/api/public/{token}/preferences")
+        assert r.status_code == 200
+        body = r.json()
+        assert body == {
+            "unit_preference": "lb",
+            "date_order": "mdy",
+            "date_separator": "-",
+        }
+        _assert_no_identity(body)
+
+    def test_public_preferences_defaults(self) -> None:
+        """An owner who never changed anything yields the column defaults."""
+        client, _ = _build()
+        token = self._make_token(client)
+        body = client.get(f"/api/public/{token}/preferences").json()
+        assert body == {
+            "unit_preference": "kg",
+            "date_order": "dmy",
+            "date_separator": "/",
+        }
+
     def test_unknown_token_returns_404(self) -> None:
-        """An unknown token yields 404 on both public endpoints."""
+        """An unknown token yields 404 on every public endpoint."""
         client, _ = _build()
         assert client.get("/api/public/nope/stats").status_code == 404
         assert client.get("/api/public/nope/charts/weight").status_code == 404
+        assert client.get("/api/public/nope/preferences").status_code == 404
 
     def test_revoked_token_returns_404(self) -> None:
         """A revoked token yields 404 (no distinction from unknown)."""

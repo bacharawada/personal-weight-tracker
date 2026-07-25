@@ -76,8 +76,8 @@ class WeightDataStore:
 
         Returns:
             Dict with keys ``id``, ``keycloak_sub``, ``onboarding_completed``,
-            ``height_cm``, ``goal_weight``, ``target_date``, and
-            ``unit_preference``.
+            ``height_cm``, ``goal_weight``, ``target_date``,
+            ``unit_preference``, ``date_order`` and ``date_separator``.
         """
         user_id = self.get_or_create_user(keycloak_sub)
         with self._engine.connect() as conn:
@@ -90,6 +90,8 @@ class WeightDataStore:
                     users.c.goal_weight,
                     users.c.target_date,
                     users.c.unit_preference,
+                    users.c.date_order,
+                    users.c.date_separator,
                 ).where(users.c.id == user_id)
             ).fetchone()
         if row is None:
@@ -102,6 +104,41 @@ class WeightDataStore:
             "goal_weight": row[4],
             "target_date": row[5],
             "unit_preference": row[6],
+            "date_order": row[7],
+            "date_separator": row[8],
+        }
+
+    def get_display_preferences_by_user_id(self, user_id: int) -> dict:
+        """Return the display preferences of *user_id*.
+
+        Used by the public share routes, which resolve a token to a user id and
+        must render the dashboard with the owner's unit and date format. The
+        returned dict deliberately carries no identity information.
+
+        Args:
+            user_id: Internal ``users.id``.
+
+        Returns:
+            Dict with keys ``unit_preference``, ``date_order`` and
+            ``date_separator``.
+
+        Raises:
+            NotFoundError: If no user row matches *user_id*.
+        """
+        with self._engine.connect() as conn:
+            row = conn.execute(
+                sa.select(
+                    users.c.unit_preference,
+                    users.c.date_order,
+                    users.c.date_separator,
+                ).where(users.c.id == user_id)
+            ).fetchone()
+        if row is None:
+            raise NotFoundError(f"User not found: {user_id}")
+        return {
+            "unit_preference": row[0],
+            "date_order": row[1],
+            "date_separator": row[2],
         }
 
     def update_profile(self, keycloak_sub: str, fields: dict) -> None:
@@ -109,15 +146,22 @@ class WeightDataStore:
 
         Only the keys present in *fields* are written, so callers can
         perform partial (PATCH-style) updates. Allowed keys: ``height_cm``,
-        ``goal_weight``, ``target_date``, ``unit_preference``. A ``None``
-        value clears the corresponding column.
+        ``goal_weight``, ``target_date``, ``unit_preference``, ``date_order``,
+        ``date_separator``. A ``None`` value clears the corresponding column,
+        except for the display preferences, which are ``NOT NULL``: passing
+        ``None`` for those leaves them unchanged rather than raising.
 
         Args:
             keycloak_sub: The ``sub`` claim from the Keycloak JWT.
             fields: Mapping of column names to new values.
         """
-        allowed = {"height_cm", "goal_weight", "target_date", "unit_preference"}
-        values = {k: v for k, v in fields.items() if k in allowed}
+        nullable = {"height_cm", "goal_weight", "target_date"}
+        non_nullable = {"unit_preference", "date_order", "date_separator"}
+        values = {
+            k: v
+            for k, v in fields.items()
+            if k in nullable or (k in non_nullable and v is not None)
+        }
         if not values:
             return
         user_id = self.get_or_create_user(keycloak_sub)

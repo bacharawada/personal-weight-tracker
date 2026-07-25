@@ -60,6 +60,22 @@ users = sa.Table(
         nullable=False,
         server_default="kg",
     ),
+    # Preferred date field order: 'dmy' (European), 'mdy' (American) or 'ymd'
+    # (ISO). Dates are always stored as DATE; this only drives display.
+    sa.Column(
+        "date_order",
+        sa.String(3),
+        nullable=False,
+        server_default="dmy",
+    ),
+    # Separator between date fields: '/' or '-'. Ignored for the 'ymd' order,
+    # which always renders with a dash.
+    sa.Column(
+        "date_separator",
+        sa.String(1),
+        nullable=False,
+        server_default="/",
+    ),
     sa.Column(
         "created_at",
         sa.DateTime(timezone=True),
@@ -77,6 +93,14 @@ users = sa.Table(
     sa.CheckConstraint(
         "unit_preference IN ('kg', 'lb')",
         name="ck_unit_preference",
+    ),
+    sa.CheckConstraint(
+        "date_order IN ('dmy', 'mdy', 'ymd')",
+        name="ck_date_order",
+    ),
+    sa.CheckConstraint(
+        "date_separator IN ('/', '-')",
+        name="ck_date_separator",
     ),
 )
 

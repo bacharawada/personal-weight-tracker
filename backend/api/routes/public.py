@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from analysis import compute_summary_stats
 from api.deps import get_store
 from api.routes.charts import _build_curves, _parse_chart_params
-from api.schemas import StatsOut, WeightChartData
+from api.schemas import DisplayPreferencesOut, StatsOut, WeightChartData
 from viz import build_weight_chart_data
 
 if TYPE_CHECKING:
@@ -78,6 +78,28 @@ def public_weight_chart(
         goal_weight=goal_weight,
         show_band=params["band"],
     )
+
+
+@router.get("/{token}/preferences", response_model=DisplayPreferencesOut)
+def public_display_preferences(
+    token: str,
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Return the link owner's display preferences.
+
+    The visitor of a shared dashboard has no account of their own, so the page
+    renders in the unit and date format the owner picked.
+
+    Args:
+        token: The opaque share token from the URL path.
+        store: Injected data store.
+
+    Returns:
+        The owner's unit and date-format preferences. No identity fields are
+        included.
+    """
+    user_id = _resolve_or_404(token, store)
+    return store.get_display_preferences_by_user_id(user_id)
 
 
 @router.get("/{token}/stats", response_model=StatsOut)

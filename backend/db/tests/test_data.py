@@ -298,6 +298,8 @@ class TestUserProfile:
         assert profile["goal_weight"] is None
         assert profile["target_date"] is None
         assert profile["unit_preference"] == "kg"
+        assert profile["date_order"] == "dmy"
+        assert profile["date_separator"] == "/"
 
     def test_update_profile(self, engine: sa.engine.Engine) -> None:
         """update_profile() persists supplied fields."""
@@ -337,6 +339,50 @@ class TestUserProfile:
         profile = s.get_user_profile("safe-user")
         assert profile["goal_weight"] == 65.0
         assert profile["id"] != 999
+
+    def test_update_profile_date_format(self, engine: sa.engine.Engine) -> None:
+        """update_profile() persists the date order and separator."""
+        s = WeightDataStore(engine)
+        s.update_profile("date-fmt-user", {"date_order": "ymd", "date_separator": "-"})
+        profile = s.get_user_profile("date-fmt-user")
+        assert profile["date_order"] == "ymd"
+        assert profile["date_separator"] == "-"
+
+    def test_update_profile_keeps_not_null_preferences(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """A None value never clears a NOT NULL display preference."""
+        s = WeightDataStore(engine)
+        s.update_profile("not-null-user", {"unit_preference": "lb"})
+        s.update_profile(
+            "not-null-user",
+            {"unit_preference": None, "date_order": None, "date_separator": None},
+        )
+        profile = s.get_user_profile("not-null-user")
+        assert profile["unit_preference"] == "lb"
+        assert profile["date_order"] == "dmy"
+        assert profile["date_separator"] == "/"
+
+    def test_display_preferences_by_user_id(self, engine: sa.engine.Engine) -> None:
+        """get_display_preferences_by_user_id() returns no identity fields."""
+        s = WeightDataStore(engine)
+        user_id = s.get_or_create_user("prefs-by-id-user")
+        s.update_profile(
+            "prefs-by-id-user",
+            {"unit_preference": "lb", "date_order": "mdy", "date_separator": "-"},
+        )
+        prefs = s.get_display_preferences_by_user_id(user_id)
+        assert prefs == {
+            "unit_preference": "lb",
+            "date_order": "mdy",
+            "date_separator": "-",
+        }
+
+    def test_display_preferences_unknown_user(self, engine: sa.engine.Engine) -> None:
+        """get_display_preferences_by_user_id() raises for a missing user."""
+        s = WeightDataStore(engine)
+        with pytest.raises(NotFoundError):
+            s.get_display_preferences_by_user_id(999_999)
 
 
 # -----------------------------------------------------------------------
