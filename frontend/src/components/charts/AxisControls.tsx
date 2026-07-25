@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { ChartAxes, ChartPoint, EffectiveAxes } from "../../lib/types";
 import { AUTO_AXES } from "../../lib/types";
 import { DatePicker } from "../ui/date-picker";
+import { SegmentedControl } from "../ui/segmented-control";
 
 interface AxisControlsProps {
   axes: ChartAxes;
@@ -91,6 +92,12 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
   const allPreset = computePreset(points, projection, null);
   const isCustom = JSON.stringify(axes) !== JSON.stringify(allPreset);
   const activeAxes = JSON.stringify(axes);
+  // Which preset the current axes correspond to, if any — manual edits match none.
+  const activePreset = points.length === 0
+    ? null
+    : RANGE_PRESETS.find(
+        (preset) => JSON.stringify(computePreset(points, projection, preset.days)) === activeAxes,
+      )?.key ?? null;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-5">
@@ -113,28 +120,20 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
           {t("axes.presets")}
         </p>
-        <div className="flex flex-wrap gap-2">
-          {RANGE_PRESETS.map((preset) => {
-            const presetAxes = computePreset(points, projection, preset.days);
-            const isActive =
-              points.length > 0 && JSON.stringify(presetAxes) === activeAxes;
-            return (
-              <button
-                key={preset.key}
-                disabled={points.length === 0}
-                onClick={() => onChange(presetAxes)}
-                className={`px-3 py-2 md:py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isActive
-                    ? "text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                }`}
-                style={isActive ? { backgroundColor: "var(--color-accent)" } : undefined}
-              >
-                {t(`axes.presetLabels.${preset.key}`)}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          options={RANGE_PRESETS.map((preset) => ({
+            value: preset.key,
+            label: t(`axes.presetLabels.${preset.key}`),
+            shortLabel: t(`axes.presetShortLabels.${preset.key}`),
+            disabled: points.length === 0,
+          }))}
+          value={activePreset}
+          onChange={(key) => {
+            const preset = RANGE_PRESETS.find((candidate) => candidate.key === key);
+            if (preset) onChange(computePreset(points, projection, preset.days));
+          }}
+          ariaLabel={t("axes.presets")}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
