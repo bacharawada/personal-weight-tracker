@@ -72,6 +72,34 @@ export function msToIsoDate(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
+/**
+ * Parse an ISO `YYYY-MM-DD` string into a `Date` at local midnight.
+ *
+ * `new Date("2026-12-25")` parses as **UTC** midnight, which renders as the
+ * 24th in any negative-offset timezone. Building the date from its parts keeps
+ * it on the intended calendar day — the form the day-picker needs.
+ */
+export function isoToLocalDate(iso: string): Date | undefined {
+  const parts = iso.slice(0, 10).split("-");
+  if (parts.length !== 3) return undefined;
+  const [year, month, day] = parts.map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Format a `Date` back to an ISO `YYYY-MM-DD` string from its local parts.
+ *
+ * The inverse of {@link isoToLocalDate}: `toISOString()` would convert to UTC
+ * first and can land on the previous day, so we read the local components.
+ */
+export function localDateToIso(date: Date): string {
+  const year = String(date.getFullYear()).padStart(4, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 /** Format an epoch-millisecond value with the full pattern. */
 export function formatMs(
   ms: number,

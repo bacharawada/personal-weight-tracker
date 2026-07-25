@@ -25,6 +25,7 @@ const profile = {
       height: "e.g. 178",
       goalLb: "e.g. 165",
       goalKg: "e.g. 75",
+      targetDate: "Pick a date",
     },
     saved: "Saved",
     save: "Save profile",

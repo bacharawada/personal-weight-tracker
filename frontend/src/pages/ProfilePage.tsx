@@ -8,6 +8,7 @@ import { PageTitle } from "../components/layout/PageTitle";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { DatePicker } from "../components/ui/date-picker";
 import { ShareSettings } from "../components/profile/ShareSettings";
 import { displayToKg, kgToDisplay, unitLabel } from "../lib/units";
 
@@ -124,11 +125,12 @@ export function ProfilePage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="profile-target" className="text-xs text-muted-foreground">{t("goalBody.fields.targetDate")}</Label>
-                <Input
+                <DatePicker
                   id="profile-target"
-                  type="date"
                   value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
+                  onChange={(v) => setTargetDate(v ?? "")}
+                  clearable
+                  placeholder={t("goalBody.placeholders.targetDate")}
                   className="h-9 text-sm"
                 />
               </div>

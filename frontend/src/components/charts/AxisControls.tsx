@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { ChartAxes, ChartPoint, EffectiveAxes } from "../../lib/types";
 import { AUTO_AXES } from "../../lib/types";
+import { DatePicker } from "../ui/date-picker";
 
 interface AxisControlsProps {
   axes: ChartAxes;
@@ -145,24 +146,22 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <div>
               <label className={labelClass}>{t("axes.start")}</label>
-              <input
-                type="date"
-                value={effective?.x.min ?? ""}
-                onChange={(e) =>
-                  onChange({ ...axes, x: { ...axes.x, min: e.target.value || null } })
-                }
-                className={inputClass}
+              <DatePicker
+                value={effective?.x.min ?? null}
+                onChange={(v) => onChange({ ...axes, x: { ...axes.x, min: v } })}
+                clearable
+                placeholder={t("axes.autoPlaceholder")}
+                className="h-[30px] px-2 py-1 text-sm"
               />
             </div>
             <div>
               <label className={labelClass}>{t("axes.end")}</label>
-              <input
-                type="date"
-                value={effective?.x.max ?? ""}
-                onChange={(e) =>
-                  onChange({ ...axes, x: { ...axes.x, max: e.target.value || null } })
-                }
-                className={inputClass}
+              <DatePicker
+                value={effective?.x.max ?? null}
+                onChange={(v) => onChange({ ...axes, x: { ...axes.x, max: v } })}
+                clearable
+                placeholder={t("axes.autoPlaceholder")}
+                className="h-[30px] px-2 py-1 text-sm"
               />
             </div>
             <div>

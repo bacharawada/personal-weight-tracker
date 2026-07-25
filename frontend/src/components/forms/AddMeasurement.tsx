@@ -6,7 +6,9 @@ import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { DatePicker } from "../ui/date-picker";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
+import { localDateToIso } from "../../lib/dates";
 import { displayToKg, unitLabel, weightBounds } from "../../lib/units";
 
 const NOTE_MAX_LENGTH = 500;
@@ -70,12 +72,11 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
       <form onSubmit={handleSubmit} className="space-y-2">
         <div className="space-y-1">
           <Label htmlFor="add-date" className="text-xs text-muted-foreground">{t("form.dateLabel")}</Label>
-          <Input
+          <DatePicker
             id="add-date"
-            type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
-            max={new Date().toISOString().split("T")[0]}
+            onChange={(v) => setDate(v ?? "")}
+            max={localDateToIso(new Date())}
             className="h-8 text-sm"
           />
         </div>

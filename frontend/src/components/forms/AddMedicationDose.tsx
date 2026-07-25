@@ -7,6 +7,8 @@ import { MEDICATION_SUGGESTIONS } from "../../lib/types";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { DatePicker } from "../ui/date-picker";
+import { localDateToIso } from "../../lib/dates";
 
 interface AddMedicationDoseProps {
   onSuccess: () => void;
@@ -79,12 +81,11 @@ export function AddMedicationDose({ onSuccess }: AddMedicationDoseProps) {
           <Label htmlFor="dose-date" className="text-xs text-muted-foreground">
             {t("form.dateLabel")}
           </Label>
-          <Input
+          <DatePicker
             id="dose-date"
-            type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
-            max={new Date().toISOString().split("T")[0]}
+            onChange={(v) => setDate(v ?? "")}
+            max={localDateToIso(new Date())}
             className="h-8 text-sm"
           />
         </div>

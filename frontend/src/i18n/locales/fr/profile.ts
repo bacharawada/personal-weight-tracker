@@ -25,6 +25,7 @@ const profile: ProfileResource = {
       height: "ex. 178",
       goalLb: "ex. 165",
       goalKg: "ex. 75",
+      targetDate: "Choisir une date",
     },
     saved: "Enregistré",
     save: "Enregistrer le profil",
