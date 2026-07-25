@@ -6,9 +6,11 @@
  * Mobile: master-detail drill-down — the cards fill the screen until one is
  * picked, then the panel replaces them (its own back button returns here).
  *
- * The split is pure CSS: `selected` stays null on first mobile render so the
- * rail shows, while the desktop layout always renders a panel by falling
- * back to the measurements section.
+ * The split is pure CSS. `selected` only seeds the initial state from the
+ * viewport width — null on mobile so the rail shows first, measurements on
+ * desktop so a card starts highlighted. Later resizes need no listener: the
+ * rail and panel visibility are breakpoint classes, and the panel falls back
+ * to the measurements section whenever nothing is selected.
  */
 
 import { useState } from "react";
@@ -31,12 +33,21 @@ const SECTIONS = {
 
 type Section = (typeof SECTIONS)[keyof typeof SECTIONS];
 
+/** Tailwind's `md` breakpoint — the point where both panes fit side by side. */
+const TWO_PANE_QUERY = "(min-width: 768px)";
+
+function initialSection(): Section | null {
+  return window.matchMedia(TWO_PANE_QUERY).matches
+    ? SECTIONS.measurements
+    : null;
+}
+
 export function DataPage() {
   const { t } = useTranslation("data");
   const measurementsData = useDataPage();
   const medicationData = useMedicationDoses();
 
-  const [selected, setSelected] = useState<Section | null>(null);
+  const [selected, setSelected] = useState<Section | null>(initialSection);
   const active: Section = selected ?? SECTIONS.measurements;
 
   const measurementCount = measurementsData.measurements.length;
