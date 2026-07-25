@@ -309,6 +309,24 @@ export interface ShareStatus {
   token: string | null;
 }
 
+/**
+ * Outcome of a goal projection. The backend returns this discriminator instead
+ * of a prose sentence, so the wording lives in the i18n resources and the
+ * weights and dates inside it follow the user's display preferences.
+ */
+export const GoalStatus = {
+  NoGoal: "no_goal",
+  NoData: "no_data",
+  AlreadyReached: "already_reached",
+  InsufficientData: "insufficient_data",
+  NotTrendingDown: "not_trending_down",
+  BeyondHorizon: "beyond_horizon",
+  OnTrack: "on_track",
+  BehindTarget: "behind_target",
+  Projected: "projected",
+} as const;
+export type GoalStatus = (typeof GoalStatus)[keyof typeof GoalStatus];
+
 export interface GoalProjection {
   has_goal: boolean;
   reachable: boolean | null;
@@ -320,7 +338,9 @@ export interface GoalProjection {
   on_track: boolean | null;
   days_ahead_behind: number | null;
   trend_per_week: number | null;
-  reason: string;
+  status: GoalStatus;
+  trend_window_weeks: number | null;
+  years_away: number | null;
 }
 
 export interface Milestone {

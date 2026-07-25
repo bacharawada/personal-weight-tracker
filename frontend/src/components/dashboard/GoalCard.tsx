@@ -4,16 +4,23 @@
  * Combines the server-side goal projection (/api/goal) with the user's
  * profile (height, goal weight) and latest measurement. When no goal or
  * height is configured it shows a quiet prompt linking to Settings.
+ *
+ * The projection summary is phrased here, not by the backend: the API returns
+ * a `status` plus raw numbers, so the sentence is translated and its weights
+ * and dates follow the user's display preferences.
  */
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Link } from "react-router-dom";
 import { Target, TriangleAlert, CheckCircle2, Activity } from "lucide-react";
 import { getGoal, getStats } from "../../lib/api";
-import type { GoalProjection, Stats } from "../../lib/types";
+import { GoalStatus } from "../../lib/types";
+import type { GoalProjection, Stats, WeightUnit } from "../../lib/types";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
-import { formatWeight } from "../../lib/units";
+import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
+import { formatWeight, kgToDisplay, unitLabel } from "../../lib/units";
 
 interface GoalCardProps {
   refreshKey: number;
@@ -42,9 +49,103 @@ function computeBmi(weightKg: number, heightCm: number): BmiInfo {
   return { value: bmi, categoryKey, color };
 }
 
+interface ProjectionCopy {
+  /** The projection summary sentence. */
+  summary: string;
+  /** The optimistic/pessimistic range clause, when one is meaningful. */
+  range: string | null;
+}
+
+interface CopyDeps {
+  t: TFunction<"dashboard">;
+  unit: WeightUnit;
+  goalWeightKg: number | null;
+  formatDate: (iso: string) => string;
+}
+
+/**
+ * Phrase a projection: pick the sentence from its `status` and fill in the
+ * numbers, converted to the user's unit and date format.
+ */
+function projectionCopy(
+  projection: GoalProjection,
+  { t, unit, goalWeightKg, formatDate }: CopyDeps,
+): ProjectionCopy {
+  const goal = goalWeightKg != null ? formatWeight(goalWeightKg, unit) : "";
+  const rate =
+    projection.trend_per_week != null
+      ? `${kgToDisplay(Math.abs(projection.trend_per_week), unit).toFixed(1)} ${unitLabel(unit)}/wk`
+      : "";
+  const date =
+    projection.predicted_date != null ? formatDate(projection.predicted_date) : "";
+
+  let summary: string;
+  switch (projection.status) {
+    case GoalStatus.NotTrendingDown:
+      summary = t("goal.status.notTrendingDown", {
+        goal,
+        weeks: projection.trend_window_weeks ?? 0,
+      });
+      break;
+    case GoalStatus.BeyondHorizon:
+      summary = t("goal.status.beyondHorizon", {
+        goal,
+        rate,
+        years: (projection.years_away ?? 0).toFixed(1),
+      });
+      break;
+    case GoalStatus.OnTrack:
+      summary = t("goal.status.onTrack", { goal, rate, date });
+      break;
+    case GoalStatus.BehindTarget:
+      summary = t("goal.status.behindTarget", {
+        goal,
+        rate,
+        date,
+        count: Math.abs(projection.days_ahead_behind ?? 0),
+      });
+      break;
+    case GoalStatus.Projected:
+      summary = t("goal.status.projected", { goal, rate, date });
+      break;
+    case GoalStatus.NoGoal:
+      summary = t("goal.status.noGoal");
+      break;
+    case GoalStatus.NoData:
+      summary = t("goal.status.noData");
+      break;
+    case GoalStatus.AlreadyReached:
+      summary = t("goal.status.alreadyReached");
+      break;
+    case GoalStatus.InsufficientData:
+      summary = t("goal.status.insufficientData");
+      break;
+    default:
+      // A status this build doesn't know about: stay silent rather than
+      // surfacing a raw translation key.
+      summary = "";
+  }
+
+  const { predicted_date_optimistic: earliest, predicted_date_pessimistic: latest } =
+    projection;
+  let range: string | null = null;
+  if (earliest != null && latest != null && earliest !== latest) {
+    range = t("goal.range.between", {
+      from: formatDate(earliest),
+      to: formatDate(latest),
+    });
+  } else if (earliest != null && latest == null) {
+    // The slow bound never crosses the goal: only a floor is meaningful.
+    range = t("goal.range.earliest", { date: formatDate(earliest) });
+  }
+
+  return { summary, range };
+}
+
 export function GoalCard({ refreshKey }: GoalCardProps) {
   const { t } = useTranslation("dashboard");
   const { profile, unit } = useWeightTracker();
+  const { formatDate } = useDisplayPreferences();
   const [goal, setGoal] = useState<GoalProjection | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
 
@@ -60,6 +161,16 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
   const bmi =
     hasHeight && latestWeight != null && profile?.height_cm != null
       ? computeBmi(latestWeight, profile.height_cm)
+      : null;
+
+  const copy =
+    goal != null
+      ? projectionCopy(goal, {
+          t,
+          unit,
+          goalWeightKg: profile?.goal_weight ?? null,
+          formatDate,
+        })
       : null;
 
   // Nothing configured yet — nudge the user toward Settings.
@@ -110,9 +221,16 @@ export function GoalCard({ refreshKey }: GoalCardProps) {
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 leading-snug">
-              {goal.reason}
-            </p>
+            {copy != null && copy.summary !== "" && (
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 leading-snug">
+                {copy.summary}
+              </p>
+            )}
+            {copy?.range != null && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">
+                {copy.range}
+              </p>
+            )}
             {goal.days_remaining != null && goal.days_remaining > 0 && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {t("goal.daysToGo", { count: goal.days_remaining })}

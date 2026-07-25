@@ -26,6 +26,29 @@ const dashboard: DashboardResource = {
     behind: "En retard",
     daysToGo_one: "~{{count}} jour restant",
     daysToGo_other: "~{{count}} jours restants",
+    status: {
+      noGoal: "Aucun poids cible défini.",
+      noData: "Ajoutez des mesures pour projeter votre objectif.",
+      alreadyReached: "Objectif déjà atteint.",
+      insufficientData:
+        "Pas encore assez de données pour une projection fiable.",
+      notTrendingDown:
+        "Votre poids ne baisse pas sur les {{weeks}} dernières semaines : {{goal}} n'est pas encore projetable.",
+      beyondHorizon:
+        "À environ {{rate}}, {{goal}} est à plus de {{years}} ans — trop loin pour une projection fiable.",
+      onTrack:
+        "Sur la bonne voie pour atteindre {{goal}} d'ici le {{date}}, à environ {{rate}}.",
+      behindTarget_one:
+        "En retard sur la cible : à environ {{rate}}, vous atteindriez {{goal}} le {{date}}, soit {{count}} jour après votre cible.",
+      behindTarget_other:
+        "En retard sur la cible : à environ {{rate}}, vous atteindriez {{goal}} le {{date}}, soit {{count}} jours après votre cible.",
+      projected:
+        "À environ {{rate}}, vous êtes en route pour atteindre {{goal}} vers le {{date}}.",
+    },
+    range: {
+      between: "Entre le {{from}} et le {{to}}.",
+      earliest: "Le {{date}} au plus tôt ; plus tard si votre rythme ralentit.",
+    },
   },
   bmi: {
     label: "Indice de masse corporelle",

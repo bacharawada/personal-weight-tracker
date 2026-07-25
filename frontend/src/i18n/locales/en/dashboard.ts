@@ -26,6 +26,29 @@ const dashboard = {
     behind: "Behind",
     daysToGo_one: "~{{count}} day to go",
     daysToGo_other: "~{{count}} days to go",
+    // Projection summaries. The backend returns a status plus raw numbers;
+    // `goal` and `rate` arrive already converted to the user's unit and `date`
+    // already formatted to their date preference.
+    status: {
+      noGoal: "No goal weight set.",
+      noData: "Add measurements to project your goal.",
+      alreadyReached: "Goal already reached.",
+      insufficientData: "Not enough data yet to model a reliable projection.",
+      notTrendingDown:
+        "Your weight isn't trending down over the last {{weeks}} weeks, so {{goal}} isn't projectable yet.",
+      beyondHorizon:
+        "At about {{rate}}, {{goal}} is over {{years}} years away — too far out to project reliably.",
+      onTrack: "On track to reach {{goal}} by {{date}} at about {{rate}}.",
+      behindTarget_one:
+        "Behind target: at about {{rate}} you'd reach {{goal}} on {{date}}, {{count}} day after your target.",
+      behindTarget_other:
+        "Behind target: at about {{rate}} you'd reach {{goal}} on {{date}}, {{count}} days after your target.",
+      projected: "At about {{rate}} you're on track to reach {{goal}} around {{date}}.",
+    },
+    range: {
+      between: "Between {{from}} and {{to}}.",
+      earliest: "{{date}} at the earliest; later if your rate slows.",
+    },
   },
   bmi: {
     label: "Body Mass Index",

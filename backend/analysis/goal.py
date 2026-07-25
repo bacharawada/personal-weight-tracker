@@ -12,9 +12,13 @@ for "when will I get there from here". The exponential curve remains the
 descriptive chart overlay; this module owns the projection.
 
 The projection degrades gracefully: it never raises on bad input and
-returns a populated ``reason`` string describing why a date could not be
-computed (no goal, not enough data, weight not trending down, goal too far
-out to project reliably, etc.).
+returns a ``status`` discriminator describing the outcome (no goal, not
+enough data, weight not trending down, goal too far out to project
+reliably, etc.) alongside the numbers needed to phrase it.
+
+No user-facing sentence is built here: the frontend owns the wording, so it
+can translate it and render weights and dates in the user's chosen unit and
+date format.
 """
 
 from __future__ import annotations
@@ -22,10 +26,34 @@ from __future__ import annotations
 import datetime
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 import pandas as pd
 
 from analysis.trend import TrendConfig, fit_recent_trend
+
+#: Outcome of a projection. Discriminates which sentence the frontend builds.
+#:
+#: * ``no_goal`` — no goal weight configured.
+#: * ``no_data`` — a goal is set but there are no measurements.
+#: * ``already_reached`` — the latest measurement already meets the goal.
+#: * ``insufficient_data`` — too few points to fit a reliable trend.
+#: * ``not_trending_down`` — the recent trend does not move toward the goal.
+#: * ``beyond_horizon`` — the crossing lies past the reliable horizon.
+#: * ``on_track`` — projected on or before the user's target date.
+#: * ``behind_target`` — projected after the user's target date.
+#: * ``projected`` — projected, with no target date to compare against.
+GoalStatus = Literal[
+    "no_goal",
+    "no_data",
+    "already_reached",
+    "insufficient_data",
+    "not_trending_down",
+    "beyond_horizon",
+    "on_track",
+    "behind_target",
+    "projected",
+]
 
 
 @dataclass(frozen=True)
@@ -54,7 +82,12 @@ class GoalProjection:
             relative to *target_date*; ``None`` when no target date.
         trend_per_week: Current trend in kg/week (negative when losing), or
             ``None`` when no trend could be fit.
-        reason: Human-readable explanation of the projection outcome.
+        status: Which outcome this projection represents — see
+            :data:`GoalStatus`. The frontend picks the sentence from it.
+        trend_window_weeks: Length of the trend window in whole weeks, for the
+            ``not_trending_down`` wording; ``None`` otherwise.
+        years_away: How many years out the crossing lies, for the
+            ``beyond_horizon`` wording; ``None`` otherwise.
     """
 
     has_goal: bool
@@ -67,15 +100,17 @@ class GoalProjection:
     on_track: bool | None
     days_ahead_behind: int | None
     trend_per_week: float | None
-    reason: str
+    status: GoalStatus
+    trend_window_weeks: int | None
+    years_away: float | None
 
 
-def _empty(has_goal: bool, reason: str) -> GoalProjection:
+def _empty(has_goal: bool, status: GoalStatus) -> GoalProjection:
     """Return a projection with no computed date.
 
     Args:
         has_goal: Whether a goal weight is configured.
-        reason: Explanation string.
+        status: The outcome discriminator.
 
     Returns:
         A ``GoalProjection`` with null date fields.
@@ -91,7 +126,9 @@ def _empty(has_goal: bool, reason: str) -> GoalProjection:
         on_track=None,
         days_ahead_behind=None,
         trend_per_week=None,
-        reason=reason,
+        status=status,
+        trend_window_weeks=None,
+        years_away=None,
     )
 
 
@@ -140,10 +177,10 @@ def project_goal(
         config = TrendConfig()
 
     if goal_weight is None:
-        return _empty(has_goal=False, reason="No goal weight set.")
+        return _empty(has_goal=False, status="no_goal")
 
     if df.empty:
-        return _empty(has_goal=True, reason="Add measurements to project your goal.")
+        return _empty(has_goal=True, status="no_data")
 
     dates = pd.to_datetime(df["date"])
     last_date = dates.iloc[-1].date()
@@ -164,15 +201,14 @@ def project_goal(
                 (last_date - target_date).days if target_date is not None else None
             ),
             trend_per_week=None,
-            reason="Goal already reached.",
+            status="already_reached",
+            trend_window_weeks=None,
+            years_away=None,
         )
 
     fit = fit_recent_trend(df, config)
     if not fit.success or fit.last_date is None:
-        return _empty(
-            has_goal=True,
-            reason="Not enough data yet to model a reliable projection.",
-        )
+        return _empty(has_goal=True, status="insufficient_data")
 
     trend_per_week = fit.slope_per_day * 7.0
     weeks = config.window_days // 7
@@ -191,16 +227,14 @@ def project_goal(
             on_track=False if target_date is not None else None,
             days_ahead_behind=None,
             trend_per_week=trend_per_week,
-            reason=(
-                f"Your weight isn't trending down over the last {weeks} weeks, "
-                f"so {goal_weight:.1f} kg isn't projectable yet."
-            ),
+            status="not_trending_down",
+            trend_window_weeks=weeks,
+            years_away=None,
         )
 
     # A straight line has no floor: cap the horizon rather than claim any
     # arbitrarily low weight is reachable given enough time.
     if central_days > config.max_horizon_days:
-        years = central_days / 365.0
         return GoalProjection(
             has_goal=True,
             reachable=None,
@@ -212,10 +246,9 @@ def project_goal(
             on_track=None,
             days_ahead_behind=None,
             trend_per_week=trend_per_week,
-            reason=(
-                f"At about {abs(trend_per_week):.1f} kg/week, {goal_weight:.1f} kg is "
-                f"over {years:.1f} years away — too far out to project reliably."
-            ),
+            status="beyond_horizon",
+            trend_window_weeks=None,
+            years_away=central_days / 365.0,
         )
 
     predicted_date = fit.last_date + datetime.timedelta(days=int(round(central_days)))
@@ -246,24 +279,13 @@ def project_goal(
         days_ahead_behind = (predicted_date - target_date).days
         on_track = days_ahead_behind <= 0
 
-    rate = f"about {abs(trend_per_week):.1f} kg/week"
-    range_suffix = _range_suffix(predicted_date_optimistic, predicted_date_pessimistic)
-
-    if target_date is not None and on_track:
-        reason = (
-            f"On track to reach {goal_weight:.1f} kg by {predicted_date:%d %b %Y} "
-            f"at {rate}{range_suffix}."
-        )
-    elif target_date is not None:
-        reason = (
-            f"Behind target: at {rate} you'd reach {goal_weight:.1f} kg on "
-            f"{predicted_date:%d %b %Y}, {days_ahead_behind} day(s) after your target."
-        )
+    status: GoalStatus
+    if target_date is None:
+        status = "projected"
+    elif on_track:
+        status = "on_track"
     else:
-        reason = (
-            f"At {rate} you're on track to reach {goal_weight:.1f} kg around "
-            f"{predicted_date:%d %b %Y}{range_suffix}."
-        )
+        status = "behind_target"
 
     return GoalProjection(
         has_goal=True,
@@ -276,26 +298,7 @@ def project_goal(
         on_track=on_track,
         days_ahead_behind=days_ahead_behind,
         trend_per_week=trend_per_week,
-        reason=reason,
+        status=status,
+        trend_window_weeks=weeks,
+        years_away=None,
     )
-
-
-def _range_suffix(
-    optimistic: datetime.date | None,
-    pessimistic: datetime.date | None,
-) -> str:
-    """Build a human-readable range clause from the date bounds.
-
-    Args:
-        optimistic: Earliest plausible date, or ``None``.
-        pessimistic: Latest plausible date, or ``None`` (slow bound stalls).
-
-    Returns:
-        A clause like ``" (between 05 Aug and 22 Aug 2026)"``, or an empty
-        string when no meaningful range is available.
-    """
-    if optimistic is not None and pessimistic is not None and optimistic != pessimistic:
-        return f" (between {optimistic:%d %b} and {pessimistic:%d %b %Y})"
-    if optimistic is not None and pessimistic is None:
-        return f" ({optimistic:%d %b %Y} at the earliest; later if your rate slows)"
-    return ""

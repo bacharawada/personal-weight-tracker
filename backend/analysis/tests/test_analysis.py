@@ -264,6 +264,7 @@ class TestGoalProjection:
         proj = project_goal(sample_df, goal_weight=None)
         assert proj.has_goal is False
         assert proj.reachable is None
+        assert proj.status == "no_goal"
 
     def test_empty_data(self) -> None:
         """No measurements yields an unknown projection."""
@@ -271,6 +272,7 @@ class TestGoalProjection:
         proj = project_goal(df, goal_weight=70.0)
         assert proj.has_goal is True
         assert proj.predicted_date is None
+        assert proj.status == "no_data"
 
     def test_already_reached(self, sample_df: pd.DataFrame) -> None:
         """A goal above the latest weight is already reached."""
@@ -278,6 +280,7 @@ class TestGoalProjection:
         assert proj.already_reached is True
         assert proj.reachable is True
         assert proj.days_remaining == 0
+        assert proj.status == "already_reached"
 
     def test_reachable_goal(self, sample_df: pd.DataFrame) -> None:
         """A goal within the horizon on a downward trend is reachable."""
@@ -286,6 +289,24 @@ class TestGoalProjection:
         assert proj.predicted_date is not None
         assert proj.days_remaining is not None and proj.days_remaining > 0
         assert proj.trend_per_week is not None and proj.trend_per_week < 0
+        # No target date supplied, so there is nothing to be on/off track for.
+        assert proj.status == "projected"
+
+    def test_status_on_track_and_behind_target(
+        self, sample_df: pd.DataFrame
+    ) -> None:
+        """A target date discriminates on_track from behind_target."""
+        early = project_goal(
+            sample_df, goal_weight=160.0, target_date=datetime.date(2020, 1, 1)
+        )
+        assert early.status == "behind_target"
+        assert early.on_track is False
+
+        late = project_goal(
+            sample_df, goal_weight=160.0, target_date=datetime.date(2099, 1, 1)
+        )
+        assert late.status == "on_track"
+        assert late.on_track is True
 
     def test_too_far_beyond_horizon(self, sample_df: pd.DataFrame) -> None:
         """A goal more than ~2 years out is not reliably projectable.
@@ -296,7 +317,8 @@ class TestGoalProjection:
         proj = project_goal(sample_df, goal_weight=40.0)
         assert proj.reachable is None
         assert proj.predicted_date is None
-        assert "too far" in proj.reason.lower()
+        assert proj.status == "beyond_horizon"
+        assert proj.years_away is not None and proj.years_away > 2.0
 
     def test_not_trending_down(self) -> None:
         """A flat trend below the goal is unreachable (no downward slope)."""
@@ -309,6 +331,8 @@ class TestGoalProjection:
         proj = project_goal(df, goal_weight=70.0)
         assert proj.reachable is False
         assert proj.predicted_date is None
+        assert proj.status == "not_trending_down"
+        assert proj.trend_window_weeks is not None and proj.trend_window_weeks > 0
 
     def test_insufficient_data(self) -> None:
         """Fewer than three points yields an unknown projection (no crash)."""
@@ -318,6 +342,7 @@ class TestGoalProjection:
         proj = project_goal(df, goal_weight=80.0)
         assert proj.has_goal is True
         assert proj.reachable is None
+        assert proj.status == "insufficient_data"
 
     def test_date_range_ordered_for_noisy_data(self) -> None:
         """The optimistic/pessimistic bounds bracket the central estimate."""

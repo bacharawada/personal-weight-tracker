@@ -23,7 +23,7 @@ from analysis.energy import (
     energy_series,
     estimate_energy_balance,
 )
-from analysis.goal import GoalProjection, project_goal
+from analysis.goal import GoalProjection, GoalStatus, project_goal
 from analysis.medication import (
     DoseChange,
     TrendComparison,
@@ -52,6 +52,7 @@ __all__ = [
     "DoseChange",
     "FitResult",
     "GoalProjection",
+    "GoalStatus",
     "ModelCurve",
     "ModelDiagnostics",
     "PlateauConfig",

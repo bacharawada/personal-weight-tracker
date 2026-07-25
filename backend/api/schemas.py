@@ -11,6 +11,10 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+# noqa: TC001 below — Pydantic needs the Literal at runtime to build the
+# validator for GoalProjectionOut.status.
+from analysis import GoalStatus  # noqa: TC001
+
 if TYPE_CHECKING:
     from pydantic.fields import FieldInfo
 
@@ -183,7 +187,12 @@ class StatsOut(BaseModel):
 
 
 class GoalProjectionOut(BaseModel):
-    """Response model for the goal projection (/api/goal)."""
+    """Response model for the goal projection (/api/goal).
+
+    Carries a ``status`` discriminator plus the numbers behind it rather than a
+    prose sentence: the frontend owns the wording so it can translate it and
+    render weights and dates in the user's chosen unit and date format.
+    """
 
     has_goal: bool
     reachable: bool | None
@@ -195,7 +204,9 @@ class GoalProjectionOut(BaseModel):
     on_track: bool | None
     days_ahead_behind: int | None
     trend_per_week: float | None
-    reason: str
+    status: GoalStatus
+    trend_window_weeks: int | None
+    years_away: float | None
 
 
 # ---------------------------------------------------------------------------

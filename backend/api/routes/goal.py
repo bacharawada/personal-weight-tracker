@@ -26,7 +26,7 @@ def get_goal_projection(
     Projects from the user's current trajectory — a robust recency-weighted
     linear trend over their recent measurements. Returns a fully-populated
     projection even when no goal is set or there is too little data (see
-    ``reason``).
+    ``status``).
 
     Args:
         keycloak_sub: Injected from the auth dependency.
@@ -54,7 +54,9 @@ def get_goal_projection(
         "on_track": projection.on_track,
         "days_ahead_behind": projection.days_ahead_behind,
         "trend_per_week": projection.trend_per_week,
-        "reason": projection.reason,
+        "status": projection.status,
+        "trend_window_weeks": projection.trend_window_weeks,
+        "years_away": projection.years_away,
     }
 
 
