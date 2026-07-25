@@ -19,6 +19,13 @@ import { WeightChart } from "../../charts/WeightChart";
 import { Tile } from "../tiles";
 import { DeltaStat } from "./DeltaStat";
 
+/**
+ * The dashboard reads as "where am I now", so the chart is framed on the recent
+ * period instead of the full history. The analysis page keeps the full view and
+ * its own axis controls.
+ */
+const RANGE_DAYS = 180;
+
 interface TrajectoryPanelProps {
   params: ChartParams;
   refreshKey: number;
@@ -66,6 +73,7 @@ export function TrajectoryPanel({
             params={params}
             refreshKey={refreshKey}
             onPointClick={onPointClick}
+            rangeDays={RANGE_DAYS}
             showGoalCrossing
             bare
             className="h-[240px] md:h-[340px] mt-3"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
@@ -9,6 +9,7 @@ import { findGoalCrossing } from "../../lib/charts/goalCrossing";
 import { exportSvgToPng } from "../../lib/charts/exportPng";
 import { useChartData } from "../../lib/charts/useChartData";
 import { collectChartDomains } from "../../lib/charts/effectiveAxes";
+import { rangeWindowAxes } from "../../lib/charts/rangePreset";
 import {
   dateTicks,
   linearScale,
@@ -36,7 +37,17 @@ interface WeightChartProps {
   params: ChartParams;
   refreshKey: number;
   onPointClick: (point: { date: string; weight: number }) => void;
+  /**
+   * Manual axis overrides. When provided they win outright, including over
+   * `rangeDays` — the analysis page owns its scales through the axis controls.
+   */
   axes?: ChartAxes;
+  /**
+   * Default view window, in days back from the latest measurement, used when no
+   * `axes` are given. The dashboard frames the recent period this way; the
+   * projection stays visible and a shorter history falls back to full auto-fit.
+   */
+  rangeDays?: number;
   className?: string;
   /** Called with each fetched payload so the page can reuse the model diagnostics. */
   onDataLoaded?: (data: WeightChartData) => void;
@@ -62,7 +73,8 @@ export function WeightChart({
   params,
   refreshKey,
   onPointClick,
-  axes = AUTO_AXES,
+  axes,
+  rangeDays,
   className,
   onDataLoaded,
   fetcher,
@@ -107,6 +119,8 @@ export function WeightChart({
   const palette = getPalette(params.palette);
   const theme = getChartTheme(params.dark);
   const isEmpty = !data || data.raw.length === 0;
+  const resolvedAxes =
+    axes ?? (rangeDays != null && data ? rangeWindowAxes(data, rangeDays) : AUTO_AXES);
 
   const handleExport = useCallback(() => {
     const svg = svgRef.current;
@@ -179,7 +193,7 @@ export function WeightChart({
               {({ innerWidth, innerHeight }) => (
                 <WeightChartBody
                   data={data}
-                  axes={axes}
+                  axes={resolvedAxes}
                   palette={palette}
                   theme={theme}
                   innerWidth={innerWidth}
@@ -227,6 +241,8 @@ function WeightChartBody({
   const { t: tMed } = useTranslation("medication");
   const { formatDate, formatDateMs } = useDisplayPreferences();
   const [hoveredDoseId, setHoveredDoseId] = useState<number | null>(null);
+  // Colons in a generated id are legal in HTML but awkward in a url(#…) reference.
+  const clipId = `plot-clip-${useId().replace(/:/g, "")}`;
   // -- Collect domains across every series ----------------------------------
   const { dateMs: allMs, values: allValues } = collectChartDomains(data);
 
@@ -277,157 +293,169 @@ function WeightChartBody({
 
   return (
     <>
+      {/* Series are clipped to the plotting area: with a pinned date window the
+          out-of-range points would otherwise be drawn over the axis labels. */}
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={0} y={0} width={innerWidth} height={innerHeight} />
+        </clipPath>
+      </defs>
+
       {/* Deviation zones (behind everything) */}
-      {data.zones.map((zone, i) => {
-        const x0 = x(toMs(zone.start));
-        const x1 = x(toMs(zone.end));
-        return (
-          <rect
-            key={i}
-            x={x0}
-            y={0}
-            width={Math.max(0, x1 - x0)}
-            height={innerHeight}
-            fill={zone.kind === "plateau" ? palette.residualAbove : palette.residualBelow}
-            opacity={0.1}
-          />
-        );
-      })}
+      <g clipPath={`url(#${clipId})`}>
+        {data.zones.map((zone, i) => {
+          const x0 = x(toMs(zone.start));
+          const x1 = x(toMs(zone.end));
+          return (
+            <rect
+              key={i}
+              x={x0}
+              y={0}
+              width={Math.max(0, x1 - x0)}
+              height={innerHeight}
+              fill={zone.kind === "plateau" ? palette.residualAbove : palette.residualBelow}
+              opacity={0.1}
+            />
+          );
+        })}
+      </g>
 
       {/* Gridlines + axes */}
       <AxisLeft ticks={yTicks} scale={y} innerWidth={innerWidth} theme={theme} precision={yPrecision} />
       <AxisBottom ticks={xTicks} scale={x} innerWidth={innerWidth} innerHeight={innerHeight} theme={theme} />
 
-      {/* Model uncertainty bands */}
-      {data.models.map((model) =>
-        model.band.length > 0 ? (
-          <path
-            key={`band-${model.id}`}
-            d={bandPath(model.band.map((b) => ({ x: x(toMs(b.date)), y0: y(b.lower), y1: y(b.upper) })))}
-            fill={hexToRgba(palette.band, 0.18)}
-            stroke="none"
-          />
-        ) : null,
-      )}
+      <g clipPath={`url(#${clipId})`}>
+        {/* Model uncertainty bands */}
+        {data.models.map((model) =>
+          model.band.length > 0 ? (
+            <path
+              key={`band-${model.id}`}
+              d={bandPath(model.band.map((b) => ({ x: x(toMs(b.date)), y0: y(b.lower), y1: y(b.upper) })))}
+              fill={hexToRgba(palette.band, 0.18)}
+              stroke="none"
+            />
+          ) : null,
+        )}
 
-      {/* Model fit + projection lines */}
-      {data.models.map((model) => {
-        const color = model.id === ModelId.Exp ? palette.fit : palette.fitLinear;
-        return (
-          <g key={`model-${model.id}`}>
-            <path d={linePath(project(model.fit))} fill="none" stroke={color} strokeWidth={1.8} />
-            {model.projection.length > 0 && (
-              <path
-                d={linePath(project(model.projection))}
-                fill="none"
-                stroke={color}
-                strokeWidth={1.8}
-                strokeDasharray="6 4"
-                opacity={0.6}
-              />
-            )}
-            {model.asymptote != null && (
-              <line
-                x1={0}
-                x2={innerWidth}
-                y1={y(model.asymptote)}
-                y2={y(model.asymptote)}
-                stroke={color}
-                strokeWidth={1}
-                strokeDasharray="4 4"
-                opacity={0.5}
-              />
-            )}
-          </g>
-        );
-      })}
-
-      {/* Raw measurements: line + markers */}
-      <path d={linePath(rawPx)} fill="none" stroke={palette.raw} strokeWidth={1.4} opacity={0.85} />
-      {rawPx.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3} fill={palette.raw} stroke={theme.tooltipBg} strokeWidth={0.5} />
-      ))}
-      {/* Distinct ring around measurements that carry a note */}
-      {rawPx.map((p, i) =>
-        data.raw[i].note ? (
-          <circle
-            key={`note-${i}`}
-            cx={p.x}
-            cy={p.y}
-            r={6}
-            fill="none"
-            stroke={palette.accent}
-            strokeWidth={1.5}
-          />
-        ) : null,
-      )}
-
-      {/* Rolling mean */}
-      {showSmoothed && (
-        <path d={linePath(smoothedPx)} fill="none" stroke={palette.smoothed} strokeWidth={2.4} />
-      )}
-
-      {/* Goal line */}
-      {data.goal_weight != null && (
-        <line
-          x1={0}
-          x2={innerWidth}
-          y1={y(data.goal_weight)}
-          y2={y(data.goal_weight)}
-          stroke={palette.accent}
-          strokeWidth={2}
-          strokeDasharray="2 3"
-          opacity={0.8}
-        />
-      )}
-
-      {/* Where the projection meets the goal — the dashboard's headline claim */}
-      {goalCrossingMs != null &&
-        goalWeight != null &&
-        (() => {
-          const cx = x(goalCrossingMs);
-          if (cx < 0 || cx > innerWidth) return null;
-          const cy = y(goalWeight);
-          const label = formatDateMs(goalCrossingMs);
-          const width = label.length * 6.1 + 12;
-          const labelX = Math.min(Math.max(cx, width / 2), innerWidth - width / 2);
-          // Below the marker normally, above it when the goal line sits low
-          // enough that the label would fall outside the plotting area.
-          const below = cy + 26 <= innerHeight;
-          const boxY = below ? cy + 8 : cy - 26;
+        {/* Model fit + projection lines */}
+        {data.models.map((model) => {
+          const color = model.id === ModelId.Exp ? palette.fit : palette.fitLinear;
           return (
-            <g pointerEvents="none">
-              <title>{t("weight.goalCrossing", { date: label })}</title>
-              <circle
-                cx={cx}
-                cy={cy}
-                r={5}
-                fill={theme.tooltipBg}
-                stroke={palette.accent}
-                strokeWidth={2}
-              />
-              <rect
-                x={labelX - width / 2}
-                y={boxY}
-                width={width}
-                height={18}
-                rx={4}
-                fill={theme.tooltipBg}
-                opacity={0.9}
-              />
-              <text
-                x={labelX}
-                y={boxY + 13}
-                fontSize={11}
-                fontWeight={700}
-                textAnchor="middle"
-                fill={palette.accent}
-              >
-                {label}
-              </text>
+            <g key={`model-${model.id}`}>
+              <path d={linePath(project(model.fit))} fill="none" stroke={color} strokeWidth={1.8} />
+              {model.projection.length > 0 && (
+                <path
+                  d={linePath(project(model.projection))}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={1.8}
+                  strokeDasharray="6 4"
+                  opacity={0.6}
+                />
+              )}
+              {model.asymptote != null && (
+                <line
+                  x1={0}
+                  x2={innerWidth}
+                  y1={y(model.asymptote)}
+                  y2={y(model.asymptote)}
+                  stroke={color}
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                  opacity={0.5}
+                />
+              )}
             </g>
           );
-        })()}
+        })}
+
+        {/* Raw measurements: line + markers */}
+        <path d={linePath(rawPx)} fill="none" stroke={palette.raw} strokeWidth={1.4} opacity={0.85} />
+        {rawPx.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={3} fill={palette.raw} stroke={theme.tooltipBg} strokeWidth={0.5} />
+        ))}
+        {/* Distinct ring around measurements that carry a note */}
+        {rawPx.map((p, i) =>
+          data.raw[i].note ? (
+            <circle
+              key={`note-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={6}
+              fill="none"
+              stroke={palette.accent}
+              strokeWidth={1.5}
+            />
+          ) : null,
+        )}
+
+        {/* Rolling mean */}
+        {showSmoothed && (
+          <path d={linePath(smoothedPx)} fill="none" stroke={palette.smoothed} strokeWidth={2.4} />
+        )}
+
+        {/* Goal line */}
+        {data.goal_weight != null && (
+          <line
+            x1={0}
+            x2={innerWidth}
+            y1={y(data.goal_weight)}
+            y2={y(data.goal_weight)}
+            stroke={palette.accent}
+            strokeWidth={2}
+            strokeDasharray="2 3"
+            opacity={0.8}
+          />
+        )}
+
+        {/* Where the projection meets the goal — the dashboard's headline claim */}
+        {goalCrossingMs != null &&
+          goalWeight != null &&
+          (() => {
+            const cx = x(goalCrossingMs);
+            if (cx < 0 || cx > innerWidth) return null;
+            const cy = y(goalWeight);
+            const label = formatDateMs(goalCrossingMs);
+            const width = label.length * 6.1 + 12;
+            const labelX = Math.min(Math.max(cx, width / 2), innerWidth - width / 2);
+            // Below the marker normally, above it when the goal line sits low
+            // enough that the label would fall outside the plotting area.
+            const below = cy + 26 <= innerHeight;
+            const boxY = below ? cy + 8 : cy - 26;
+            return (
+              <g pointerEvents="none">
+                <title>{t("weight.goalCrossing", { date: label })}</title>
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={5}
+                  fill={theme.tooltipBg}
+                  stroke={palette.accent}
+                  strokeWidth={2}
+                />
+                <rect
+                  x={labelX - width / 2}
+                  y={boxY}
+                  width={width}
+                  height={18}
+                  rx={4}
+                  fill={theme.tooltipBg}
+                  opacity={0.9}
+                />
+                <text
+                  x={labelX}
+                  y={boxY + 13}
+                  fontSize={11}
+                  fontWeight={700}
+                  textAnchor="middle"
+                  fill={palette.accent}
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })()}
+      </g>
 
       {/* Hover + click-to-select */}
       <HoverLayer

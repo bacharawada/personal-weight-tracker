@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import type { ChartAxes, ChartPoint, EffectiveAxes } from "../../lib/types";
-import { AUTO_AXES } from "../../lib/types";
 import { DatePicker } from "../ui/date-picker";
 import { SegmentedControl } from "../ui/segmented-control";
+import { computeRangePreset } from "../../lib/charts/rangePreset";
 
 interface AxisControlsProps {
   axes: ChartAxes;
@@ -26,57 +26,12 @@ function parseNum(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Padding (in axis units) added below/above the period's extremes for a coherent zoom. */
-const Y_PADDING = 5;
-
 const RANGE_PRESETS = [
   { key: "weeks4", days: 28 },
   { key: "months3", days: 90 },
   { key: "months6", days: 180 },
   { key: "all", days: null },
 ] as const;
-
-/** Shift an ISO date (YYYY-MM-DD) back by `days`, staying in UTC to avoid TZ drift. */
-function subtractDays(isoDate: string, days: number): string {
-  const d = new Date(isoDate);
-  d.setUTCDate(d.getUTCDate() - days);
-  return d.toISOString().slice(0, 10);
-}
-
-/**
- * Build a coherent axis config for a range preset.
- *
- * `days === null` ("all history") is full auto — both axes fit every plotted
- * series reactively, so the extrapolation horizon is always visible without
- * pinning anything.
- *
- * For a fixed range, only the *start* of the date window is pinned (`days` back
- * from the latest measurement); the date axis end stays auto so the projection
- * is never clipped horizontally. The weight axis is fitted to every point in the
- * window — raw measurements *and* the projection — padded by ±Y_PADDING, so the
- * horizon stays on-screen vertically too.
- */
-function computePreset(
-  points: ChartPoint[],
-  projection: ChartPoint[],
-  days: number | null,
-): ChartAxes {
-  if (days === null || points.length === 0) return AUTO_AXES;
-
-  const latest = points.reduce((max, p) => (p.date > max ? p.date : max), points[0].date);
-  const xMin = subtractDays(latest, days);
-
-  const weights = [...points, ...projection]
-    .filter((p) => p.date >= xMin)
-    .map((p) => p.value);
-  const yMin = Math.floor(Math.min(...weights) - Y_PADDING);
-  const yMax = Math.ceil(Math.max(...weights) + Y_PADDING);
-
-  return {
-    x: { min: xMin, max: null, stepDays: null },
-    y: { min: yMin, max: yMax, step: null },
-  };
-}
 
 const inputClass =
   "w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 " +
@@ -89,14 +44,14 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
   const { t } = useTranslation("analysis");
   // "Auto" is the full-history view: reset returns to the "all" preset (full
   // auto — both axes fit every series, including the projection horizon).
-  const allPreset = computePreset(points, projection, null);
+  const allPreset = computeRangePreset(points, projection, null);
   const isCustom = JSON.stringify(axes) !== JSON.stringify(allPreset);
   const activeAxes = JSON.stringify(axes);
   // Which preset the current axes correspond to, if any — manual edits match none.
   const activePreset = points.length === 0
     ? null
     : RANGE_PRESETS.find(
-        (preset) => JSON.stringify(computePreset(points, projection, preset.days)) === activeAxes,
+        (preset) => JSON.stringify(computeRangePreset(points, projection, preset.days)) === activeAxes,
       )?.key ?? null;
 
   return (
@@ -130,7 +85,7 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
           value={activePreset}
           onChange={(key) => {
             const preset = RANGE_PRESETS.find((candidate) => candidate.key === key);
-            if (preset) onChange(computePreset(points, projection, preset.days));
+            if (preset) onChange(computeRangePreset(points, projection, preset.days));
           }}
           ariaLabel={t("axes.presets")}
         />
