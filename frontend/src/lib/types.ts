@@ -94,6 +94,24 @@ export interface ChartParams {
   showSmoothed: boolean;
 }
 
+/** The user-tunable subset of `ChartParams` — everything the chart controls own. */
+export type ChartControlParams = Omit<ChartParams, "palette" | "dark">;
+
+/**
+ * Factory defaults for the chart controls, shared by the provider's initial state
+ * and the controls' "reset" action. `palette` and `dark` are excluded on purpose:
+ * they track the stored profile and the active theme, not these controls.
+ */
+export const DEFAULT_CHART_CONTROLS: ChartControlParams = {
+  smoothing: 5,
+  horizon: 56,
+  showExp: true,
+  showLinear: false,
+  showBand: true,
+  showDoses: true,
+  showSmoothed: true,
+};
+
 // Enum-like constant. The project's tsconfig enables `erasableSyntaxOnly`,
 // which disallows TS `enum`/`const enum`; this `as const` object is the
 // erasable equivalent (named value + derived union type).
