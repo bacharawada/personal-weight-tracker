@@ -2,7 +2,7 @@
  * MeasurementsPanel — the "Weight measurements" section panel.
  *
  * Fills the shared DataSectionPanel skeleton with the measurements table,
- * the inline add form, CSV import/export and the delete-all control.
+ * the add dialog, CSV import/export and the delete-all control.
  */
 
 import { useState } from "react";
@@ -18,6 +18,7 @@ import type { useDataPage } from "../../hooks/useDataPage";
 import { DataSectionPanel } from "./DataSectionPanel";
 import { CsvTransferActions } from "./CsvTransferActions";
 import { MeasurementRow } from "./MeasurementRow";
+import { AddEntryModal } from "./modals/AddEntryModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
 import { DeleteMeasurementModal } from "./modals/DeleteMeasurementModal";
 import { DeleteAllModal } from "./modals/DeleteAllModal";
@@ -30,7 +31,7 @@ interface MeasurementsPanelProps {
 export function MeasurementsPanel({ data, onBack }: MeasurementsPanelProps) {
   const { t } = useTranslation("data");
   const { bump, accent, hasData, unit } = useWeightTracker();
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const dataset = useMeasurementCsvDataset();
   const csv = useCsvTransfer(dataset);
@@ -61,10 +62,8 @@ export function MeasurementsPanel({ data, onBack }: MeasurementsPanelProps) {
         title={t("picker.measurementsTitle")}
         subtitle={t("page.subtitle", { count: measurements.length })}
         addLabel={t("panel.addEntry")}
-        isFormOpen={isFormOpen}
-        onFormOpenChange={setIsFormOpen}
+        onAdd={() => setIsAddOpen(true)}
         onBack={onBack}
-        addForm={<AddMeasurement onSuccess={bump} />}
         toolbarActions={
           <CsvTransferActions
             onImport={csv.openImport}
@@ -91,7 +90,7 @@ export function MeasurementsPanel({ data, onBack }: MeasurementsPanelProps) {
           <>
             <p>{t("table.empty")}</p>
             <button
-              onClick={() => setIsFormOpen(true)}
+              onClick={() => setIsAddOpen(true)}
               className="mt-2 text-sm font-medium underline underline-offset-2"
               style={{ color: "var(--color-accent)" }}
             >
@@ -122,6 +121,15 @@ export function MeasurementsPanel({ data, onBack }: MeasurementsPanelProps) {
           />
         ))}
       </DataSectionPanel>
+
+      <AddEntryModal
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        title={t("addModal.title")}
+        description={t("addModal.description")}
+      >
+        <AddMeasurement onSuccess={() => { bump(); setIsAddOpen(false); }} />
+      </AddEntryModal>
 
       <CsvImportModal
         open={csv.isImportOpen}

@@ -37,6 +37,10 @@ const data: DataResource = {
     editWeight: "Modifier",
     notePlaceholder: "Ajouter une note…",
   },
+  addModal: {
+    title: "Ajouter une mesure",
+    description: "Saisissez une date et votre poids.",
+  },
   csvModal: {
     title: "Importer CSV",
     description:

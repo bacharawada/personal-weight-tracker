@@ -3,17 +3,13 @@
  *
  * Owns the layout contract the measurements and medication panels both
  * follow: header (mobile back button, icon badge, title/subtitle, header
- * actions), a toolbar whose primary button folds the add-form open, the
- * collapsible form area, and the scrolling table beneath it.
- *
- * The form open state is controlled by the parent so an empty-state link
- * inside the table can open the form too.
+ * actions), a toolbar whose primary button opens the panel's add dialog,
+ * and the scrolling table beneath it.
  */
 
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { DataTable, type Column } from "../../components/ui/DataTable";
 
@@ -21,15 +17,13 @@ interface DataSectionPanelProps {
   icon: ReactNode;
   title: string;
   subtitle: string;
-  /** Label of the toolbar button that folds the add-form open. */
+  /** Label of the toolbar button that opens the add dialog. */
   addLabel: string;
-  addForm: ReactNode;
+  onAdd: () => void;
   /** Extra controls rendered next to the add button (import, export…). */
   toolbarActions?: ReactNode;
   /** Destructive / global controls rendered in the header, right-aligned. */
   headerActions?: ReactNode;
-  isFormOpen: boolean;
-  onFormOpenChange: (open: boolean) => void;
   /** Mobile only — returns to the section picker. */
   onBack: () => void;
   columns: Column[];
@@ -43,11 +37,9 @@ export function DataSectionPanel({
   title,
   subtitle,
   addLabel,
-  addForm,
+  onAdd,
   toolbarActions,
   headerActions,
-  isFormOpen,
-  onFormOpenChange,
   onBack,
   columns,
   loading,
@@ -91,34 +83,15 @@ export function DataSectionPanel({
         )}
       </div>
 
-      {/* Card: toolbar + collapsible form + table */}
+      {/* Card: toolbar + table */}
       <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
         <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2.5 dark:border-gray-700">
-          <Button
-            variant={isFormOpen ? "secondary" : "primary"}
-            size="sm"
-            onClick={() => onFormOpenChange(!isFormOpen)}
-          >
-            {isFormOpen ? <X size={15} /> : <Plus size={15} />}
-            {isFormOpen ? t("actions.cancel") : addLabel}
+          <Button variant="primary" size="sm" onClick={onAdd}>
+            <Plus size={15} />
+            {addLabel}
           </Button>
           {toolbarActions}
         </div>
-
-        <AnimatePresence initial={false}>
-          {isFormOpen && (
-            <motion.div
-              key="add-form"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="shrink-0 overflow-hidden border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40"
-            >
-              <div className="max-w-sm p-3 md:p-4">{addForm}</div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <DataTable columns={columns} loading={loading} empty={empty}>
           {children}

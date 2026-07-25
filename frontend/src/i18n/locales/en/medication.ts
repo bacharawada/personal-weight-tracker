@@ -41,6 +41,10 @@ const medication = {
     mg: "{{value}} mg",
     none: "—",
   },
+  addModal: {
+    title: "Log a dose",
+    description: "Pick a date and the molecule. Dose and note are optional.",
+  },
   csvModal: {
     title: "Import doses (CSV)",
     description:

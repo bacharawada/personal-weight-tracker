@@ -41,6 +41,11 @@ const medication: MedicationResource = {
     mg: "{{value}} mg",
     none: "—",
   },
+  addModal: {
+    title: "Enregistrer une dose",
+    description:
+      "Choisissez une date et la molécule. La dose et la note sont facultatives.",
+  },
   csvModal: {
     title: "Importer des doses (CSV)",
     description:

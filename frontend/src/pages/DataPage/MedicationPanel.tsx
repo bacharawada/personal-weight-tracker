@@ -2,7 +2,7 @@
  * MedicationPanel — the "Medication" (GLP-1) section panel.
  *
  * Fills the shared DataSectionPanel skeleton with the dose journal, the
- * inline add-dose form, CSV import/export and the delete-with-confirmation
+ * add-dose dialog, CSV import/export and the delete-with-confirmation
  * flow. Replaces the former MedicationSection block that was stacked under
  * the measurements table.
  */
@@ -18,6 +18,7 @@ import type { useMedicationDoses } from "../../hooks/useMedicationDoses";
 import { DataSectionPanel } from "./DataSectionPanel";
 import { CsvTransferActions } from "./CsvTransferActions";
 import { MedicationDoseRow } from "./MedicationDoseRow";
+import { AddEntryModal } from "./modals/AddEntryModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
 import { DeleteDoseModal } from "./modals/DeleteDoseModal";
 
@@ -29,7 +30,7 @@ interface MedicationPanelProps {
 export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
   const { t } = useTranslation("medication");
   const { bump, accent } = useWeightTracker();
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const dataset = useMedicationCsvDataset();
   const csv = useCsvTransfer(dataset);
@@ -51,10 +52,8 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
         title={t("section.title")}
         subtitle={t("section.subtitle", { count: doses.length })}
         addLabel={t("form.heading")}
-        isFormOpen={isFormOpen}
-        onFormOpenChange={setIsFormOpen}
+        onAdd={() => setIsAddOpen(true)}
         onBack={onBack}
-        addForm={<AddMedicationDose onSuccess={bump} />}
         toolbarActions={
           <CsvTransferActions
             onImport={csv.openImport}
@@ -69,7 +68,7 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
           <>
             <p>{t("section.empty")}</p>
             <button
-              onClick={() => setIsFormOpen(true)}
+              onClick={() => setIsAddOpen(true)}
               className="mt-2 text-sm font-medium underline underline-offset-2"
               style={{ color: "var(--color-accent)" }}
             >
@@ -86,6 +85,15 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
           />
         ))}
       </DataSectionPanel>
+
+      <AddEntryModal
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        title={t("addModal.title")}
+        description={t("addModal.description")}
+      >
+        <AddMedicationDose onSuccess={() => { bump(); setIsAddOpen(false); }} />
+      </AddEntryModal>
 
       <CsvImportModal
         open={csv.isImportOpen}

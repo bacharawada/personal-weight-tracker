@@ -37,6 +37,10 @@ const data = {
     editWeight: "Edit",
     notePlaceholder: "Add a note…",
   },
+  addModal: {
+    title: "Add measurement",
+    description: "Enter a date and your weight.",
+  },
   csvModal: {
     title: "Import CSV",
     description:
