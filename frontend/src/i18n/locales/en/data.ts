@@ -1,9 +1,9 @@
 /**
  * `data` namespace (English — source of truth).
  *
- * Copy for the Data page: page title/subtitle, table headers, action
- * cards/FAB labels, export controls, the four modals (add measurement,
- * CSV import, delete measurement, delete all), and the AddMeasurement form.
+ * Copy for the Data page: page title/subtitle, section picker cards, panel
+ * chrome, table headers, export controls, the three modals (CSV import,
+ * delete measurement, delete all), and the AddMeasurement form.
  */
 
 const data = {
@@ -24,25 +24,18 @@ const data = {
     deleteAll: "Delete all",
     exportCsv: "Export CSV",
   },
-  actionCard: {
-    addTitle: "Add entry",
-    addDescription: "Log a new measurement",
-    importTitle: "Import CSV",
-    importDescription: "Upload from a file",
+  picker: {
+    measurementsTitle: "Weight measurements",
   },
-  fab: {
-    openActions: "Open actions",
-    closeActions: "Close actions",
-    importCsv: "Import CSV",
-    addEntry: "Add entry",
+  panel: {
+    addEntry: "Add a measurement",
+  },
+  actionCard: {
+    importTitle: "Import CSV",
   },
   row: {
     editWeight: "Edit",
     notePlaceholder: "Add a note…",
-  },
-  addModal: {
-    title: "Add measurement",
-    description: "Enter a date and your weight in kilograms.",
   },
   csvModal: {
     title: "Import CSV",

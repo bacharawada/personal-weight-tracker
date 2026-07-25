@@ -24,25 +24,18 @@ const data: DataResource = {
     deleteAll: "Tout supprimer",
     exportCsv: "Exporter CSV",
   },
-  actionCard: {
-    addTitle: "Ajouter une entrée",
-    addDescription: "Enregistrer une nouvelle mesure",
-    importTitle: "Importer CSV",
-    importDescription: "Charger depuis un fichier",
+  picker: {
+    measurementsTitle: "Mesures de poids",
   },
-  fab: {
-    openActions: "Ouvrir les actions",
-    closeActions: "Fermer les actions",
-    importCsv: "Importer CSV",
-    addEntry: "Ajouter une entrée",
+  panel: {
+    addEntry: "Ajouter une mesure",
+  },
+  actionCard: {
+    importTitle: "Importer CSV",
   },
   row: {
     editWeight: "Modifier",
     notePlaceholder: "Ajouter une note…",
-  },
-  addModal: {
-    title: "Ajouter une mesure",
-    description: "Saisissez une date et votre poids en kilogrammes.",
   },
   csvModal: {
     title: "Importer CSV",
