@@ -11,6 +11,11 @@ interface ChartCardProps {
   className?: string;
   /** Optional top-right controls (e.g. an export button). */
   toolbar?: ReactNode;
+  /**
+   * Drop the card surface and keep only the spinner / empty / error states, for
+   * a chart embedded in a panel that already owns a surface of its own.
+   */
+  bare?: boolean;
   children: ReactNode;
 }
 
@@ -22,13 +27,15 @@ export function ChartCard({
   emptyMessage,
   className = "",
   toolbar,
+  bare = false,
   children,
 }: ChartCardProps) {
   const { t } = useTranslation("charts");
   const resolvedEmptyMessage = emptyMessage ?? t("card.empty");
+  const surface = bare ? "" : "bg-white dark:bg-gray-800 rounded-lg shadow";
   return (
     <div
-      className={`relative bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden flex flex-col ${className}`}
+      className={`relative overflow-hidden flex flex-col ${surface} ${className}`}
     >
       {toolbar && <div className="absolute top-2 right-2 z-20">{toolbar}</div>}
 

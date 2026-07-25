@@ -11,6 +11,15 @@ const dashboard: DashboardResource = {
     title: "Tableau de bord",
     subtitle: "Vue d'ensemble de votre progression de poids",
   },
+  trajectory: {
+    label: "Trajectoire",
+    currentWeight: "Poids actuel",
+    noWeight: "Ajoutez une mesure pour démarrer votre trajectoire.",
+    last7Days: "7 jours",
+    last30Days: "30 jours",
+    sinceStart: "Depuis le début",
+    noComparison: "—",
+  },
   stats: {
     totalLoss: "Perte totale",
     avgLossPerWeek: "Perte moy./semaine",

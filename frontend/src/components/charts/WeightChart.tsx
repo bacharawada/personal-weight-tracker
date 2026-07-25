@@ -5,6 +5,7 @@ import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import { getMedications, getWeightChart } from "../../lib/api";
 import { getChartTheme, getPalette, hexToRgba } from "../../lib/palettes";
 import { bandPath, linePath, type PixelPoint } from "../../lib/charts/geometry";
+import { findGoalCrossing } from "../../lib/charts/goalCrossing";
 import { exportSvgToPng } from "../../lib/charts/exportPng";
 import { useChartData } from "../../lib/charts/useChartData";
 import { collectChartDomains } from "../../lib/charts/effectiveAxes";
@@ -45,6 +46,14 @@ interface WeightChartProps {
    * public endpoint instead. `params` still drives re-fetch dependencies.
    */
   fetcher?: () => Promise<WeightChartData>;
+  /**
+   * Annotate the point where a model's projection crosses the goal line with a
+   * marker and its date. Off by default: only the dashboard's trajectory panel
+   * makes that claim, the analysis and public share pages stay neutral.
+   */
+  showGoalCrossing?: boolean;
+  /** Render without the chart's own card surface — see ChartCard's `bare`. */
+  bare?: boolean;
 }
 
 const MARGIN: Margin = { top: 12, right: 20, bottom: 30, left: 46 };
@@ -57,6 +66,8 @@ export function WeightChart({
   className,
   onDataLoaded,
   fetcher,
+  showGoalCrossing = false,
+  bare = false,
 }: WeightChartProps) {
   const { t } = useTranslation("charts");
   const { t: tMed } = useTranslation("medication");
@@ -144,6 +155,7 @@ export function WeightChart({
       loading={loading}
       error={error}
       isEmpty={isEmpty}
+      bare={bare}
       className={className ?? "h-[300px] md:flex-1 md:h-auto md:min-h-0"}
       toolbar={
         !isEmpty ? (
@@ -175,6 +187,7 @@ export function WeightChart({
                   onPointClick={onPointClick}
                   doses={params.showDoses ? doses : []}
                   showSmoothed={params.showSmoothed}
+                  showGoalCrossing={showGoalCrossing}
                 />
               )}
             </ChartFrame>
@@ -195,6 +208,7 @@ interface BodyProps {
   onPointClick: (point: { date: string; weight: number }) => void;
   doses: MedicationDose[];
   showSmoothed: boolean;
+  showGoalCrossing: boolean;
 }
 
 function WeightChartBody({
@@ -207,10 +221,11 @@ function WeightChartBody({
   onPointClick,
   doses,
   showSmoothed,
+  showGoalCrossing,
 }: BodyProps) {
   const { t } = useTranslation("charts");
   const { t: tMed } = useTranslation("medication");
-  const { formatDate } = useDisplayPreferences();
+  const { formatDate, formatDateMs } = useDisplayPreferences();
   const [hoveredDoseId, setHoveredDoseId] = useState<number | null>(null);
   // -- Collect domains across every series ----------------------------------
   const { dateMs: allMs, values: allValues } = collectChartDomains(data);
@@ -246,6 +261,18 @@ function WeightChartBody({
   const hoveredMarker =
     hoveredDoseId != null
       ? doseMarkers.find((marker) => marker.dose.id === hoveredDoseId) ?? null
+      : null;
+
+  // The first model whose projection reaches the goal within the current
+  // horizon wins; models are already ordered by the backend's preference.
+  const goalWeight = data.goal_weight;
+  const goalCrossingMs =
+    showGoalCrossing && goalWeight != null
+      ? data.models.reduce<number | null>(
+          (found, model) =>
+            found ?? findGoalCrossing(model.projection, goalWeight)?.ms ?? null,
+          null,
+        )
       : null;
 
   return (
@@ -353,6 +380,54 @@ function WeightChartBody({
           opacity={0.8}
         />
       )}
+
+      {/* Where the projection meets the goal — the dashboard's headline claim */}
+      {goalCrossingMs != null &&
+        goalWeight != null &&
+        (() => {
+          const cx = x(goalCrossingMs);
+          if (cx < 0 || cx > innerWidth) return null;
+          const cy = y(goalWeight);
+          const label = formatDateMs(goalCrossingMs);
+          const width = label.length * 6.1 + 12;
+          const labelX = Math.min(Math.max(cx, width / 2), innerWidth - width / 2);
+          // Below the marker normally, above it when the goal line sits low
+          // enough that the label would fall outside the plotting area.
+          const below = cy + 26 <= innerHeight;
+          const boxY = below ? cy + 8 : cy - 26;
+          return (
+            <g pointerEvents="none">
+              <title>{t("weight.goalCrossing", { date: label })}</title>
+              <circle
+                cx={cx}
+                cy={cy}
+                r={5}
+                fill={theme.tooltipBg}
+                stroke={palette.accent}
+                strokeWidth={2}
+              />
+              <rect
+                x={labelX - width / 2}
+                y={boxY}
+                width={width}
+                height={18}
+                rx={4}
+                fill={theme.tooltipBg}
+                opacity={0.9}
+              />
+              <text
+                x={labelX}
+                y={boxY + 13}
+                fontSize={11}
+                fontWeight={700}
+                textAnchor="middle"
+                fill={palette.accent}
+              >
+                {label}
+              </text>
+            </g>
+          );
+        })()}
 
       {/* Hover + click-to-select */}
       <HoverLayer

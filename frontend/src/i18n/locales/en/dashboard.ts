@@ -11,6 +11,16 @@ const dashboard = {
     title: "Dashboard",
     subtitle: "Overview of your weight progression",
   },
+  trajectory: {
+    label: "Trajectory",
+    currentWeight: "Current weight",
+    noWeight: "Add a measurement to start your trajectory.",
+    last7Days: "7 days",
+    last30Days: "30 days",
+    sinceStart: "Since start",
+    // Shown in place of a delta when the window has no earlier measurement.
+    noComparison: "—",
+  },
   stats: {
     totalLoss: "Total Loss",
     avgLossPerWeek: "Avg Loss/Week",
