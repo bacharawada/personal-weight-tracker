@@ -9,17 +9,13 @@ import type { ProfileResource } from "../en/profile";
 const profile: ProfileResource = {
   page: {
     title: "Profil",
-    subtitle: "Votre compte, votre objectif et vos unités de mesure",
+    subtitle: "Votre compte, votre objectif et vos partages",
   },
   identity: {
     fallbackName: "Compte",
   },
   goalBody: {
     heading: "Objectif et corpulence",
-    units: {
-      label: "Unités",
-      helper: "Afficher les poids en kilogrammes ou en livres",
-    },
     fields: {
       height: "Taille (cm)",
       goal: "Poids cible ({{unit}})",

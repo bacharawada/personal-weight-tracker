@@ -64,16 +64,13 @@ export function DisplayPreferencesProvider({
   preferences,
   children,
 }: DisplayPreferencesProviderProps) {
+  // Depend on the three primitive fields rather than the object identity, so a
+  // fresh profile object with unchanged preferences does not invalidate the
+  // formatters (and re-render every chart).
+  const { unit_preference: unit, date_order: order, date_separator: sep } = preferences;
   const value = useMemo(
-    () => buildValue(preferences),
-    // Depend on the three primitive fields rather than the object identity, so
-    // a fresh profile object with unchanged preferences does not invalidate the
-    // formatters (and re-render every chart).
-    [
-      preferences.unit_preference,
-      preferences.date_order,
-      preferences.date_separator,
-    ],
+    () => buildValue({ unit_preference: unit, date_order: order, date_separator: sep }),
+    [unit, order, sep],
   );
 
   return (

@@ -2,24 +2,21 @@
  * `profile` namespace (English — source of truth).
  *
  * Copy for the profile page: page title/subtitle, the identity fallback name,
- * the goal & body panel (units toggle, height/goal/target-date fields and
- * their placeholders) and the save feedback.
+ * the goal & body panel (height/goal/target-date fields and their
+ * placeholders) and the save feedback. The sharing section rendered below it
+ * draws its copy from the `settings` namespace.
  */
 
 const profile = {
   page: {
     title: "Profile",
-    subtitle: "Your account, goal and measurement units",
+    subtitle: "Your account, your goal and who you share it with",
   },
   identity: {
     fallbackName: "Account",
   },
   goalBody: {
     heading: "Goal & Body",
-    units: {
-      label: "Units",
-      helper: "Display weights in kilograms or pounds",
-    },
     fields: {
       height: "Height (cm)",
       goal: "Goal weight ({{unit}})",

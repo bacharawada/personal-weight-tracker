@@ -8,7 +8,7 @@ import { PageTitle } from "../components/layout/PageTitle";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { WeightUnit } from "../lib/types";
+import { ShareSettings } from "../components/settings/ShareSettings";
 import { displayToKg, kgToDisplay, unitLabel } from "../lib/units";
 
 export function ProfilePage() {
@@ -61,11 +61,6 @@ export function ProfilePage() {
     }
   }
 
-  async function handleUnitChange(next: WeightUnit) {
-    if (next === unit) return;
-    await saveProfile({ unit_preference: next });
-  }
-
   const u = unitLabel(unit);
 
   return (
@@ -99,37 +94,6 @@ export function ProfilePage() {
         <section>
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">{t("goalBody.heading")}</h2>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 space-y-5">
-            {/* Units */}
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t("goalBody.units.label")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {t("goalBody.units.helper")}
-                </p>
-              </div>
-              <div className="flex rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
-                {[WeightUnit.Kg, WeightUnit.Lb].map((option) => {
-                  const isActive = unit === option;
-                  return (
-                    <button
-                      key={option}
-                      onClick={() => handleUnitChange(option)}
-                      className={`px-3 py-3 md:py-1.5 text-sm font-medium transition-colors ${
-                        isActive
-                          ? "text-white"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                      }`}
-                      style={isActive ? { backgroundColor: "var(--color-accent)" } : undefined}
-                    >
-                      {unitLabel(option)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="h-px bg-gray-100 dark:bg-gray-700" />
-
             {/* Height / goal / target date */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
@@ -182,6 +146,9 @@ export function ProfilePage() {
             </div>
           </div>
         </section>
+
+        {/* Sharing */}
+        <ShareSettings />
       </div>
     </PageTransition>
   );

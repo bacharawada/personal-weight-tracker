@@ -9,7 +9,7 @@ import type { SettingsResource } from "../en/settings";
 
 const settings: SettingsResource = {
   title: "Paramètres",
-  subtitle: "Personnalisez l'apparence et exportez vos données",
+  subtitle: "Personnalisez l'apparence et le format de vos données",
   appearance: {
     heading: "Apparence",
     theme: "Thème",
@@ -28,6 +28,25 @@ const settings: SettingsResource = {
       Warm: "Chaud",
       Monochrome: "Monochrome",
       Forest: "Forêt",
+    },
+  },
+  unitsFormats: {
+    heading: "Unités et formats",
+    unit: {
+      label: "Unité de poids",
+      helper: "Afficher les poids en kilogrammes ou en livres",
+    },
+    dateOrder: {
+      label: "Format de date",
+      helper: "S'applique partout où une date est affichée",
+      european: "Européen",
+      american: "Américain",
+      iso: "ISO 8601",
+    },
+    separator: {
+      label: "Séparateur",
+      helper: "Caractère entre les champs de la date",
+      isoHelper: "Le format ISO utilise toujours le tiret",
     },
   },
   share: {
