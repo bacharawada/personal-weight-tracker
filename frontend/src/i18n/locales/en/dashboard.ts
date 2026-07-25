@@ -64,6 +64,21 @@ const dashboard = {
       earliest: "{{date}} at the earliest; later if your rate slows.",
     },
   },
+  consistency: {
+    label: "Consistency",
+    streak_zero: "No current streak",
+    streak_one: "{{count}} day streak",
+    streak_other: "{{count}} day streak",
+    summary_one: "{{count}} weigh-in over {{weeks}} weeks",
+    summary_other: "{{count}} weigh-ins over {{weeks}} weeks",
+    daysTracked_one: "Tracking for {{count}} day",
+    daysTracked_other: "Tracking for {{count}} days",
+  },
+  momentum: {
+    label: "Momentum",
+    barsLabel: "Weekly change over the last {{count}} weeks",
+    losingWeeks: "{{losing}} of {{total}} weeks down",
+  },
   pace: {
     label: "Pace",
     required: "needed {{value}}",

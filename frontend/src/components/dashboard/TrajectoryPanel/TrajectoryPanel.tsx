@@ -14,7 +14,7 @@ import { useWeightTracker } from "../../../context/WeightTrackerContext";
 import { useDisplayPreferences } from "../../../context/DisplayPreferencesContext";
 import { formatWeight } from "../../../lib/units";
 import type { ChartParams, Measurement } from "../../../lib/types";
-import type { WeightDeltas } from "../../../hooks/useDashboardData";
+import type { WeightDeltas } from "../../../lib/dashboard/series";
 import { WeightChart } from "../../charts/WeightChart";
 import { Tile } from "../tiles";
 import { DeltaStat } from "./DeltaStat";

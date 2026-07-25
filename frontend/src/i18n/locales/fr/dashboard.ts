@@ -63,6 +63,21 @@ const dashboard: DashboardResource = {
       earliest: "Le {{date}} au plus tôt ; plus tard si votre rythme ralentit.",
     },
   },
+  consistency: {
+    label: "Régularité",
+    streak_zero: "Aucune série en cours",
+    streak_one: "{{count}} jour de série",
+    streak_other: "{{count}} jours de série",
+    summary_one: "{{count}} pesée sur {{weeks}} semaines",
+    summary_other: "{{count}} pesées sur {{weeks}} semaines",
+    daysTracked_one: "Suivi depuis {{count}} jour",
+    daysTracked_other: "Suivi depuis {{count}} jours",
+  },
+  momentum: {
+    label: "Momentum",
+    barsLabel: "Variation hebdomadaire sur les {{count}} dernières semaines",
+    losingWeeks: "{{losing}} semaines de perte sur {{total}}",
+  },
   pace: {
     label: "Rythme",
     required: "requis {{value}}",
