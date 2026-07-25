@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
@@ -15,9 +15,11 @@ import { WeightChartExplainer } from "../components/charts/explainers/WeightChar
 import { DerivativeChartExplainer } from "../components/charts/explainers/DerivativeChartExplainer";
 import { EnergyChartExplainer } from "../components/charts/explainers/EnergyChartExplainer";
 import { ResidualsChartExplainer } from "../components/charts/explainers/ResidualsChartExplainer";
+import { resolveEffectiveAxes } from "../lib/charts/effectiveAxes";
 import { AUTO_AXES, type ChartAxes, type WeightChartData } from "../lib/types";
 
 const HORIZON_OPTIONS = [
+  { unit: "none", count: 0, value: 0 },
   { unit: "weeks", count: 4, value: 28 },
   { unit: "weeks", count: 8, value: 56 },
   { unit: "months", count: 3, value: 90 },
@@ -30,6 +32,17 @@ export function AnalysisPage() {
   const { chartParams, setChartParams, refreshKey, setSelectedPoint, accent, unit } = useWeightTracker();
   const [axes, setAxes] = useState<ChartAxes>(AUTO_AXES);
   const [weightData, setWeightData] = useState<WeightChartData | null>(null);
+  const effectiveAxes = useMemo(
+    () => resolveEffectiveAxes(weightData, axes),
+    [weightData, axes]
+  );
+  // Flatten every model's projection so the axis presets can keep the
+  // extrapolation horizon in view. "All history" (the default AUTO_AXES) already
+  // shows it via full auto-fit, so no initial preset needs to be applied.
+  const projection = useMemo(
+    () => weightData?.models.flatMap((model) => model.projection) ?? [],
+    [weightData]
+  );
 
   const handlePointClick = useCallback(
     (point: { date: string; weight: number }) => setSelectedPoint(point),
@@ -90,7 +103,9 @@ export function AnalysisPage() {
                     : undefined
                 }
               >
-                {t(`horizon.${opt.unit}`, { count: opt.count })}
+                {opt.unit === "none"
+                  ? t("horizon.none")
+                  : t(`horizon.${opt.unit}`, { count: opt.count })}
               </button>
             ))}
           </div>
@@ -102,6 +117,17 @@ export function AnalysisPage() {
             {t("controls.predictionModels")}
           </label>
           <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={chartParams.showSmoothed}
+                onChange={(e) =>
+                  setChartParams({ ...chartParams, showSmoothed: e.target.checked })
+                }
+                style={{ accentColor: accent }}
+              />
+              {t("controls.rollingMean")}
+            </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <input
                 type="checkbox"
@@ -150,7 +176,13 @@ export function AnalysisPage() {
         </div>
       </div>
 
-      <AxisControls axes={axes} onChange={setAxes} points={weightData?.raw ?? []} />
+      <AxisControls
+        axes={axes}
+        onChange={setAxes}
+        points={weightData?.raw ?? []}
+        projection={projection}
+        effective={effectiveAxes}
+      />
 
       <ModelStatsStrip models={weightData?.models ?? []} unit={unit} />
 

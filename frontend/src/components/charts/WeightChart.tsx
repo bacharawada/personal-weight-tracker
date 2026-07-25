@@ -7,6 +7,7 @@ import { getChartTheme, getPalette, hexToRgba } from "../../lib/palettes";
 import { bandPath, linePath, type PixelPoint } from "../../lib/charts/geometry";
 import { exportSvgToPng } from "../../lib/charts/exportPng";
 import { useChartData } from "../../lib/charts/useChartData";
+import { collectChartDomains } from "../../lib/charts/effectiveAxes";
 import {
   dateTicks,
   linearScale,
@@ -111,10 +112,12 @@ export function WeightChart({
   const legendItems: LegendItem[] = [];
   if (data && !isEmpty) {
     legendItems.push({ label: t("weight.legend.measurements"), color: palette.raw });
-    legendItems.push({
-      label: t("weight.legend.rollingMean", { count: data.smoothing_window }),
-      color: palette.smoothed,
-    });
+    if (params.showSmoothed) {
+      legendItems.push({
+        label: t("weight.legend.rollingMean", { count: data.smoothing_window }),
+        color: palette.smoothed,
+      });
+    }
     for (const model of data.models) {
       legendItems.push({
         label: model.label,
@@ -171,6 +174,7 @@ export function WeightChart({
                   innerHeight={innerHeight}
                   onPointClick={onPointClick}
                   doses={params.showDoses ? doses : []}
+                  showSmoothed={params.showSmoothed}
                 />
               )}
             </ChartFrame>
@@ -190,6 +194,7 @@ interface BodyProps {
   innerHeight: number;
   onPointClick: (point: { date: string; weight: number }) => void;
   doses: MedicationDose[];
+  showSmoothed: boolean;
 }
 
 function WeightChartBody({
@@ -201,26 +206,13 @@ function WeightChartBody({
   innerHeight,
   onPointClick,
   doses,
+  showSmoothed,
 }: BodyProps) {
   const { t } = useTranslation("charts");
   const { t: tMed } = useTranslation("medication");
   const [hoveredDoseId, setHoveredDoseId] = useState<number | null>(null);
   // -- Collect domains across every series ----------------------------------
-  const allMs: number[] = [
-    ...data.raw.map((p) => toMs(p.date)),
-    ...data.models.flatMap((m) => m.projection.map((p) => toMs(p.date))),
-  ];
-  const allValues: number[] = [
-    ...data.raw.map((p) => p.value),
-    ...data.smoothed.map((p) => p.value),
-    ...data.models.flatMap((m) => [
-      ...m.fit.map((p) => p.value),
-      ...m.projection.map((p) => p.value),
-      ...m.band.flatMap((b) => [b.lower, b.upper]),
-    ]),
-  ];
-  if (data.goal_weight != null) allValues.push(data.goal_weight);
-  for (const m of data.models) if (m.asymptote != null) allValues.push(m.asymptote);
+  const { dateMs: allMs, values: allValues } = collectChartDomains(data);
 
   const xDomain = resolveDateDomain(allMs, axes.x);
   const yDomain = resolveValueDomain(allValues, axes.y);
@@ -343,7 +335,9 @@ function WeightChartBody({
       )}
 
       {/* Rolling mean */}
-      <path d={linePath(smoothedPx)} fill="none" stroke={palette.smoothed} strokeWidth={2.4} />
+      {showSmoothed && (
+        <path d={linePath(smoothedPx)} fill="none" stroke={palette.smoothed} strokeWidth={2.4} />
+      )}
 
       {/* Goal line */}
       {data.goal_weight != null && (

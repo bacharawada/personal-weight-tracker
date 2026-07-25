@@ -15,11 +15,13 @@ const analysis: AnalysisResource = {
     smoothingWindow: "Fenêtre de lissage :",
     extrapolationHorizon: "Horizon d'extrapolation",
     predictionModels: "Modèles de prédiction",
+    rollingMean: "Moyenne glissante",
     exponentialDecay: "Décroissance exponentielle",
     linearTrend: "Tendance linéaire",
     showUncertaintyBand: "Afficher la bande d'incertitude",
   },
   horizon: {
+    none: "Aucune",
     weeks_one: "{{count}} semaine",
     weeks_other: "{{count}} semaines",
     months_one: "{{count}} mois",

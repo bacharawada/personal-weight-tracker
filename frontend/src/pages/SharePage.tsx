@@ -64,6 +64,7 @@ export function SharePage() {
       showLinear: false,
       showBand: true,
       showDoses: false,
+      showSmoothed: true,
     }),
     [isDark],
   );

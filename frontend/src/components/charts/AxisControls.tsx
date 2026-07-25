@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { ChartAxes, ChartPoint } from "../../lib/types";
+import type { ChartAxes, ChartPoint, EffectiveAxes } from "../../lib/types";
 import { AUTO_AXES } from "../../lib/types";
 
 interface AxisControlsProps {
@@ -7,6 +7,15 @@ interface AxisControlsProps {
   onChange: (axes: ChartAxes) => void;
   /** Raw measurements — used to auto-fit the weight axis for a range preset. */
   points: ChartPoint[];
+  /** Model projection points — used so a range preset's window still fits the
+   * extrapolation horizon (both axes) instead of clipping it. */
+  projection: ChartPoint[];
+  /**
+   * The concrete values the chart currently renders. Fills every field so the
+   * controls always reflect the active state, even when an axis is on "auto".
+   * Null before the first data load (empty chart) — fields fall back to blank.
+   */
+  effective: EffectiveAxes | null;
 }
 
 function parseNum(value: string): number | null {
@@ -33,33 +42,36 @@ function subtractDays(isoDate: string, days: number): string {
 }
 
 /**
- * Build a coherent axis config for a range preset: pin the date window to the
- * last `days` (relative to the latest measurement) and fit the weight axis to
- * the min/max of the points inside that window, padded by ±Y_PADDING.
- * `days === null` means "all time" — date axis stays auto, weight fits all points.
+ * Build a coherent axis config for a range preset.
+ *
+ * `days === null` ("all history") is full auto — both axes fit every plotted
+ * series reactively, so the extrapolation horizon is always visible without
+ * pinning anything.
+ *
+ * For a fixed range, only the *start* of the date window is pinned (`days` back
+ * from the latest measurement); the date axis end stays auto so the projection
+ * is never clipped horizontally. The weight axis is fitted to every point in the
+ * window — raw measurements *and* the projection — padded by ±Y_PADDING, so the
+ * horizon stays on-screen vertically too.
  */
-function computePreset(points: ChartPoint[], days: number | null): ChartAxes {
-  if (points.length === 0) return AUTO_AXES;
+function computePreset(
+  points: ChartPoint[],
+  projection: ChartPoint[],
+  days: number | null,
+): ChartAxes {
+  if (days === null || points.length === 0) return AUTO_AXES;
 
   const latest = points.reduce((max, p) => (p.date > max ? p.date : max), points[0].date);
+  const xMin = subtractDays(latest, days);
 
-  let xMin: string | null = null;
-  let xMax: string | null = null;
-  let inRange = points;
-
-  if (days !== null) {
-    xMin = subtractDays(latest, days);
-    xMax = latest;
-    const filtered = points.filter((p) => p.date >= xMin!);
-    if (filtered.length > 0) inRange = filtered;
-  }
-
-  const weights = inRange.map((p) => p.value);
+  const weights = [...points, ...projection]
+    .filter((p) => p.date >= xMin)
+    .map((p) => p.value);
   const yMin = Math.floor(Math.min(...weights) - Y_PADDING);
   const yMax = Math.ceil(Math.max(...weights) + Y_PADDING);
 
   return {
-    x: { min: xMin, max: xMax, stepDays: null },
+    x: { min: xMin, max: null, stepDays: null },
     y: { min: yMin, max: yMax, step: null },
   };
 }
@@ -71,10 +83,12 @@ const inputClass =
 const labelClass = "block text-xs text-gray-500 dark:text-gray-400 mb-1";
 
 /** Manual scale controls for the weight chart: start / end / step on both axes. */
-export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
+export function AxisControls({ axes, onChange, points, projection, effective }: AxisControlsProps) {
   const { t } = useTranslation("analysis");
-  const isCustom =
-    JSON.stringify(axes) !== JSON.stringify(AUTO_AXES);
+  // "Auto" is the full-history view: reset returns to the "all" preset (full
+  // auto — both axes fit every series, including the projection horizon).
+  const allPreset = computePreset(points, projection, null);
+  const isCustom = JSON.stringify(axes) !== JSON.stringify(allPreset);
   const activeAxes = JSON.stringify(axes);
 
   return (
@@ -85,7 +99,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
         </span>
         {isCustom && (
           <button
-            onClick={() => onChange(AUTO_AXES)}
+            onClick={() => onChange(allPreset)}
             className="text-xs font-medium text-[var(--color-accent)] hover:underline"
           >
             {t("axes.resetToAuto")}
@@ -100,7 +114,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
         </p>
         <div className="flex flex-wrap gap-2">
           {RANGE_PRESETS.map((preset) => {
-            const presetAxes = computePreset(points, preset.days);
+            const presetAxes = computePreset(points, projection, preset.days);
             const isActive =
               points.length > 0 && JSON.stringify(presetAxes) === activeAxes;
             return (
@@ -133,7 +147,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
               <label className={labelClass}>{t("axes.start")}</label>
               <input
                 type="date"
-                value={axes.x.min ?? ""}
+                value={effective?.x.min ?? ""}
                 onChange={(e) =>
                   onChange({ ...axes, x: { ...axes.x, min: e.target.value || null } })
                 }
@@ -144,7 +158,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
               <label className={labelClass}>{t("axes.end")}</label>
               <input
                 type="date"
-                value={axes.x.max ?? ""}
+                value={effective?.x.max ?? ""}
                 onChange={(e) =>
                   onChange({ ...axes, x: { ...axes.x, max: e.target.value || null } })
                 }
@@ -157,7 +171,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
                 type="number"
                 min={1}
                 placeholder={t("axes.autoPlaceholder")}
-                value={axes.x.stepDays ?? ""}
+                value={effective?.x.stepDays ?? ""}
                 onChange={(e) =>
                   onChange({ ...axes, x: { ...axes.x, stepDays: parseNum(e.target.value) } })
                 }
@@ -178,7 +192,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
               <input
                 type="number"
                 placeholder={t("axes.autoPlaceholder")}
-                value={axes.y.min ?? ""}
+                value={effective?.y.min ?? ""}
                 onChange={(e) =>
                   onChange({ ...axes, y: { ...axes.y, min: parseNum(e.target.value) } })
                 }
@@ -190,7 +204,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
               <input
                 type="number"
                 placeholder={t("axes.autoPlaceholder")}
-                value={axes.y.max ?? ""}
+                value={effective?.y.max ?? ""}
                 onChange={(e) =>
                   onChange({ ...axes, y: { ...axes.y, max: parseNum(e.target.value) } })
                 }
@@ -203,7 +217,7 @@ export function AxisControls({ axes, onChange, points }: AxisControlsProps) {
                 type="number"
                 min={0}
                 placeholder={t("axes.autoPlaceholder")}
-                value={axes.y.step ?? ""}
+                value={effective?.y.step ?? ""}
                 onChange={(e) =>
                   onChange({ ...axes, y: { ...axes.y, step: parseNum(e.target.value) } })
                 }

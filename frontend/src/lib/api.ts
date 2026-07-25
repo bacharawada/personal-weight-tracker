@@ -11,6 +11,7 @@ import type {
   CsvPreview,
   CsvPreviewRow,
   DerivativeChartData,
+  DisplayPreferences,
   DoseImpact,
   EnergyBalance,
   EnergyChartData,
@@ -252,6 +253,15 @@ async function fetchPublicJson<T>(url: string): Promise<T> {
 
 export async function getPublicStats(token: string): Promise<Stats> {
   return fetchPublicJson<Stats>(`${BASE}/public/${encodeURIComponent(token)}/stats`);
+}
+
+/** Display preferences of the share link's owner (unit + date format). */
+export async function getPublicPreferences(
+  token: string,
+): Promise<DisplayPreferences> {
+  return fetchPublicJson<DisplayPreferences>(
+    `${BASE}/public/${encodeURIComponent(token)}/preferences`,
+  );
 }
 
 export async function getPublicWeightChart(

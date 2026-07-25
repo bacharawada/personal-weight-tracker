@@ -16,11 +16,18 @@ import {
   useState,
 } from "react";
 import { getMe, getMeasurements, updateProfile } from "../lib/api";
+import { DEFAULT_DISPLAY_PREFERENCES } from "../lib/dates";
 import { getPaletteAccent } from "../lib/palettes";
-import type { ChartParams, UserProfile, UserProfileUpdate } from "../lib/types";
+import type {
+  ChartParams,
+  DisplayPreferences,
+  UserProfile,
+  UserProfileUpdate,
+} from "../lib/types";
 import { WeightUnit } from "../lib/types";
 import { usePolling } from "../hooks/usePolling";
 import { useTheme } from "../hooks/useTheme";
+import { DisplayPreferencesProvider } from "./DisplayPreferencesContext";
 
 interface SelectedPoint {
   date: string;
@@ -71,6 +78,7 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
     showLinear: false,
     showBand: true,
     showDoses: true,
+    showSmoothed: true,
   });
 
   const [hasData, setHasData] = useState(false);
@@ -118,6 +126,20 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
   );
 
   const unit = profile?.unit_preference ?? WeightUnit.Kg;
+
+  // Display preferences are served through their own provider so the charts can
+  // read them on the public share page too, where this provider is absent.
+  const displayPreferences = useMemo<DisplayPreferences>(
+    () =>
+      profile == null
+        ? DEFAULT_DISPLAY_PREFERENCES
+        : {
+            unit_preference: profile.unit_preference,
+            date_order: profile.date_order,
+            date_separator: profile.date_separator,
+          },
+    [profile],
+  );
 
   // Stable numeric key from refreshKey + the data-affecting chart params only.
   // Palette and dark mode are pure rendering concerns handled client-side, so
@@ -194,7 +216,9 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
 
   return (
     <WeightTrackerContext.Provider value={value}>
-      {children}
+      <DisplayPreferencesProvider preferences={displayPreferences}>
+        {children}
+      </DisplayPreferencesProvider>
     </WeightTrackerContext.Provider>
   );
 }

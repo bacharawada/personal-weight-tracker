@@ -101,6 +101,24 @@ export const WeightUnit = {
 } as const;
 export type WeightUnit = (typeof WeightUnit)[keyof typeof WeightUnit];
 
+// Order of the day/month/year fields in a displayed date. Storage is always
+// ISO; this only drives rendering.
+export const DateOrder = {
+  /** European — 31/12/2026 */
+  Dmy: "dmy",
+  /** American — 12/31/2026 */
+  Mdy: "mdy",
+  /** ISO 8601 — 2026-12-31 (always rendered with a dash) */
+  Ymd: "ymd",
+} as const;
+export type DateOrder = (typeof DateOrder)[keyof typeof DateOrder];
+
+export const DateSeparator = {
+  Slash: "/",
+  Dash: "-",
+} as const;
+export type DateSeparator = (typeof DateSeparator)[keyof typeof DateSeparator];
+
 export const ModelId = {
   Exp: "exp",
   Linear: "linear",
@@ -261,6 +279,8 @@ export interface UserProfile {
   goal_weight: number | null;
   target_date: string | null;
   unit_preference: WeightUnit;
+  date_order: DateOrder;
+  date_separator: DateSeparator;
 }
 
 export interface UserProfileUpdate {
@@ -268,6 +288,19 @@ export interface UserProfileUpdate {
   goal_weight?: number | null;
   target_date?: string | null;
   unit_preference?: WeightUnit;
+  date_order?: DateOrder;
+  date_separator?: DateSeparator;
+}
+
+/**
+ * Display preferences of a shared dashboard's owner, returned by
+ * /api/public/{token}/preferences. The visitor has no account of their own, so
+ * the shared page renders with the owner's choices.
+ */
+export interface DisplayPreferences {
+  unit_preference: WeightUnit;
+  date_order: DateOrder;
+  date_separator: DateSeparator;
 }
 
 // Dashboard sharing status returned by /api/me/share.

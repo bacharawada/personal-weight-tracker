@@ -14,11 +14,13 @@ const analysis = {
     smoothingWindow: "Smoothing Window:",
     extrapolationHorizon: "Extrapolation Horizon",
     predictionModels: "Prediction Models",
+    rollingMean: "Rolling mean",
     exponentialDecay: "Exponential decay",
     linearTrend: "Linear trend",
     showUncertaintyBand: "Show uncertainty band",
   },
   horizon: {
+    none: "None",
     weeks_one: "{{count}} week",
     weeks_other: "{{count}} weeks",
     months_one: "{{count}} month",
