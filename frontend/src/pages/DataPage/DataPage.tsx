@@ -1,203 +1,115 @@
-import { useCallback, useState } from "react";
+/**
+ * DataPage — two-panel host for the data sections.
+ *
+ * Desktop (md+): a persistent left rail with the two section cards, the
+ * selected section's panel filling the rest of the width.
+ * Mobile: master-detail drill-down — the cards fill the screen until one is
+ * picked, then the panel replaces them (its own back button returns here).
+ *
+ * The split is pure CSS: `selected` stays null on first mobile render so the
+ * rail shows, while the desktop layout always renders a panel by falling
+ * back to the measurements section.
+ */
+
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, FileUp, Plus, Trash2 } from "lucide-react";
-import { useWeightTracker } from "../../context/WeightTrackerContext";
+import { motion } from "motion/react";
+import { Scale, Syringe } from "lucide-react";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { PageTitle } from "../../components/layout/PageTitle";
-import { Button } from "../../components/ui/button";
-import { ActionCard } from "../../components/ui/ActionCard";
-import { DataTable } from "../../components/ui/DataTable";
-import { exportCsv } from "../../lib/api";
 import { useDataPage } from "../../hooks/useDataPage";
-import { MeasurementRow } from "./MeasurementRow";
-import { MedicationSection } from "./MedicationSection";
-import { DataPageFAB } from "./DataPageFAB";
-import { AddMeasurementModal } from "./modals/AddMeasurementModal";
-import { CsvImportModal } from "./modals/CsvImportModal";
-import { DeleteMeasurementModal } from "./modals/DeleteMeasurementModal";
-import { DeleteAllModal } from "./modals/DeleteAllModal";
-import { unitLabel } from "../../lib/units";
+import { useMedicationDoses } from "../../hooks/useMedicationDoses";
+import { cn } from "../../lib/cn";
+import { DataSectionCard } from "./DataSectionCard";
+import { MeasurementsPanel } from "./MeasurementsPanel";
+import { MedicationPanel } from "./MedicationPanel";
+
+const SECTIONS = {
+  measurements: "measurements",
+  medication: "medication",
+} as const;
+
+type Section = (typeof SECTIONS)[keyof typeof SECTIONS];
 
 export function DataPage() {
   const { t } = useTranslation("data");
-  const { bump, accent, hasData, unit } = useWeightTracker();
-  const tableColumns = [
-    { label: t("table.date"), align: "left" as const },
-    { label: t("table.weight", { unit: unitLabel(unit) }), align: "right" as const },
-    { label: t("table.note"), align: "left" as const },
-    { label: t("table.actions"), align: "right" as const, className: "w-24" },
-  ];
-  const {
-    measurements,
-    loading,
-    addOpen, setAddOpen,
-    csvOpen, csvKey, openCsvModal, closeCsvModal,
-    deleteTarget, setDeleteTarget,
-    deleteAllOpen, setDeleteAllOpen,
-    editingDate, editWeight, setEditWeight, editNote, setEditNote, editError, setEditError,
-    saving, inputRef,
-    deleting, deletingAll,
-    startEdit, cancelEdit, saveEdit, handleKeyDown,
-    handleDelete, handleDeleteAll, handleCsvComplete,
-  } = useDataPage();
+  const measurementsData = useDataPage();
+  const medicationData = useMedicationDoses();
 
-  const [exporting, setExporting] = useState(false);
-  const handleExportCsv = useCallback(async () => {
-    setExporting(true);
-    try {
-      const blob = await exportCsv();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "measurements.csv";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } finally {
-      setExporting(false);
-    }
-  }, []);
+  const [selected, setSelected] = useState<Section | null>(null);
+  const active: Section = selected ?? SECTIONS.measurements;
+
+  const measurementCount = measurementsData.measurements.length;
+  const doseCount = medicationData.doses.length;
 
   return (
-    <>
-      <PageTransition>
-        <div className="h-full overflow-y-auto px-4 pt-4 pb-nav md:px-8 md:pt-8 space-y-6">
+    <PageTransition>
+      <div className="flex h-full flex-col overflow-hidden px-4 pt-4 pb-nav md:px-8 md:pt-8">
+        <div className="mx-auto flex w-full max-w-5xl flex-1 min-h-0 flex-col gap-5">
 
-          {/* Header */}
-          <div className="flex items-center justify-between gap-4 max-w-4xl mx-auto w-full">
+          {/* Page heading — hidden on mobile once a panel is open */}
+          <div className={cn("shrink-0", selected && "hidden md:block")}>
             <PageTitle
               title={t("page.title")}
-              subtitle={t("page.subtitle", { count: measurements.length })}
+              subtitle={t("page.subtitle", { count: measurementCount })}
             />
-            <div className="flex items-center gap-2 shrink-0">
-              {hasData && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setDeleteAllOpen(true)}
-                >
-                  <Trash2 size={15} />
-                  <span className="hidden sm:inline">{t("toolbar.deleteAll")}</span>
-                </Button>
+          </div>
+
+          <div className="flex flex-1 min-h-0 gap-6">
+
+            {/* Section picker */}
+            <div
+              className={cn(
+                "w-full shrink-0 flex-col gap-3 md:flex md:w-72",
+                selected ? "hidden" : "flex",
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCsv}
-                disabled={!hasData || exporting}
-              >
-                <Download size={15} />
-                <span className="hidden sm:inline">{t("toolbar.exportCsv")}</span>
-              </Button>
+            >
+              <DataSectionCard
+                icon={<Scale size={22} />}
+                title={t("picker.measurementsTitle")}
+                subtitle={t("page.subtitle", { count: measurementCount })}
+                isSelected={selected === SECTIONS.measurements}
+                onClick={() => setSelected(SECTIONS.measurements)}
+              />
+              <DataSectionCard
+                icon={<Syringe size={22} />}
+                title={t("section.title", { ns: "medication" })}
+                subtitle={t("section.subtitle", {
+                  ns: "medication",
+                  count: doseCount,
+                })}
+                isSelected={selected === SECTIONS.medication}
+                onClick={() => setSelected(SECTIONS.medication)}
+              />
             </div>
-          </div>
 
-          {/* Body */}
-          <div className="max-w-4xl mx-auto w-full">
-            <div className="flex gap-5 items-start">
-
-              {/* Table — full width on mobile, flex-1 on desktop */}
-              <div className="flex-1 min-w-0 flex flex-col max-h-[55vh] bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                <DataTable
-                  columns={tableColumns}
-                  loading={loading}
-                  empty={
-                    <>
-                      <p>{t("table.empty")}</p>
-                      <button
-                        onClick={() => setAddOpen(true)}
-                        className="mt-2 text-sm font-medium underline underline-offset-2"
-                        style={{ color: "var(--color-accent)" }}
-                      >
-                        {t("table.addFirst")}
-                      </button>
-                    </>
-                  }
-                >
-                  {measurements.map((m) => (
-                    <MeasurementRow
-                      key={m.date}
-                      measurement={m}
-                      unit={unit}
-                      isEditing={editingDate === m.date}
-                      editWeight={editWeight}
-                      editNote={editNote}
-                      editError={editError}
-                      saving={saving}
-                      inputRef={inputRef}
-                      onEditStart={startEdit}
-                      onEditSave={saveEdit}
-                      onEditCancel={cancelEdit}
-                      onKeyDown={handleKeyDown}
-                      onWeightChange={setEditWeight}
-                      onNoteChange={setEditNote}
-                      onErrorClear={() => setEditError(null)}
-                      onDeleteRequest={setDeleteTarget}
-                    />
-                  ))}
-                </DataTable>
-              </div>
-
-              {/* Action cards — desktop only */}
-              <div className="hidden md:flex flex-col gap-3 w-72 shrink-0">
-                <ActionCard
-                  icon={<Plus size={18} />}
-                  title={t("actionCard.addTitle")}
-                  description={t("actionCard.addDescription")}
-                  onClick={() => setAddOpen(true)}
+            {/* Detail panel */}
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.18 }}
+              className={cn(
+                "min-w-0 flex-1 flex-col",
+                selected ? "flex" : "hidden md:flex",
+              )}
+            >
+              {active === SECTIONS.measurements ? (
+                <MeasurementsPanel
+                  data={measurementsData}
+                  onBack={() => setSelected(null)}
                 />
-                <ActionCard
-                  icon={<FileUp size={18} />}
-                  title={t("actionCard.importTitle")}
-                  description={t("actionCard.importDescription")}
-                  onClick={openCsvModal}
+              ) : (
+                <MedicationPanel
+                  data={medicationData}
+                  onBack={() => setSelected(null)}
                 />
-              </div>
+              )}
+            </motion.div>
 
-            </div>
           </div>
-
-          {/* Medication (GLP-1) dose journal */}
-          <MedicationSection />
         </div>
-      </PageTransition>
-
-      <AddMeasurementModal
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        onSuccess={() => { bump(); setAddOpen(false); }}
-      />
-
-      <CsvImportModal
-        open={csvOpen}
-        onOpenChange={closeCsvModal}
-        csvKey={csvKey}
-        accent={accent}
-        onComplete={handleCsvComplete}
-        onBack={() => closeCsvModal(false)}
-      />
-
-      <DeleteMeasurementModal
-        target={deleteTarget}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
-        onConfirm={handleDelete}
-        loading={deleting}
-      />
-
-      <DeleteAllModal
-        open={deleteAllOpen}
-        onOpenChange={setDeleteAllOpen}
-        onConfirm={handleDeleteAll}
-        loading={deletingAll}
-        measurementCount={measurements.length}
-      />
-
-      {/* FAB — mobile only, positioned above bottom tab bar */}
-      <DataPageFAB
-        onAdd={() => setAddOpen(true)}
-        onImport={openCsvModal}
-      />
-    </>
+      </div>
+    </PageTransition>
   );
 }

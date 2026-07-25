@@ -32,7 +32,6 @@ export function useDataPage() {
   }, [refreshKey]);
 
   // ── Modal open state ─────────────────────────────────────────────────────
-  const [addOpen, setAddOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
   const [csvKey, setCsvKey] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Measurement | null>(null);
@@ -166,8 +165,6 @@ export function useDataPage() {
     measurements,
     loading,
     // Modal state
-    addOpen,
-    setAddOpen,
     csvOpen,
     csvKey,
     openCsvModal,
