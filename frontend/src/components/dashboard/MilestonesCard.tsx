@@ -7,28 +7,21 @@
  * shows a quiet prompt linking to Settings, mirroring GoalCard.
  */
 
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Target, CheckCircle2, TriangleAlert } from "lucide-react";
-import { getGoalMilestones } from "../../lib/api";
 import type { MilestonesProjection } from "../../lib/types";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { formatWeight } from "../../lib/units";
 
 interface MilestonesCardProps {
-  refreshKey: number;
+  data: MilestonesProjection | null;
 }
 
-export function MilestonesCard({ refreshKey }: MilestonesCardProps) {
+export function MilestonesCard({ data }: MilestonesCardProps) {
   const { t } = useTranslation("dashboard");
   const { profile, unit } = useWeightTracker();
-  const [data, setData] = useState<MilestonesProjection | null>(null);
-
-  useEffect(() => {
-    getGoalMilestones().then(setData).catch(console.error);
-  }, [refreshKey]);
 
   const hasGoal = profile?.goal_weight != null;
 

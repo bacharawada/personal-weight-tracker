@@ -10,12 +10,10 @@
  * and dates follow the user's display preferences.
  */
 
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Link } from "react-router-dom";
 import { Target, TriangleAlert, CheckCircle2, Activity } from "lucide-react";
-import { getGoal, getStats } from "../../lib/api";
 import { GoalStatus } from "../../lib/types";
 import type { GoalProjection, Stats, WeightUnit } from "../../lib/types";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
@@ -23,7 +21,8 @@ import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import { formatWeight, kgToDisplay, unitLabel } from "../../lib/units";
 
 interface GoalCardProps {
-  refreshKey: number;
+  goal: GoalProjection | null;
+  stats: Stats | null;
 }
 
 interface BmiInfo {
@@ -142,17 +141,10 @@ function projectionCopy(
   return { summary, range };
 }
 
-export function GoalCard({ refreshKey }: GoalCardProps) {
+export function GoalCard({ goal, stats }: GoalCardProps) {
   const { t } = useTranslation("dashboard");
   const { profile, unit } = useWeightTracker();
   const { formatDate } = useDisplayPreferences();
-  const [goal, setGoal] = useState<GoalProjection | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-
-  useEffect(() => {
-    getGoal().then(setGoal).catch(console.error);
-    getStats().then(setStats).catch(console.error);
-  }, [refreshKey]);
 
   const hasGoal = profile?.goal_weight != null;
   const hasHeight = profile?.height_cm != null;

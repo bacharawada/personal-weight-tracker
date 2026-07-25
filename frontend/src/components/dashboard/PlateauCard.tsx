@@ -7,27 +7,20 @@
  * the recent trend rate, and (when available) a one-line history summary.
  */
 
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { History, Minus, TrendingDown, TrendingUp } from "lucide-react";
-import { getPlateauStatus } from "../../lib/api";
 import { PlateauState } from "../../lib/types";
 import type { PlateauStatus } from "../../lib/types";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { kgToDisplay, unitLabel } from "../../lib/units";
 
 interface PlateauCardProps {
-  refreshKey: number;
+  status: PlateauStatus | null;
 }
 
-export function PlateauCard({ refreshKey }: PlateauCardProps) {
+export function PlateauCard({ status }: PlateauCardProps) {
   const { t } = useTranslation("dashboard");
   const { unit } = useWeightTracker();
-  const [status, setStatus] = useState<PlateauStatus | null>(null);
-
-  useEffect(() => {
-    getPlateauStatus().then(setStatus).catch(console.error);
-  }, [refreshKey]);
 
   // Not enough data yet, or the recent trend itself couldn't be fit
   // (e.g. all measurements on the same day) — show a quiet i18n prompt

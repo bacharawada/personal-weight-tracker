@@ -7,14 +7,12 @@
  * When there is too little data it shows a quiet prompt.
  */
 
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Flame } from "lucide-react";
-import { getEnergyBalance } from "../../lib/api";
 import type { EnergyBalance } from "../../lib/types";
 
 interface EnergyCardProps {
-  refreshKey: number;
+  energy: EnergyBalance | null;
 }
 
 /** kcal below which the trend is treated as roughly at maintenance. */
@@ -31,13 +29,8 @@ function formatSigned(value: number): string {
   return `${rounded >= 0 ? "+" : ""}${rounded}`;
 }
 
-export function EnergyCard({ refreshKey }: EnergyCardProps) {
+export function EnergyCard({ energy }: EnergyCardProps) {
   const { t } = useTranslation("dashboard");
-  const [energy, setEnergy] = useState<EnergyBalance | null>(null);
-
-  useEffect(() => {
-    getEnergyBalance().then(setEnergy).catch(console.error);
-  }, [refreshKey]);
 
   const balance = energy?.balance_kcal_day ?? null;
   const low = energy?.balance_low ?? null;

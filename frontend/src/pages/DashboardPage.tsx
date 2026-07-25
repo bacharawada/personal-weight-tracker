@@ -9,10 +9,12 @@ import { MilestonesCard } from "../components/dashboard/MilestonesCard";
 import { PlateauCard } from "../components/dashboard/PlateauCard";
 import { EnergyCard } from "../components/dashboard/EnergyCard";
 import { WeightChart } from "../components/charts/WeightChart";
+import { useDashboardData } from "../hooks/useDashboardData";
 
 export function DashboardPage() {
   const { t } = useTranslation("dashboard");
   const { chartParams, refreshKey, setSelectedPoint } = useWeightTracker();
+  const { stats, goal, milestones, plateau, energy } = useDashboardData();
 
   const handlePointClick = useCallback(
     (point: { date: string; weight: number }) => {
@@ -26,15 +28,15 @@ export function DashboardPage() {
       <div className="flex flex-col md:h-full p-4 md:p-8 pb-nav gap-4 md:gap-8">
         <PageTitle title={t("page.title")} subtitle={t("page.subtitle")} />
 
-        <StatsCards refreshKey={refreshKey} />
+        <StatsCards stats={stats} />
 
-        <GoalCard refreshKey={refreshKey} />
+        <GoalCard goal={goal} stats={stats} />
 
-        <MilestonesCard refreshKey={refreshKey} />
+        <MilestonesCard data={milestones} />
 
-        <PlateauCard refreshKey={refreshKey} />
+        <PlateauCard status={plateau} />
 
-        <EnergyCard refreshKey={refreshKey} />
+        <EnergyCard energy={energy} />
 
         <WeightChart
           params={chartParams}

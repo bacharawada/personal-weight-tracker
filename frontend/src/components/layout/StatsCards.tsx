@@ -1,24 +1,16 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
-import { getStats } from "../../lib/api";
 import type { Stats } from "../../lib/types";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { kgToDisplay, unitLabel } from "../../lib/units";
 
 interface StatsCardsProps {
-  refreshKey: number;
+  stats: Stats | null;
 }
 
-export function StatsCards({ refreshKey }: StatsCardsProps) {
+export function StatsCards({ stats }: StatsCardsProps) {
   const { t } = useTranslation("dashboard");
   const { unit } = useWeightTracker();
-  const [stats, setStats] = useState<Stats | null>(null);
-
-  useEffect(() => {
-    console.log("[StatsCards] fetching — refreshKey:", refreshKey);
-    getStats().then(setStats).catch(console.error);
-  }, [refreshKey]);
 
   const u = unitLabel(unit);
 
