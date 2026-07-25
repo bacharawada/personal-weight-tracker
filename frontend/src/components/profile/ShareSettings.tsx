@@ -1,5 +1,5 @@
 /**
- * ShareSettings — the "Sharing" section of the Settings page.
+ * ShareSettings — the "Sharing" section of the Profile page.
  *
  * Lets the user enable a public read-only link to their weight dashboard,
  * copy it, regenerate it (invalidating the previous one), or disable sharing
@@ -18,7 +18,7 @@ import { ConfirmModal } from "../modals/ConfirmModal";
 type ConfirmAction = "regenerate" | "revoke" | null;
 
 export function ShareSettings() {
-  const { t } = useTranslation("settings");
+  const { t } = useTranslation("profile");
 
   const [status, setStatus] = useState<ShareStatus | null>(null);
   const [loadError, setLoadError] = useState(false);

@@ -8,7 +8,7 @@ import { PageTitle } from "../components/layout/PageTitle";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { ShareSettings } from "../components/settings/ShareSettings";
+import { ShareSettings } from "../components/profile/ShareSettings";
 import { displayToKg, kgToDisplay, unitLabel } from "../lib/units";
 
 export function ProfilePage() {
