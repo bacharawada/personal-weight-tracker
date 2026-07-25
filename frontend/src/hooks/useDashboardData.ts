@@ -10,10 +10,11 @@
  * `.catch(console.error)` behaved before.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import {
   getEnergyBalance,
+  getEnergyChart,
   getGoal,
   getGoalMilestones,
   getMeasurements,
@@ -22,6 +23,7 @@ import {
 import { computeDeltas, type WeightDeltas } from "../lib/dashboard/series";
 import type {
   EnergyBalance,
+  EnergyPoint,
   GoalProjection,
   Measurement,
   MilestonesProjection,
@@ -34,6 +36,8 @@ interface DashboardPayloads {
   milestones: MilestonesProjection | null;
   plateau: PlateauStatus | null;
   energy: EnergyBalance | null;
+  /** Per-measurement energy balance, for the tile's sparkline. */
+  energySeries: EnergyPoint[];
   /** Ascending by date. Empty until the first fetch settles. */
   measurements: Measurement[];
 }
@@ -49,6 +53,7 @@ const EMPTY: DashboardPayloads = {
   milestones: null,
   plateau: null,
   energy: null,
+  energySeries: [],
   measurements: [],
 };
 
@@ -64,8 +69,18 @@ function settled<T>(result: PromiseSettledResult<T>): T | null {
  * changes (new measurement, profile edit, poll tick).
  */
 export function useDashboardData(): DashboardData {
-  const { refreshKey } = useWeightTracker();
+  const { chartParams, refreshKey } = useWeightTracker();
   const [payloads, setPayloads] = useState<DashboardPayloads>(EMPTY);
+
+  // The energy series is the one payload that takes chart params, but depending
+  // on the object itself would refetch all six endpoints whenever the palette or
+  // theme changes. refreshKey already folds in every param the query actually
+  // sends, so the params are read through a ref — kept in sync by an effect
+  // declared first, which therefore runs before the fetch below on every commit.
+  const chartParamsRef = useRef(chartParams);
+  useEffect(() => {
+    chartParamsRef.current = chartParams;
+  }, [chartParams]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -75,8 +90,9 @@ export function useDashboardData(): DashboardData {
       getGoalMilestones(),
       getPlateauStatus(),
       getEnergyBalance(),
+      getEnergyChart(chartParamsRef.current),
       getMeasurements(),
-    ]).then(([goal, milestones, plateau, energy, measurements]) => {
+    ]).then(([goal, milestones, plateau, energy, energyChart, measurements]) => {
       if (isCancelled) return;
       const rows = settled(measurements) ?? [];
       setPayloads({
@@ -84,6 +100,7 @@ export function useDashboardData(): DashboardData {
         milestones: settled(milestones),
         plateau: settled(plateau),
         energy: settled(energy),
+        energySeries: settled(energyChart)?.bars ?? [],
         measurements: [...rows].sort((a, b) => a.date.localeCompare(b.date)),
       });
     });

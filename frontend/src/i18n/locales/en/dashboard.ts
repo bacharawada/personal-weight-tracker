@@ -96,6 +96,8 @@ const dashboard = {
   bmi: {
     label: "Body Mass Index",
     addMeasurement: "Add a measurement to see your BMI.",
+    atGoal: "{{value}} at goal",
+    scaleLabel: "BMI {{value}}, {{category}}",
     category: {
       underweight: "Underweight",
       normal: "Normal",
@@ -135,6 +137,9 @@ const dashboard = {
     surplus: "Surplus ~{{value}} kcal/day",
     maintenance: "Roughly at maintenance",
     range: "{{low}} to {{high}} kcal/day",
+    sparklineLabel: "Estimated daily balance over time",
+    window_one: "Over the last {{count}} day",
+    window_other: "Over the last {{count}} days",
     insufficient:
       "Add a few weeks of measurements to estimate your energy balance.",
   },

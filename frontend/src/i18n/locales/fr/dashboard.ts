@@ -96,6 +96,8 @@ const dashboard: DashboardResource = {
   bmi: {
     label: "Indice de masse corporelle",
     addMeasurement: "Ajoutez une mesure pour voir votre IMC.",
+    atGoal: "{{value}} à l'objectif",
+    scaleLabel: "IMC {{value}}, {{category}}",
     category: {
       underweight: "Insuffisance pondérale",
       normal: "Corpulence normale",
@@ -135,6 +137,9 @@ const dashboard: DashboardResource = {
     surplus: "Surplus ~{{value}} kcal/jour",
     maintenance: "Proche de l'équilibre",
     range: "{{low}} à {{high}} kcal/jour",
+    sparklineLabel: "Évolution du bilan quotidien estimé",
+    window_one: "Sur le dernier jour",
+    window_other: "Sur les {{count}} derniers jours",
     insufficient:
       "Ajoutez quelques semaines de mesures pour estimer votre bilan énergétique.",
   },

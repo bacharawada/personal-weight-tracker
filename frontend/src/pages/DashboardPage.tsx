@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
-import { EnergyCard } from "../components/dashboard/EnergyCard";
+import { EnergyTile } from "../components/dashboard/EnergyTile";
 import { TrajectoryPanel } from "../components/dashboard/TrajectoryPanel";
 import { GoalRingTile } from "../components/dashboard/GoalRingTile";
 import { BmiTile } from "../components/dashboard/BmiTile";
@@ -15,8 +15,16 @@ import { useDashboardData } from "../hooks/useDashboardData";
 export function DashboardPage() {
   const { t } = useTranslation("dashboard");
   const { chartParams, refreshKey, setSelectedPoint } = useWeightTracker();
-  const { goal, milestones, plateau, energy, measurements, latest, deltas } =
-    useDashboardData();
+  const {
+    goal,
+    milestones,
+    plateau,
+    energy,
+    energySeries,
+    measurements,
+    latest,
+    deltas,
+  } = useDashboardData();
 
   const handlePointClick = useCallback(
     (point: { date: string; weight: number }) => {
@@ -52,7 +60,7 @@ export function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
           <ConsistencyTile measurements={measurements} />
           <MomentumTile measurements={measurements} plateau={plateau} />
-          <EnergyCard energy={energy} />
+          <EnergyTile energy={energy} series={energySeries} />
           <BmiTile latestWeight={latestWeight} />
         </div>
       </div>

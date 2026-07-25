@@ -1,5 +1,10 @@
 /**
- * BmiTile — body mass index for the latest weight.
+ * BmiTile — body mass index for the latest weight, placed on its scale.
+ *
+ * "28.4, overweight" says where you are but not how far from anywhere else.
+ * The marker on the bands shows the distance to the next category, and when a
+ * goal weight is set a second marker shows which band that goal lands in — the
+ * goal restated in health terms rather than kilograms.
  *
  * Extracted from GoalCard when the dashboard was reworked: BMI and goal
  * progress answer different questions and no longer share a panel.
@@ -9,7 +14,19 @@ import { useTranslation } from "react-i18next";
 import { Activity } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { formatWeight } from "../../lib/units";
-import { Tile } from "./tiles";
+import { BandScale, Tile, type ScaleBand } from "./tiles";
+
+/** Visible domain of the scale — wide enough to hold every plausible value. */
+const SCALE_MIN = 15;
+const SCALE_MAX = 40;
+
+/** The standard WHO cut-offs, as bands of the scale. */
+const BANDS: ScaleBand[] = [
+  { to: 18.5, className: "bg-blue-200 dark:bg-blue-900/50" },
+  { to: 25, className: "bg-green-200 dark:bg-green-900/50" },
+  { to: 30, className: "bg-amber-200 dark:bg-amber-900/50" },
+  { to: SCALE_MAX, className: "bg-red-200 dark:bg-red-900/50" },
+];
 
 interface BmiTileProps {
   latestWeight: number | null;
@@ -46,6 +63,8 @@ export function BmiTile({ latestWeight }: BmiTileProps) {
   if (heightCm == null) return null;
 
   const bmi = latestWeight != null ? computeBmi(latestWeight, heightCm) : null;
+  const goalWeight = profile?.goal_weight ?? null;
+  const goalBmi = goalWeight != null ? computeBmi(goalWeight, heightCm) : null;
 
   return (
     <Tile label={t("bmi.label")} icon={<Activity size={16} />}>
@@ -57,8 +76,28 @@ export function BmiTile({ latestWeight }: BmiTileProps) {
               {t(`bmi.category.${bmi.categoryKey}`)}
             </span>
           </p>
+
+          <div className="mt-4">
+            <BandScale
+              min={SCALE_MIN}
+              max={SCALE_MAX}
+              bands={BANDS}
+              value={bmi.value}
+              ghost={
+                goalBmi && {
+                  value: goalBmi.value,
+                  label: t("bmi.atGoal", { value: goalBmi.value.toFixed(1) }),
+                }
+              }
+              ariaLabel={t("bmi.scaleLabel", {
+                value: bmi.value.toFixed(1),
+                category: t(`bmi.category.${bmi.categoryKey}`),
+              })}
+            />
+          </div>
+
           {latestWeight != null && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               {heightCm} cm · {formatWeight(latestWeight, unit)}
             </p>
           )}
