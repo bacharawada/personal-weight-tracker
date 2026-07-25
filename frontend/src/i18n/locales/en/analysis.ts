@@ -18,6 +18,8 @@ const analysis = {
     smoothingValue_other: "{{count}} points",
     smoothingHint:
       "Each point is averaged with its neighbours — a wider window is smoother but reacts later to a change of pace.",
+    smoothingNeedsRollingMean:
+      "Only the rolling mean uses this window — turn that line on to change it.",
     extrapolationHorizon: "Projection",
     horizonHint: "How far past your last measurement each model is extended.",
     predictionModels: "Series shown",

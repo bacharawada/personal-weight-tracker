@@ -50,8 +50,12 @@ export function ChartControls({ params, onChange }: ChartControlsProps) {
     params.showDoses,
   ].filter(Boolean).length;
 
+  // The smoothing window only feeds the rolling mean: quoting it while that line
+  // is hidden would advertise a setting with no effect.
   const summary = [
-    t("controls.summarySmoothing", { count: params.smoothing }),
+    ...(params.showSmoothed
+      ? [t("controls.summarySmoothing", { count: params.smoothing })]
+      : []),
     params.horizon === 0
       ? t("controls.summaryNoProjection")
       : t("controls.summaryProjection", { horizon: t(horizon.key, { count: horizon.count }) }),
@@ -108,6 +112,7 @@ export function ChartControls({ params, onChange }: ChartControlsProps) {
               <SmoothingSlider
                 value={params.smoothing}
                 onChange={(smoothing) => onChange({ ...params, smoothing })}
+                disabled={!params.showSmoothed}
               />
               <HorizonSelector
                 value={params.horizon}

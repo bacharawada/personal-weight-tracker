@@ -19,6 +19,8 @@ const analysis: AnalysisResource = {
     smoothingValue_other: "{{count}} points",
     smoothingHint:
       "Chaque point est moyenné avec ses voisins — une fenêtre plus large lisse davantage mais réagit plus tard aux changements de rythme.",
+    smoothingNeedsRollingMean:
+      "Seule la moyenne glissante utilise cette fenêtre — activez cette courbe pour la modifier.",
     extrapolationHorizon: "Projection",
     horizonHint: "Jusqu'où chaque modèle est prolongé après votre dernière mesure.",
     predictionModels: "Séries affichées",
