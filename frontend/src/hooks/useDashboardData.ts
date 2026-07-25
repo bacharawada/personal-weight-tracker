@@ -18,10 +18,12 @@ import {
   getGoal,
   getGoalMilestones,
   getMeasurements,
+  getMedicationImpact,
   getPlateauStatus,
 } from "../lib/api";
 import { computeDeltas, type WeightDeltas } from "../lib/dashboard/series";
 import type {
+  DoseImpact,
   EnergyBalance,
   EnergyPoint,
   GoalProjection,
@@ -38,6 +40,8 @@ interface DashboardPayloads {
   energy: EnergyBalance | null;
   /** Per-measurement energy balance, for the tile's sparkline. */
   energySeries: EnergyPoint[];
+  /** First doses and dose changes, with the trend on either side of each. */
+  doseChanges: DoseImpact[];
   /** Ascending by date. Empty until the first fetch settles. */
   measurements: Measurement[];
 }
@@ -54,6 +58,7 @@ const EMPTY: DashboardPayloads = {
   plateau: null,
   energy: null,
   energySeries: [],
+  doseChanges: [],
   measurements: [],
 };
 
@@ -91,19 +96,23 @@ export function useDashboardData(): DashboardData {
       getPlateauStatus(),
       getEnergyBalance(),
       getEnergyChart(chartParamsRef.current),
+      getMedicationImpact(),
       getMeasurements(),
-    ]).then(([goal, milestones, plateau, energy, energyChart, measurements]) => {
-      if (isCancelled) return;
-      const rows = settled(measurements) ?? [];
-      setPayloads({
-        goal: settled(goal),
-        milestones: settled(milestones),
-        plateau: settled(plateau),
-        energy: settled(energy),
-        energySeries: settled(energyChart)?.bars ?? [],
-        measurements: [...rows].sort((a, b) => a.date.localeCompare(b.date)),
-      });
-    });
+    ]).then(
+      ([goal, milestones, plateau, energy, energyChart, doseChanges, measurements]) => {
+        if (isCancelled) return;
+        const rows = settled(measurements) ?? [];
+        setPayloads({
+          goal: settled(goal),
+          milestones: settled(milestones),
+          plateau: settled(plateau),
+          energy: settled(energy),
+          energySeries: settled(energyChart)?.bars ?? [],
+          doseChanges: settled(doseChanges) ?? [],
+          measurements: [...rows].sort((a, b) => a.date.localeCompare(b.date)),
+        });
+      },
+    );
 
     return () => {
       isCancelled = true;

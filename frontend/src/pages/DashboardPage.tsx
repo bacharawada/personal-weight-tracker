@@ -10,6 +10,7 @@ import { BmiTile } from "../components/dashboard/BmiTile";
 import { PaceTile } from "../components/dashboard/PaceTile";
 import { ConsistencyTile } from "../components/dashboard/ConsistencyTile";
 import { MomentumTile } from "../components/dashboard/MomentumTile";
+import { EventTimeline } from "../components/dashboard/EventTimeline";
 import { useDashboardData } from "../hooks/useDashboardData";
 
 export function DashboardPage() {
@@ -21,6 +22,7 @@ export function DashboardPage() {
     plateau,
     energy,
     energySeries,
+    doseChanges,
     measurements,
     latest,
     deltas,
@@ -63,6 +65,13 @@ export function DashboardPage() {
           <EnergyTile energy={energy} series={energySeries} />
           <BmiTile latestWeight={latestWeight} />
         </div>
+
+        <EventTimeline
+          measurements={measurements}
+          milestones={milestones}
+          plateau={plateau}
+          doseChanges={doseChanges}
+        />
       </div>
     </PageTransition>
   );
