@@ -1,16 +1,15 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, Flame, Gauge, Target } from "lucide-react";
+import { Activity, Flame, Footprints, Target } from "lucide-react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
-import { InsightBanner } from "../components/dashboard/InsightBanner";
 import { WelcomePanel } from "../components/dashboard/WelcomePanel";
 import { EnergyTile } from "../components/dashboard/EnergyTile";
 import { TrajectoryPanel } from "../components/dashboard/TrajectoryPanel";
 import { GoalRingTile } from "../components/dashboard/GoalRingTile";
 import { BmiTile } from "../components/dashboard/BmiTile";
-import { PaceTile } from "../components/dashboard/PaceTile";
+import { MilestonesTile } from "../components/dashboard/MilestonesTile";
 import { ConsistencyTile } from "../components/dashboard/ConsistencyTile";
 import { MomentumTile } from "../components/dashboard/MomentumTile";
 import { EventTimeline } from "../components/dashboard/EventTimeline";
@@ -60,13 +59,6 @@ export function DashboardPage() {
           <WelcomePanel />
         ) : (
           <>
-            <InsightBanner
-              goal={goal}
-              plateau={plateau}
-              doseChanges={doseChanges}
-              streakDays={consistency.streakDays}
-            />
-
             <TrajectoryPanel
               params={chartParams}
               refreshKey={refreshKey}
@@ -91,13 +83,14 @@ export function DashboardPage() {
                 />
               )}
 
-              {gates.hasTrend ? (
-                <PaceTile goal={goal} latestWeight={latestWeight} />
+              {gates.hasGoal ? (
+                <MilestonesTile milestones={milestones} />
               ) : (
                 <LockedTile
-                  label={t("pace.label")}
-                  icon={<Gauge size={16} />}
-                  hint={trendHint}
+                  label={t("milestones.label")}
+                  icon={<Footprints size={16} />}
+                  hint={t("locked.needGoal")}
+                  to="/settings"
                 />
               )}
             </div>

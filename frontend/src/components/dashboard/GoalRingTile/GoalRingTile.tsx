@@ -1,14 +1,18 @@
 /**
  * GoalRingTile — how far along the road to the goal, and when it ends.
  *
- * Merges the two panels this replaces: the goal projection (a paragraph) and
- * the milestones bar. The share complete becomes the ring, the ten milestones
- * become dots, and the projection collapses to plain facts — remaining weight,
- * projected date, and the optimistic/pessimistic window.
+ * Replaces the goal projection paragraph: the share complete becomes the ring
+ * and the projection collapses to plain facts — remaining weight, projected
+ * date, and the optimistic/pessimistic window.
  *
  * Several projection statuses have no date to show (weight not trending down,
  * goal years away, too little data). Those keep the full sentence: a bare ring
  * would imply a certainty the model doesn't have.
+ *
+ * The pace block rides along as a side note. It sits beside the ring once the
+ * tile is wide enough and drops beneath it otherwise — a viewport breakpoint
+ * rather than a container query, since Tailwind 3 has none and this tile's width
+ * follows the page grid predictably.
  */
 
 import { useTranslation } from "react-i18next";
@@ -20,7 +24,7 @@ import { projectionCopy } from "../../../lib/dashboard/projectionCopy";
 import { formatWeight } from "../../../lib/units";
 import type { GoalProjection, MilestonesProjection } from "../../../lib/types";
 import { Ring, Tile } from "../tiles";
-import { MilestoneDots } from "./MilestoneDots";
+import { PaceInline } from "./PaceInline";
 
 interface GoalRingTileProps {
   goal: GoalProjection | null;
@@ -86,53 +90,45 @@ export function GoalRingTile({ goal, milestones, latestWeight }: GoalRingTilePro
         )
       }
     >
-      <div className="flex items-center gap-4 mt-3">
-        <Ring
-          percent={percent}
-          ariaLabel={t("goal.ringLabel", { percent: Math.round(percent) })}
-        />
-        <div className="min-w-0">
-          {hasDate ? (
-            <>
-              {remainingKg != null && (
-                <p className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-                  {t("goal.remaining", { value: formatWeight(remainingKg, unit) })}
+      <div className="flex flex-col xl:flex-row xl:items-start gap-4 xl:gap-5 mt-3">
+        <div className="flex items-center gap-4 xl:flex-1 xl:min-w-0">
+          <Ring
+            percent={percent}
+            ariaLabel={t("goal.ringLabel", { percent: Math.round(percent) })}
+          />
+          <div className="min-w-0">
+            {hasDate ? (
+              <>
+                {remainingKg != null && (
+                  <p className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                    {t("goal.remaining", { value: formatWeight(remainingKg, unit) })}
+                  </p>
+                )}
+                {goal.predicted_date != null && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 leading-snug">
+                    {t("goal.projectedDate", { date: formatDate(goal.predicted_date) })}
+                  </p>
+                )}
+                {copy.range != null && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">
+                    {copy.range}
+                  </p>
+                )}
+              </>
+            ) : (
+              copy.summary !== "" && (
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-snug">
+                  {copy.summary}
                 </p>
-              )}
-              {goal.predicted_date != null && (
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 leading-snug">
-                  {t("goal.projectedDate", { date: formatDate(goal.predicted_date) })}
-                </p>
-              )}
-              {copy.range != null && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">
-                  {copy.range}
-                </p>
-              )}
-            </>
-          ) : (
-            copy.summary !== "" && (
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-snug">
-                {copy.summary}
-              </p>
-            )
-          )}
+              )
+            )}
+          </div>
+        </div>
+
+        <div className="border-t xl:border-t-0 xl:border-l border-gray-200 dark:border-gray-700 pt-3 xl:pt-0 xl:pl-5 xl:w-52 xl:shrink-0">
+          <PaceInline goal={goal} latestWeight={latestWeight} />
         </div>
       </div>
-
-      {milestones != null && milestones.milestones.length > 0 && (
-        <div className="mt-4">
-          <MilestoneDots milestones={milestones.milestones} />
-        </div>
-      )}
-
-      {/* Goal set above the starting weight: the server explains why there are
-          no milestones to walk through. */}
-      {milestones != null && milestones.milestones.length === 0 && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 leading-snug">
-          {milestones.reason}
-        </p>
-      )}
     </Tile>
   );
 }

@@ -11,25 +11,6 @@ const dashboard: DashboardResource = {
     title: "Tableau de bord",
     subtitle: "Vue d'ensemble de votre progression de poids",
   },
-  insight: {
-    goalReached: "Vous avez atteint votre poids cible. Bravo.",
-    doseWorking:
-      "Dose de {{medication}} augmentée le {{date}} — votre rythme est passé de {{before}} à {{after}} depuis.",
-    plateauWithHistory_one:
-      "Plateau depuis {{days}} jours. Votre {{count}} plateau précédent a duré {{avgDays}} jours, et il s'est terminé.",
-    plateauWithHistory_other:
-      "Plateau depuis {{days}} jours. Vos {{count}} plateaux précédents ont duré {{avgDays}} jours en moyenne, et ils se sont tous terminés.",
-    plateau: "Plateau depuis {{days}} jours — la tendance est plate depuis un moment.",
-    gaining: "Votre poids remonte de {{rate}}.",
-    behindTarget_one:
-      "Vous avez {{count}} jour de retard sur votre date cible — projection actuelle au {{date}}.",
-    behindTarget_other:
-      "Vous avez {{count}} jours de retard sur votre date cible — projection actuelle au {{date}}.",
-    onTrack: "Dans les temps pour votre date cible — projection au {{date}}.",
-    projected: "À {{rate}}, vous atteignez votre objectif vers le {{date}}.",
-    losing: "Perte régulière à {{rate}}.",
-    streak: "{{days}} jours de pesée sans en manquer une.",
-  },
   welcome: {
     title: "Votre tableau de bord commence par une pesée",
     body:
@@ -136,11 +117,6 @@ const dashboard: DashboardResource = {
     noTargetDate:
       "Définissez une date cible dans les Paramètres pour voir le rythme nécessaire.",
     targetDatePassed: "Votre date cible est dépassée.",
-    badge: {
-      onTrack: "Rythme suffisant",
-      tooSlow: "Trop lent",
-      notMoving: "À l'arrêt",
-    },
   },
   bmi: {
     label: "Indice de masse corporelle",
@@ -157,6 +133,12 @@ const dashboard: DashboardResource = {
   milestones: {
     label: "Jalons",
     counter: "{{achieved}}/{{total}}",
+    startWeight: "Départ",
+    goalWeight: "Objectif",
+    trailLabel: "Chemin de {{total}} jalons, {{achieved}} franchis",
+    notYet: "Pas encore franchi",
+    next: "Prochain {{target}} — reste {{remaining}}",
+    allAchieved: "Tous les jalons sont franchis.",
   },
   plateau: {
     plateauBadge_one: "Plateau depuis {{count}} jour",

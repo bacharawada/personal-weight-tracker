@@ -1,9 +1,9 @@
 /**
  * `dashboard` namespace (English — source of truth).
  *
- * Copy for every dashboard module: the insight headline, the welcome and locked
- * states, the trajectory panel, the goal ring, pace, consistency, momentum,
- * energy, BMI (including the standard category names) and the event timeline.
+ * Copy for every dashboard module: the welcome and locked states, the trajectory
+ * panel, the goal ring, pace, consistency, momentum, energy, BMI (including the
+ * standard category names) and the event timeline.
  *
  * The `stats.*` block outlives the stat row it was written for: the public share
  * page still renders those five labels.
@@ -13,27 +13,6 @@ const dashboard = {
   page: {
     title: "Dashboard",
     subtitle: "Overview of your weight progression",
-  },
-  // One headline picked by lib/dashboard/insight.ts. Each sentence says
-  // something no single tile does — it joins two of them.
-  insight: {
-    goalReached: "You've reached your goal weight. Well done.",
-    doseWorking:
-      "{{medication}} stepped up on {{date}} — your pace went from {{before}} to {{after}} since.",
-    plateauWithHistory_one:
-      "Plateau for {{days}} days. Your {{count}} previous plateau lasted {{avgDays}} days, and it ended.",
-    plateauWithHistory_other:
-      "Plateau for {{days}} days. Your {{count}} previous plateaus lasted {{avgDays}} days on average, and they all ended.",
-    plateau: "Plateau for {{days}} days — the trend has been flat for a while.",
-    gaining: "Your weight is drifting up at {{rate}}.",
-    behindTarget_one:
-      "You're behind your target date by {{count}} day — currently projected {{date}}.",
-    behindTarget_other:
-      "You're behind your target date by {{count}} days — currently projected {{date}}.",
-    onTrack: "On track to meet your target — projected {{date}}.",
-    projected: "At {{rate}} you reach your goal around {{date}}.",
-    losing: "Steady loss at {{rate}}.",
-    streak: "{{days}} days of weighing in without a miss.",
   },
   welcome: {
     title: "Your dashboard starts with one weigh-in",
@@ -140,11 +119,6 @@ const dashboard = {
     insufficient: "Add a few more measurements to see your pace.",
     noTargetDate: "Set a target date in Settings to see the pace you need.",
     targetDatePassed: "Your target date has passed.",
-    badge: {
-      onTrack: "Fast enough",
-      tooSlow: "Too slow",
-      notMoving: "Not moving",
-    },
   },
   bmi: {
     label: "Body Mass Index",
@@ -161,6 +135,12 @@ const dashboard = {
   milestones: {
     label: "Milestones",
     counter: "{{achieved}}/{{total}}",
+    startWeight: "Start",
+    goalWeight: "Goal",
+    trailLabel: "Trail of {{total}} milestones, {{achieved}} reached",
+    notYet: "Not reached yet",
+    next: "Next {{target}} — {{remaining}} to go",
+    allAchieved: "Every milestone reached.",
   },
   plateau: {
     plateauBadge_one: "Plateau for {{count}} day",

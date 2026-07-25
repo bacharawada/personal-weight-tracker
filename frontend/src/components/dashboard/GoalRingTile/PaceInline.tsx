@@ -1,24 +1,24 @@
 /**
- * PaceTile — the rate you're actually losing at, against the rate you need.
+ * PaceInline — the rate achieved against the rate needed, as a side note.
  *
- * `target_date` has been stored on the profile all along without anything on
- * the dashboard using it. The rate needed to meet it is the most actionable
- * number the data can produce, and it only means something next to the rate
- * currently being achieved — hence one tile holding both.
+ * Was a tile of its own; the milestones took that slot. It reads fine as a
+ * secondary block because the goal tile above it already carries the verdict:
+ * its on-track badge is derived from the same comparison, so a second badge here
+ * would say the same thing twice. What remains is the number and the meter that
+ * makes it legible.
  *
- * The trend comes from the goal projection rather than `stats.current_trend`:
- * the projection fits a robust recency-weighted slope, while current_trend is a
- * two-point difference over four weeks. Comparing the required rate against the
- * slope that actually drives the projected date keeps the two consistent.
+ * The trend is the goal projection's slope, not `stats.current_trend`: the
+ * projection fits a robust recency-weighted trend while current_trend is a
+ * two-point difference over four weeks. Reading the required rate against the
+ * slope that actually produces the projected date keeps the two consistent.
  */
 
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Gauge } from "lucide-react";
-import { useWeightTracker } from "../../context/WeightTrackerContext";
-import { kgToDisplay, unitLabel } from "../../lib/units";
-import type { GoalProjection } from "../../lib/types";
-import { Meter, Tile } from "./tiles";
+import { useWeightTracker } from "../../../context/WeightTrackerContext";
+import { kgToDisplay, unitLabel } from "../../../lib/units";
+import type { GoalProjection } from "../../../lib/types";
+import { Meter } from "../tiles";
 
 const DAY_MS = 86_400_000;
 
@@ -32,7 +32,7 @@ const TYPICAL_LOSS_HIGH_KG = 1;
 /** Rates below this magnitude (kg/week) are noise rather than a direction. */
 const FLAT_THRESHOLD_KG = 0.05;
 
-interface PaceTileProps {
+interface PaceInlineProps {
   goal: GoalProjection | null;
   latestWeight: number | null;
 }
@@ -52,7 +52,7 @@ function requiredRatePerWeek(
   return (goalWeight - latestWeight) / weeks;
 }
 
-export function PaceTile({ goal, latestWeight }: PaceTileProps) {
+export function PaceInline({ goal, latestWeight }: PaceInlineProps) {
   const { t } = useTranslation("dashboard");
   const { profile, unit } = useWeightTracker();
 
@@ -62,11 +62,12 @@ export function PaceTile({ goal, latestWeight }: PaceTileProps) {
 
   if (actual == null) {
     return (
-      <Tile label={t("pace.label")} icon={<Gauge size={16} />}>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+      <>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{t("pace.label")}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {t("pace.insufficient")}
         </p>
-      </Tile>
+      </>
     );
   }
 
@@ -108,32 +109,15 @@ export function PaceTile({ goal, latestWeight }: PaceTileProps) {
       kgToDisplay(FLAT_THRESHOLD_KG, unit),
     ) * 1.2;
 
-  const isFlat = Math.abs(actual) < FLAT_THRESHOLD_KG;
-  const isGoingWrongWay = isLosingContext ? actual > 0 : actual < 0;
-  const badge = isFlat || isGoingWrongWay
-    ? { text: t("pace.badge.notMoving"), classes: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400" }
-    : required == null
-      ? null
-      : Math.abs(actual) >= Math.abs(required)
-        ? { text: t("pace.badge.onTrack"), classes: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" }
-        : { text: t("pace.badge.tooSlow"), classes: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400" };
-
   return (
-    <Tile
-      label={t("pace.label")}
-      icon={<Gauge size={16} />}
-      action={
-        badge && (
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.classes}`}>
-            {badge.text}
-          </span>
-        )
-      }
-    >
-      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight mt-2">
-        {actual < 0 ? "−" : "+"}
-        {rate(actual)}
-      </p>
+    <>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400">{t("pace.label")}</p>
+        <p className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-none">
+          {actual < 0 ? "−" : "+"}
+          {rate(actual)}
+        </p>
+      </div>
 
       <div className="mt-3">
         <Meter
@@ -158,7 +142,7 @@ export function PaceTile({ goal, latestWeight }: PaceTileProps) {
       {targetDate == null && (
         <Link
           to="/settings"
-          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mt-2"
+          className="block text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mt-2"
         >
           {t("pace.noTargetDate")}
         </Link>
@@ -166,6 +150,6 @@ export function PaceTile({ goal, latestWeight }: PaceTileProps) {
       {targetDate != null && required == null && (
         <p className="text-xs text-amber-600 mt-2">{t("pace.targetDatePassed")}</p>
       )}
-    </Tile>
+    </>
   );
 }
