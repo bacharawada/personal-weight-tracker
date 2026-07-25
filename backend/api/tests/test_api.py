@@ -570,6 +570,41 @@ class TestExportEndpoints:
         r = client.get("/api/exports/csv")
         assert r.status_code == 204
 
+    def test_medications_csv_export(self) -> None:
+        """Doses are exported with the columns the importer expects."""
+        client = _make_client(seed=False)
+        client.post(
+            "/api/medications",
+            json={
+                "date": "2025-06-01",
+                "medication": "semaglutide",
+                "dose_mg": 0.25,
+                "note": "first shot",
+            },
+        )
+        r = client.get("/api/exports/medications/csv")
+        assert r.status_code == 200
+        assert "text/csv" in r.headers["content-type"]
+        lines = r.text.splitlines()
+        assert lines[0].split(",") == ["date", "medication", "dose_mg", "note"]
+        assert lines[1].startswith("2025-06-01,semaglutide,0.25,")
+
+    def test_medications_csv_omits_row_id(self) -> None:
+        """The internal dose id is not part of the export."""
+        client = _make_client(seed=False)
+        client.post(
+            "/api/medications",
+            json={"date": "2025-06-01", "medication": "semaglutide", "dose_mg": 0.25},
+        )
+        r = client.get("/api/exports/medications/csv")
+        assert "id" not in r.text.splitlines()[0].split(",")
+
+    def test_medications_csv_empty(self) -> None:
+        """GET /api/exports/medications/csv returns 204 with no doses."""
+        client = _make_client(seed=False)
+        r = client.get("/api/exports/medications/csv")
+        assert r.status_code == 204
+
 
 # -----------------------------------------------------------------------
 # DB mtime

@@ -475,25 +475,45 @@ class ShareStatusOut(BaseModel):
 
 
 class CsvPreviewRow(BaseModel):
-    """A single parsed row in the CSV preview."""
+    """A single parsed measurement row in the CSV preview."""
 
     date: str          # ISO 8601 string — validated on confirm
     weight: float
 
 
-class CsvPreviewOut(BaseModel):
-    """Response from POST /api/imports/csv/preview.
+class MedicationCsvPreviewRow(BaseModel):
+    """A single parsed medication-dose row in the CSV preview."""
 
-    Returns the first rows of the parsed file plus metadata the frontend
-    needs to let the user validate the detected date format.
+    date: str          # ISO 8601 string — validated on confirm
+    medication: str
+    dose_mg: float | None = None
+    note: str | None = None
+
+
+class CsvPreviewMeta(BaseModel):
+    """Dialect metadata every CSV preview response carries.
+
+    Lets the frontend show what was detected so the user can validate the
+    date format before anything is written.
     """
 
-    rows: list[CsvPreviewRow]
     total_rows: int
     detected_date_format: str   # e.g. "%d/%m/%Y" or "%Y-%m-%d"
     date_format_example: str    # human-readable example from the data
     delimiter: str              # detected field delimiter
     skipped_rows: int           # rows that could not be parsed
+
+
+class CsvPreviewOut(CsvPreviewMeta):
+    """Response from POST /api/imports/csv/preview."""
+
+    rows: list[CsvPreviewRow]
+
+
+class MedicationCsvPreviewOut(CsvPreviewMeta):
+    """Response from POST /api/imports/medications/csv/preview."""
+
+    rows: list[MedicationCsvPreviewRow]
 
 
 class CsvConfirmIn(BaseModel):
@@ -507,8 +527,15 @@ class CsvConfirmIn(BaseModel):
     date_format: str            # confirmed by user (may differ from detected)
 
 
+class MedicationCsvConfirmIn(BaseModel):
+    """Request body for POST /api/imports/medications/csv/confirm."""
+
+    rows: list[MedicationCsvPreviewRow]
+    date_format: str            # confirmed by user (may differ from detected)
+
+
 class CsvImportResult(BaseModel):
-    """Response from POST /api/imports/csv/confirm."""
+    """Response from either CSV confirm endpoint."""
 
     inserted: int
     skipped_duplicates: int
