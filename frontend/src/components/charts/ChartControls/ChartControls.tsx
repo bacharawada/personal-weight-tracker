@@ -96,17 +96,18 @@ export function ChartControls({ params, onChange }: ChartControlsProps) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            {!isDefaultControls(params) && (
-              <div className="flex justify-end px-4 pb-2">
-                <button
-                  type="button"
-                  onClick={() => onChange({ ...params, ...DEFAULT_CHART_CONTROLS })}
-                  className="text-xs font-medium text-[var(--color-accent)] hover:underline"
-                >
-                  {t("controls.reset")}
-                </button>
-              </div>
-            )}
+            {/* Always present, disabled when there is nothing to reset — a control
+                that vanishes makes the panel's height jump as settings change. */}
+            <div className="flex justify-end px-4 pb-2">
+              <button
+                type="button"
+                disabled={isDefaultControls(params)}
+                onClick={() => onChange({ ...params, ...DEFAULT_CHART_CONTROLS })}
+                className="text-xs font-medium text-[var(--color-accent)] enabled:hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600"
+              >
+                {t("controls.reset")}
+              </button>
+            </div>
 
             <div className="grid gap-3 px-4 pb-4 md:grid-cols-2">
               <SmoothingSlider

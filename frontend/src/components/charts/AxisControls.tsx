@@ -60,14 +60,15 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {t("axes.heading")}
         </span>
-        {isCustom && (
-          <button
-            onClick={() => onChange(allPreset)}
-            className="text-xs font-medium text-[var(--color-accent)] hover:underline"
-          >
-            {t("axes.resetToAuto")}
-          </button>
-        )}
+        {/* Kept in place and disabled when the axes are already auto, so the
+            heading row never reflows as the user edits a field. */}
+        <button
+          disabled={!isCustom}
+          onClick={() => onChange(allPreset)}
+          className="text-xs font-medium text-[var(--color-accent)] enabled:hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-600"
+        >
+          {t("axes.resetToAuto")}
+        </button>
       </div>
 
       {/* Smart range presets — pin the date window and auto-fit the weight axis. */}
