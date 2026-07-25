@@ -9,18 +9,17 @@
 
 import { useTranslation } from "react-i18next";
 import { CalendarCheck } from "lucide-react";
-import { computeConsistency, CONSISTENCY_WEEKS } from "../../lib/dashboard/consistency";
-import type { Measurement } from "../../lib/types";
+import { CONSISTENCY_WEEKS, type Consistency } from "../../lib/dashboard/consistency";
 import { Tile } from "./tiles";
 
 interface ConsistencyTileProps {
-  measurements: Measurement[];
+  /** Computed by the page, which also needs the streak for the insight banner. */
+  consistency: Consistency;
 }
 
-export function ConsistencyTile({ measurements }: ConsistencyTileProps) {
+export function ConsistencyTile({ consistency }: ConsistencyTileProps) {
   const { t } = useTranslation("dashboard");
-  const { weeks, streakDays, measurementCount, daysTracked } =
-    computeConsistency(measurements);
+  const { weeks, streakDays, measurementCount, daysTracked } = consistency;
 
   return (
     <Tile label={t("consistency.label")} icon={<CalendarCheck size={16} />}>

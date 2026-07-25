@@ -1,6 +1,7 @@
 /** Public surface of the dashboard tile building blocks. */
 
 export { BandScale, type ScaleBand } from "./BandScale";
+export { LockedTile } from "./LockedTile";
 export { Meter } from "./Meter";
 export { MiniBars } from "./MiniBars";
 export { Ring } from "./Ring";

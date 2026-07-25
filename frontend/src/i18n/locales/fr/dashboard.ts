@@ -11,6 +11,46 @@ const dashboard: DashboardResource = {
     title: "Tableau de bord",
     subtitle: "Vue d'ensemble de votre progression de poids",
   },
+  insight: {
+    goalReached: "Vous avez atteint votre poids cible. Bravo.",
+    doseWorking:
+      "Dose de {{medication}} augmentée le {{date}} — votre rythme est passé de {{before}} à {{after}} depuis.",
+    plateauWithHistory_one:
+      "Plateau depuis {{days}} jours. Votre {{count}} plateau précédent a duré {{avgDays}} jours, et il s'est terminé.",
+    plateauWithHistory_other:
+      "Plateau depuis {{days}} jours. Vos {{count}} plateaux précédents ont duré {{avgDays}} jours en moyenne, et ils se sont tous terminés.",
+    plateau: "Plateau depuis {{days}} jours — la tendance est plate depuis un moment.",
+    gaining: "Votre poids remonte de {{rate}}.",
+    behindTarget_one:
+      "Vous avez {{count}} jour de retard sur votre date cible — projection actuelle au {{date}}.",
+    behindTarget_other:
+      "Vous avez {{count}} jours de retard sur votre date cible — projection actuelle au {{date}}.",
+    onTrack: "Dans les temps pour votre date cible — projection au {{date}}.",
+    projected: "À {{rate}}, vous atteignez votre objectif vers le {{date}}.",
+    losing: "Perte régulière à {{rate}}.",
+    streak: "{{days}} jours de pesée sans en manquer une.",
+  },
+  welcome: {
+    title: "Votre tableau de bord commence par une pesée",
+    body:
+      "Tout ici se déduit de vos mesures — rien à configurer, rien à saisir à la main. Enregistrez un poids et la page se remplit.",
+    steps: {
+      first: "Une mesure : votre poids actuel et le calendrier des pesées",
+      trend: "{{count}} mesures sur une semaine : la tendance et sa projection",
+      goal:
+        "Un poids cible dans les Paramètres : anneau de progression, jalons et rythme nécessaire",
+      energy: "{{count}} jours d'historique : bilan énergétique et détection de plateau",
+    },
+    cta: "Ajouter ma première mesure",
+  },
+  locked: {
+    needMeasurements_one: "Encore {{count}} pesée et ceci se remplit.",
+    needMeasurements_other: "Encore {{count}} pesées et ceci se remplit.",
+    needDays_one: "Encore {{count}} jour de suivi et ceci se remplit.",
+    needDays_other: "Encore {{count}} jours de suivi et ceci se remplit.",
+    needGoal: "Définissez un poids cible dans les Paramètres pour débloquer ceci.",
+    needHeight: "Ajoutez votre taille dans les Paramètres pour débloquer ceci.",
+  },
   trajectory: {
     label: "Trajectoire",
     currentWeight: "Poids actuel",

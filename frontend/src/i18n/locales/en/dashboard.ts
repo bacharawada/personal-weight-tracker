@@ -11,6 +11,47 @@ const dashboard = {
     title: "Dashboard",
     subtitle: "Overview of your weight progression",
   },
+  // One headline picked by lib/dashboard/insight.ts. Each sentence says
+  // something no single tile does — it joins two of them.
+  insight: {
+    goalReached: "You've reached your goal weight. Well done.",
+    doseWorking:
+      "{{medication}} stepped up on {{date}} — your pace went from {{before}} to {{after}} since.",
+    plateauWithHistory_one:
+      "Plateau for {{days}} days. Your {{count}} previous plateau lasted {{avgDays}} days, and it ended.",
+    plateauWithHistory_other:
+      "Plateau for {{days}} days. Your {{count}} previous plateaus lasted {{avgDays}} days on average, and they all ended.",
+    plateau: "Plateau for {{days}} days — the trend has been flat for a while.",
+    gaining: "Your weight is drifting up at {{rate}}.",
+    behindTarget_one:
+      "You're behind your target date by {{count}} day — currently projected {{date}}.",
+    behindTarget_other:
+      "You're behind your target date by {{count}} days — currently projected {{date}}.",
+    onTrack: "On track to meet your target — projected {{date}}.",
+    projected: "At {{rate}} you reach your goal around {{date}}.",
+    losing: "Steady loss at {{rate}}.",
+    streak: "{{days}} days of weighing in without a miss.",
+  },
+  welcome: {
+    title: "Your dashboard starts with one weigh-in",
+    body:
+      "Everything here is derived from your measurements — nothing to configure, nothing to log by hand. Record a weight and the page starts filling in.",
+    steps: {
+      first: "One measurement: your current weight and the weigh-in calendar",
+      trend: "{{count}} measurements over a week: the trend and its projection",
+      goal: "A goal weight in Settings: progress ring, milestones, and the pace you need",
+      energy: "{{count}} days of history: energy balance and plateau detection",
+    },
+    cta: "Add your first measurement",
+  },
+  locked: {
+    needMeasurements_one: "{{count}} more weigh-in and this fills in.",
+    needMeasurements_other: "{{count}} more weigh-ins and this fills in.",
+    needDays_one: "{{count}} more day of tracking and this fills in.",
+    needDays_other: "{{count}} more days of tracking and this fills in.",
+    needGoal: "Set a goal weight in Settings to unlock this.",
+    needHeight: "Add your height in Settings to unlock this.",
+  },
   trajectory: {
     label: "Trajectory",
     currentWeight: "Current weight",

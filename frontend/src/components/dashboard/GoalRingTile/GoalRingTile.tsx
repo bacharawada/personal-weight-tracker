@@ -12,7 +12,6 @@
  */
 
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { CheckCircle2, Target, TriangleAlert } from "lucide-react";
 import { useWeightTracker } from "../../../context/WeightTrackerContext";
@@ -34,22 +33,10 @@ export function GoalRingTile({ goal, milestones, latestWeight }: GoalRingTilePro
   const { profile, unit } = useWeightTracker();
   const { formatDate } = useDisplayPreferences();
 
+  // The page only renders this tile once a goal exists; the guard keeps the
+  // narrowing honest rather than standing in for a missing-goal state.
   const goalWeight = profile?.goal_weight ?? null;
-
-  // Nothing to project against yet — nudge the user toward Settings.
-  if (goalWeight == null) {
-    return (
-      <Link
-        to="/settings"
-        className="block bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-      >
-        <span className="inline-flex items-center gap-2">
-          <Target size={16} />
-          {t("goal.setupPrompt")}
-        </span>
-      </Link>
-    );
-  }
+  if (goalWeight == null) return null;
 
   if (goal == null) {
     return (
