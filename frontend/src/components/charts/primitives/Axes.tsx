@@ -1,4 +1,4 @@
-import { format as formatDate } from "date-fns";
+import { useDisplayPreferences } from "../../../context/DisplayPreferencesContext";
 import type { ChartTheme } from "../../../lib/palettes";
 
 interface AxisBottomProps {
@@ -7,19 +7,23 @@ interface AxisBottomProps {
   innerWidth: number;
   innerHeight: number;
   theme: ChartTheme;
-  /** date-fns format string for tick labels. */
-  labelFormat?: string;
 }
 
-/** Bottom (time) axis: baseline, vertical gridlines and dated tick labels. */
+/**
+ * Bottom (time) axis: baseline, vertical gridlines and dated tick labels.
+ *
+ * Tick labels follow the user's date-order preference and drop the year, which
+ * would make them collide.
+ */
 export function AxisBottom({
   ticks,
   scale,
   innerWidth,
   innerHeight,
   theme,
-  labelFormat = "MMM d",
 }: AxisBottomProps) {
+  const { formatDateMsShort } = useDisplayPreferences();
+
   return (
     <g>
       <line x1={0} y1={innerHeight} x2={innerWidth} y2={innerHeight} stroke={theme.axis} strokeWidth={1} />
@@ -35,7 +39,7 @@ export function AxisBottom({
               fontSize={11}
               fill={theme.mutedText}
             >
-              {formatDate(new Date(ms), labelFormat)}
+              {formatDateMsShort(ms)}
             </text>
           </g>
         );

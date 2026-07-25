@@ -8,6 +8,7 @@
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
+import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import type { MedicationDose } from "../../lib/types";
 
 interface MedicationDoseRowProps {
@@ -20,10 +21,11 @@ export function MedicationDoseRow({
   onDeleteRequest,
 }: MedicationDoseRowProps) {
   const { t } = useTranslation("medication");
+  const { formatDate } = useDisplayPreferences();
   return (
     <tr className="group transition-colors">
       <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium whitespace-nowrap">
-        {dose.date}
+        {formatDate(dose.date)}
       </td>
       <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100">
         {dose.medication}

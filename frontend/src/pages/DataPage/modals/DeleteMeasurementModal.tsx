@@ -5,6 +5,7 @@
 import { Trash2 } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { ConfirmModal } from "../../../components/modals/ConfirmModal";
+import { useDisplayPreferences } from "../../../context/DisplayPreferencesContext";
 import type { Measurement } from "../../../lib/types";
 
 interface DeleteMeasurementModalProps {
@@ -21,6 +22,7 @@ export function DeleteMeasurementModal({
   loading,
 }: DeleteMeasurementModalProps) {
   const { t } = useTranslation("data");
+  const { formatDate } = useDisplayPreferences();
   return (
     <ConfirmModal
       open={!!target}
@@ -30,7 +32,10 @@ export function DeleteMeasurementModal({
         <Trans
           t={t}
           i18nKey="deleteModal.description"
-          values={{ date: target?.date, weight: target?.weight }}
+          values={{
+            date: target == null ? "" : formatDate(target.date),
+            weight: target?.weight,
+          }}
           components={{ strong: <strong /> }}
         />
       }

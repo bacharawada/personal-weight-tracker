@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Pencil, StickyNote, Trash2, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
+import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import type { Measurement, WeightUnit } from "../../lib/types";
 import { kgToDisplay, weightBounds } from "../../lib/units";
 
@@ -53,6 +54,7 @@ export function MeasurementRow({
   onDeleteRequest,
 }: MeasurementRowProps) {
   const { t } = useTranslation("data");
+  const { formatDate } = useDisplayPreferences();
   const bounds = weightBounds(unit);
   return (
     <tr
@@ -61,8 +63,8 @@ export function MeasurementRow({
       }`}
     >
       {/* Date */}
-      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium">
-        {m.date}
+      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium whitespace-nowrap">
+        {formatDate(m.date)}
       </td>
 
       {/* Weight — static or inline edit input */}

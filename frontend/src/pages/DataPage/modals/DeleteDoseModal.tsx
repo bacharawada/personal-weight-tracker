@@ -5,6 +5,7 @@
 import { Trash2 } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { ConfirmModal } from "../../../components/modals/ConfirmModal";
+import { useDisplayPreferences } from "../../../context/DisplayPreferencesContext";
 import type { MedicationDose } from "../../../lib/types";
 
 interface DeleteDoseModalProps {
@@ -21,6 +22,7 @@ export function DeleteDoseModal({
   loading,
 }: DeleteDoseModalProps) {
   const { t } = useTranslation("medication");
+  const { formatDate } = useDisplayPreferences();
   return (
     <ConfirmModal
       open={!!target}
@@ -30,7 +32,10 @@ export function DeleteDoseModal({
         <Trans
           t={t}
           i18nKey="deleteModal.description"
-          values={{ medication: target?.medication, date: target?.date }}
+          values={{
+            medication: target?.medication,
+            date: target == null ? "" : formatDate(target.date),
+          }}
           components={{ strong: <strong /> }}
         />
       }

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { format as formatDate } from "date-fns";
+import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import { getResidualsChart } from "../../lib/api";
 import { getChartTheme, getPalette } from "../../lib/palettes";
 import { linePath } from "../../lib/charts/geometry";
@@ -93,6 +93,7 @@ interface BodyProps {
 
 function ResidualsChartBody({ data, axes, seriesColor, theme, innerWidth, innerHeight }: BodyProps) {
   const { t } = useTranslation("charts");
+  const { formatDate } = useDisplayPreferences();
   const allPoints = data.series.flatMap((s) => s.points);
   const allMs = allPoints.map((p) => toMs(p.date));
   const allValues = [...allPoints.map((p) => p.value), data.sigma, -data.sigma];
@@ -153,7 +154,7 @@ function ResidualsChartBody({ data, axes, seriesColor, theme, innerWidth, innerH
         innerWidth={innerWidth}
         innerHeight={innerHeight}
         theme={theme}
-        header={(i) => formatDate(new Date(toMs(refSeries.points[i].date)), "MMM d, yyyy")}
+        header={(i) => formatDate(refSeries.points[i].date)}
         lines={(i) =>
           data.series.map((s) => ({
             label: s.label.replace(" residuals", ""),

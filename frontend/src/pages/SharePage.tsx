@@ -6,16 +6,31 @@
  * it fetches the token-scoped public endpoints directly, manages its own
  * light/dark theme, and offers an in-page language switch. An invalid or
  * revoked token shows a clean "link unavailable" message.
+ *
+ * The visitor has no account, so weights and dates render with the *owner's*
+ * display preferences, served through `DisplayPreferencesProvider`.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Globe, Moon, Scale, Sun } from "lucide-react";
-import { getPublicStats, getPublicWeightChart } from "../lib/api";
-import type { ChartParams, Stats } from "../lib/types";
+import {
+  getPublicPreferences,
+  getPublicStats,
+  getPublicWeightChart,
+} from "../lib/api";
+import type {
+  ChartParams,
+  DisplayPreferences,
+  Stats,
+  WeightUnit,
+} from "../lib/types";
 import { WeightChart } from "../components/charts/WeightChart";
 import { Spinner } from "../components/ui/Spinner";
+import { DisplayPreferencesProvider } from "../context/DisplayPreferencesContext";
+import { DEFAULT_DISPLAY_PREFERENCES } from "../lib/dates";
+import { formatWeight, kgToDisplay, unitLabel } from "../lib/units";
 import { useTheme } from "../hooks/useTheme";
 
 type PageState = "loading" | "valid" | "invalid";
@@ -35,6 +50,9 @@ export function SharePage() {
     hasToken ? "loading" : "invalid",
   );
   const [stats, setStats] = useState<Stats | null>(null);
+  const [preferences, setPreferences] = useState<DisplayPreferences>(
+    DEFAULT_DISPLAY_PREFERENCES,
+  );
 
   useEffect(() => {
     if (!hasToken) return;
@@ -49,6 +67,13 @@ export function SharePage() {
       .catch(() => {
         if (!cancelled) setPageState("invalid");
       });
+    // Preferences are cosmetic: a failure here leaves the defaults in place
+    // rather than breaking an otherwise valid link.
+    getPublicPreferences(token)
+      .then((result) => {
+        if (!cancelled) setPreferences(result);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -78,6 +103,7 @@ export function SharePage() {
   const nextLanguage = currentLanguage === "fr" ? "en" : "fr";
 
   return (
+    <DisplayPreferencesProvider preferences={preferences}>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10">
         {/* Header */}
@@ -150,7 +176,7 @@ export function SharePage() {
                 <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
                   {t("statsHeading")}
                 </h2>
-                <PublicStats stats={stats} />
+                <PublicStats stats={stats} unit={preferences.unit_preference} />
               </section>
             )}
 
@@ -176,15 +202,17 @@ export function SharePage() {
         </footer>
       </div>
     </div>
+    </DisplayPreferencesProvider>
   );
 }
 
 interface PublicStatsProps {
   stats: Stats;
+  unit: WeightUnit;
 }
 
-/** Read-only stat tiles for the shared dashboard (values shown in kg). */
-function PublicStats({ stats }: PublicStatsProps) {
+/** Read-only stat tiles for the shared dashboard, in the owner's unit. */
+function PublicStats({ stats, unit }: PublicStatsProps) {
   // Stat labels are shared with the authenticated dashboard.
   const { t: label } = useTranslation("dashboard");
   const trendColor =
@@ -196,20 +224,24 @@ function PublicStats({ stats }: PublicStatsProps) {
           ? "text-red-600"
           : "text-gray-500";
 
+  const u = unitLabel(unit);
+  const perWeek = (kgPerWeek: number): string =>
+    `${kgPerWeek >= 0 ? "+" : ""}${kgToDisplay(kgPerWeek, unit).toFixed(2)} ${u}/wk`;
+
   const tiles = [
     {
       label: label("stats.totalLoss"),
-      value: `${stats.total_loss_kg > 0 ? "-" : "+"}${Math.abs(stats.total_loss_kg).toFixed(1)} kg`,
+      value: `${stats.total_loss_kg > 0 ? "-" : "+"}${formatWeight(Math.abs(stats.total_loss_kg), unit)}`,
       color: stats.total_loss_kg > 0 ? "text-green-600" : "text-red-600",
     },
     {
       label: label("stats.avgLossPerWeek"),
-      value: `${stats.avg_loss_per_week >= 0 ? "+" : ""}${stats.avg_loss_per_week.toFixed(2)} kg/wk`,
+      value: perWeek(stats.avg_loss_per_week),
       color: "text-gray-900 dark:text-gray-100",
     },
     {
       label: label("stats.currentTrend"),
-      value: `${stats.current_trend >= 0 ? "+" : ""}${stats.current_trend.toFixed(2)} kg/wk`,
+      value: perWeek(stats.current_trend),
       color: trendColor,
     },
     {

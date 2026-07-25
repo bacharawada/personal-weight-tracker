@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
-import { format as formatDate } from "date-fns";
+import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import { getMedications, getWeightChart } from "../../lib/api";
 import { getChartTheme, getPalette, hexToRgba } from "../../lib/palettes";
 import { bandPath, linePath, type PixelPoint } from "../../lib/charts/geometry";
@@ -210,6 +210,7 @@ function WeightChartBody({
 }: BodyProps) {
   const { t } = useTranslation("charts");
   const { t: tMed } = useTranslation("medication");
+  const { formatDate } = useDisplayPreferences();
   const [hoveredDoseId, setHoveredDoseId] = useState<number | null>(null);
   // -- Collect domains across every series ----------------------------------
   const { dateMs: allMs, values: allValues } = collectChartDomains(data);
@@ -359,7 +360,7 @@ function WeightChartBody({
         innerWidth={innerWidth}
         innerHeight={innerHeight}
         theme={theme}
-        header={(p) => formatDate(new Date(toMs(p.date)), "MMM d, yyyy")}
+        header={(p) => formatDate(p.date)}
         lines={(p) => [
           {
             label: t("weight.tooltip.weight"),

@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import { getMedicationImpact } from "../../lib/api";
 import type { DoseImpact, WeightUnit } from "../../lib/types";
 import { kgToDisplay, unitLabel } from "../../lib/units";
@@ -20,6 +21,7 @@ interface DoseImpactTableProps {
 
 export function DoseImpactTable({ refreshKey, unit }: DoseImpactTableProps) {
   const { t } = useTranslation("medication");
+  const { formatDate } = useDisplayPreferences();
   const [rows, setRows] = useState<DoseImpact[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,7 +102,7 @@ export function DoseImpactTable({ refreshKey, unit }: DoseImpactTableProps) {
                         {changeLabel(row)}
                       </div>
                       <div className="text-xs text-gray-400 dark:text-gray-500">
-                        {row.date}
+                        {formatDate(row.date)}
                       </div>
                     </td>
                     <td className="py-2.5 px-3 text-right font-mono text-gray-800 dark:text-gray-200">

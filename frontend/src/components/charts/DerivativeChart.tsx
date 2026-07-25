@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { format as formatDate } from "date-fns";
+import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import { getDerivativeChart } from "../../lib/api";
 import { getChartTheme, getPalette } from "../../lib/palettes";
 import { linePath } from "../../lib/charts/geometry";
@@ -90,6 +90,7 @@ interface BodyProps {
 
 function DerivativeChartBody({ data, axes, palette, theme, innerWidth, innerHeight }: BodyProps) {
   const { t } = useTranslation("charts");
+  const { formatDate } = useDisplayPreferences();
   const allMs = data.bars.map((b) => toMs(b.date));
   const allValues = [
     ...data.bars.map((b) => b.rate),
@@ -149,7 +150,7 @@ function DerivativeChartBody({ data, axes, palette, theme, innerWidth, innerHeig
         innerWidth={innerWidth}
         innerHeight={innerHeight}
         theme={theme}
-        header={(p) => formatDate(new Date(toMs(p.date)), "MMM d, yyyy")}
+        header={(p) => formatDate(p.date)}
         lines={(p) => [
           {
             label: t("derivative.tooltip.rate"),
