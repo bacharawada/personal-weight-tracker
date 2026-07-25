@@ -30,6 +30,20 @@ const common: CommonResource = {
     error: "Une erreur est survenue.",
     empty: "Aucune donnée pour le moment.",
   },
+  datePicker: {
+    label: {
+      day: "Jour",
+      month: "Mois",
+      year: "Année",
+    },
+    placeholder: {
+      day: "jj",
+      month: "mm",
+      year: "aaaa",
+    },
+    openCalendar: "Ouvrir le calendrier",
+    clear: "Effacer la date",
+  },
 };
 
 export default common;

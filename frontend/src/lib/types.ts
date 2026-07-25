@@ -121,6 +121,18 @@ export const DateSeparator = {
 } as const;
 export type DateSeparator = (typeof DateSeparator)[keyof typeof DateSeparator];
 
+// The three editable fields of a date, for the segmented date input. Their
+// on-screen order follows the user's `DateOrder` preference.
+export const DateSegment = {
+  Day: "day",
+  Month: "month",
+  Year: "year",
+} as const;
+export type DateSegment = (typeof DateSegment)[keyof typeof DateSegment];
+
+/** Raw digit buffers for each segment — partial while the user is typing. */
+export type DateSegmentValues = Record<DateSegment, string>;
+
 export const Theme = {
   Light: "light",
   Dark: "dark",

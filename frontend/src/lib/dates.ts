@@ -12,8 +12,8 @@
  * ISO dates in the first place.
  */
 
-import { DateOrder, DateSeparator } from "./types";
-import type { DisplayPreferences } from "./types";
+import { DateOrder, DateSegment, DateSeparator } from "./types";
+import type { DateSegmentValues, DisplayPreferences } from "./types";
 
 /** Fallback used before the profile has loaded, and on the share page. */
 export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {
@@ -116,6 +116,125 @@ export function formatMsShort(
   separator: DateSeparator,
 ): string {
   return formatIsoDateShort(msToIsoDate(ms), order, separator);
+}
+
+/* -------------------------------------------------------------------------
+ * Segmented date entry
+ *
+ * The date picker lets the user type a date into three separate fields. These
+ * helpers are the pure part of that: ordering the fields, splitting an ISO
+ * date into digit buffers, and folding the buffers back into an ISO date.
+ * ---------------------------------------------------------------------- */
+
+/** Per-segment bounds and digit count, used for stepping and auto-advancing. */
+export const SEGMENT_LIMITS: Record<
+  DateSegment,
+  { min: number; max: number; length: number; wraps: boolean }
+> = {
+  [DateSegment.Day]: { min: 1, max: 31, length: 2, wraps: true },
+  [DateSegment.Month]: { min: 1, max: 12, length: 2, wraps: true },
+  // Stepping stays in a plausible range; typing is only bound by the 4 digits.
+  [DateSegment.Year]: { min: 1900, max: 2999, length: 4, wraps: false },
+};
+
+export const EMPTY_DATE_SEGMENTS: DateSegmentValues = {
+  [DateSegment.Day]: "",
+  [DateSegment.Month]: "",
+  [DateSegment.Year]: "",
+};
+
+/** The segments left-to-right, in the order the user's preference displays. */
+export function dateSegmentOrder(order: DateOrder): readonly DateSegment[] {
+  if (order === DateOrder.Ymd) {
+    return [DateSegment.Year, DateSegment.Month, DateSegment.Day];
+  }
+  if (order === DateOrder.Mdy) {
+    return [DateSegment.Month, DateSegment.Day, DateSegment.Year];
+  }
+  return [DateSegment.Day, DateSegment.Month, DateSegment.Year];
+}
+
+/** Split an ISO date into zero-padded buffers; all empty when unset or malformed. */
+export function isoToSegments(iso: string | null): DateSegmentValues {
+  if (!iso) return { ...EMPTY_DATE_SEGMENTS };
+  const parts = iso.slice(0, 10).split("-");
+  if (parts.length !== 3) return { ...EMPTY_DATE_SEGMENTS };
+  const [year, month, day] = parts;
+  return { year, month, day };
+}
+
+/** True when the user has not typed a single digit in any segment. */
+export function isEmptySegments(segments: DateSegmentValues): boolean {
+  return !segments.day && !segments.month && !segments.year;
+}
+
+/**
+ * Fold the segment buffers back into an ISO `YYYY-MM-DD` date.
+ *
+ * Returns `null` when a segment is still incomplete, or when the combination
+ * is not a real calendar day. The round-trip through `Date` is what catches
+ * 31 February and 29 February on a common year: those roll over to March, so
+ * the components no longer match what was typed.
+ */
+export function segmentsToIso(segments: DateSegmentValues): string | null {
+  if (segments.year.length !== SEGMENT_LIMITS.year.length) return null;
+  if (!segments.month || !segments.day) return null;
+
+  const year = Number(segments.year);
+  const month = Number(segments.month);
+  const day = Number(segments.day);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+
+  // `new Date(year, …)` remaps years below 100 into the 1900s; setFullYear does not.
+  const date = new Date(2000, 0, 1);
+  date.setFullYear(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return localDateToIso(date);
+}
+
+/**
+ * Increment or decrement one segment by `delta`.
+ *
+ * An empty buffer lands on today's value for that segment rather than on
+ * `today ± 1`, matching what a native date input does. Day and month wrap
+ * around their bounds; the year clamps, since wrapping from 1900 to 2999 is
+ * never what the user meant.
+ */
+export function stepSegment(
+  segment: DateSegment,
+  raw: string,
+  delta: number,
+  today: Date,
+): string {
+  const { min, max, length, wraps } = SEGMENT_LIMITS[segment];
+  const todayValue =
+    segment === DateSegment.Day
+      ? today.getDate()
+      : segment === DateSegment.Month
+        ? today.getMonth() + 1
+        : today.getFullYear();
+
+  const base = Number(raw);
+  if (raw === "" || !Number.isInteger(base)) {
+    return String(todayValue).padStart(length, "0");
+  }
+
+  let next = base + delta;
+  if (wraps) {
+    const span = max - min + 1;
+    next = ((((next - min) % span) + span) % span) + min;
+  } else {
+    next = Math.min(max, Math.max(min, next));
+  }
+  return String(next).padStart(length, "0");
 }
 
 /**

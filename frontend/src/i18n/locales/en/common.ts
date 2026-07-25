@@ -29,6 +29,21 @@ const common = {
     error: "Something went wrong.",
     empty: "No data yet.",
   },
+  datePicker: {
+    // Keyed by DateSegment so the segmented input can look them up by name.
+    label: {
+      day: "Day",
+      month: "Month",
+      year: "Year",
+    },
+    placeholder: {
+      day: "dd",
+      month: "mm",
+      year: "yyyy",
+    },
+    openCalendar: "Open calendar",
+    clear: "Clear date",
+  },
 };
 
 export type CommonResource = typeof common;

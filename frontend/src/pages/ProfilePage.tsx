@@ -130,7 +130,6 @@ export function ProfilePage() {
                   value={targetDate}
                   onChange={(v) => setTargetDate(v ?? "")}
                   clearable
-                  placeholder={t("goalBody.placeholders.targetDate")}
                   className="h-9 text-sm"
                 />
               </div>

@@ -150,7 +150,6 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
                 value={effective?.x.min ?? null}
                 onChange={(v) => onChange({ ...axes, x: { ...axes.x, min: v } })}
                 clearable
-                placeholder={t("axes.autoPlaceholder")}
                 className="h-[30px] px-2 py-1 text-sm"
               />
             </div>
@@ -160,7 +159,6 @@ export function AxisControls({ axes, onChange, points, projection, effective }: 
                 value={effective?.x.max ?? null}
                 onChange={(v) => onChange({ ...axes, x: { ...axes.x, max: v } })}
                 clearable
-                placeholder={t("axes.autoPlaceholder")}
                 className="h-[30px] px-2 py-1 text-sm"
               />
             </div>
