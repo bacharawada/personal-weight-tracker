@@ -4,11 +4,11 @@ import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
 import { StatsCards } from "../components/layout/StatsCards";
-import { GoalCard } from "../components/dashboard/GoalCard";
-import { MilestonesCard } from "../components/dashboard/MilestonesCard";
 import { PlateauCard } from "../components/dashboard/PlateauCard";
 import { EnergyCard } from "../components/dashboard/EnergyCard";
 import { TrajectoryPanel } from "../components/dashboard/TrajectoryPanel";
+import { GoalRingTile } from "../components/dashboard/GoalRingTile";
+import { BmiTile } from "../components/dashboard/BmiTile";
 import { useDashboardData } from "../hooks/useDashboardData";
 
 export function DashboardPage() {
@@ -37,11 +37,16 @@ export function DashboardPage() {
           onPointClick={handlePointClick}
         />
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <GoalRingTile
+            goal={goal}
+            milestones={milestones}
+            latestWeight={latest?.weight ?? null}
+          />
+          <BmiTile latestWeight={latest?.weight ?? null} />
+        </div>
+
         <StatsCards stats={stats} />
-
-        <GoalCard goal={goal} stats={stats} />
-
-        <MilestonesCard data={milestones} />
 
         <PlateauCard status={plateau} />
 

@@ -33,6 +33,10 @@ const dashboard: DashboardResource = {
     label: "Objectif",
     onTrack: "Sur la bonne voie",
     behind: "En retard",
+    reached: "Atteint",
+    remaining: "Reste {{value}}",
+    projectedDate: "Projeté au {{date}}",
+    ringLabel: "{{percent}} % du chemin vers votre objectif",
     daysToGo_one: "~{{count}} jour restant",
     daysToGo_other: "~{{count}} jours restants",
     status: {

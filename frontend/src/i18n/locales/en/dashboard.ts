@@ -34,6 +34,10 @@ const dashboard = {
     label: "Goal",
     onTrack: "On track",
     behind: "Behind",
+    reached: "Reached",
+    remaining: "{{value}} to go",
+    projectedDate: "Projected {{date}}",
+    ringLabel: "{{percent}}% of the way to your goal",
     daysToGo_one: "~{{count}} day to go",
     daysToGo_other: "~{{count}} days to go",
     // Projection summaries. The backend returns a status plus raw numbers;
