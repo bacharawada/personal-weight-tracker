@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { Spinner } from "./Spinner";
 
-interface Column {
+export interface Column {
   label: string;
   align?: "left" | "right" | "center";
   className?: string;
@@ -61,12 +61,12 @@ export function DataTable({
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto">
+    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto">
       <motion.table
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
-        className="w-full text-sm"
+        className="w-full min-w-[26rem] text-sm"
       >
         <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <tr>
