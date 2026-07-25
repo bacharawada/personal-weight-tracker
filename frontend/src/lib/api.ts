@@ -18,6 +18,8 @@ import type {
   Measurement,
   MeasurementIn,
   MeasurementUpdate,
+  MedicationCsvPreview,
+  MedicationCsvPreviewRow,
   MedicationDose,
   MedicationDoseIn,
   MilestonesProjection,
@@ -266,10 +268,11 @@ export async function getPublicWeightChart(
 // CSV import
 // ---------------------------------------------------------------------------
 
-export async function previewCsv(file: File): Promise<CsvPreview> {
+/** Upload a CSV to a preview endpoint. Multipart, so it bypasses fetchJson. */
+async function postCsvFile<TPreview>(path: string, file: File): Promise<TPreview> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${BASE}/imports/csv/preview`, {
+  const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: authHeaders(),
     body: formData,
@@ -281,15 +284,43 @@ export async function previewCsv(file: File): Promise<CsvPreview> {
   return res.json();
 }
 
-export async function confirmCsvImport(
-  rows: CsvPreviewRow[],
+function confirmImport<TRow>(
+  path: string,
+  rows: TRow[],
   dateFormat: string,
 ): Promise<CsvImportResult> {
-  return fetchJson<CsvImportResult>(`${BASE}/imports/csv/confirm`, {
+  return fetchJson<CsvImportResult>(`${BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ rows, date_format: dateFormat }),
   });
+}
+
+export async function previewCsv(file: File): Promise<CsvPreview> {
+  return postCsvFile<CsvPreview>("/imports/csv/preview", file);
+}
+
+export async function confirmCsvImport(
+  rows: CsvPreviewRow[],
+  dateFormat: string,
+): Promise<CsvImportResult> {
+  return confirmImport("/imports/csv/confirm", rows, dateFormat);
+}
+
+export async function previewMedicationCsv(
+  file: File,
+): Promise<MedicationCsvPreview> {
+  return postCsvFile<MedicationCsvPreview>(
+    "/imports/medications/csv/preview",
+    file,
+  );
+}
+
+export async function confirmMedicationCsvImport(
+  rows: MedicationCsvPreviewRow[],
+  dateFormat: string,
+): Promise<CsvImportResult> {
+  return confirmImport("/imports/medications/csv/confirm", rows, dateFormat);
 }
 
 // ---------------------------------------------------------------------------
@@ -334,8 +365,8 @@ export async function getEnergyChart(params: ChartParams): Promise<EnergyChartDa
 // A plain <a href> link cannot carry the Bearer token, so the request must go
 // through the authenticated fetch client and download the response as a blob.
 
-export async function exportCsv(): Promise<Blob> {
-  const res = await fetch(`${BASE}/exports/csv`, {
+async function fetchBlob(path: string): Promise<Blob> {
+  const res = await fetch(`${BASE}${path}`, {
     headers: authHeaders(),
   });
   if (!res.ok) {
@@ -343,4 +374,12 @@ export async function exportCsv(): Promise<Blob> {
     throw new Error(body.detail || res.statusText);
   }
   return res.blob();
+}
+
+export async function exportCsv(): Promise<Blob> {
+  return fetchBlob("/exports/csv");
+}
+
+export async function exportMedicationsCsv(): Promise<Blob> {
+  return fetchBlob("/exports/medications/csv");
 }

@@ -19,6 +19,7 @@ import { completeOnboarding, updateProfile } from "../../lib/api";
 import type { CsvImportResult } from "../../lib/types";
 import { WeightUnit } from "../../lib/types";
 import { displayToKg, unitLabel } from "../../lib/units";
+import { useMeasurementCsvDataset } from "../../lib/csv/datasets";
 import { CsvImport } from "./CsvImport";
 import { AddMeasurement } from "../forms/AddMeasurement";
 import { Button } from "../ui/button";
@@ -42,6 +43,7 @@ interface Summary {
 
 export function OnboardingWizard({ onComplete, accent }: Props) {
   const { t } = useTranslation("onboarding");
+  const measurementCsv = useMeasurementCsvDataset();
   const [step, setStep] = useState<Step>("profile");
   const [summary, setSummary] = useState<Summary>({ mode: "skipped", manualCount: 0 });
   const [manualCount, setManualCount] = useState(0);
@@ -287,6 +289,10 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                   {t("csvStep.heading")}
                 </h2>
                 <CsvImport
+                  onPreview={measurementCsv.onPreview}
+                  onConfirm={measurementCsv.onConfirm}
+                  columns={measurementCsv.columns}
+                  columnsHint={measurementCsv.columnsHint}
                   onComplete={handleCsvComplete}
                   onBack={() => setStep("welcome")}
                   accent={accent}

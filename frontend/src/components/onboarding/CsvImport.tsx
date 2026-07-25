@@ -2,24 +2,39 @@
  * CsvImport — two-step CSV upload component.
  *
  * Step 1 (upload):  Drag-and-drop or file picker. Sends to /preview.
- * Step 2 (preview): Shows detected format, example, row count, first 10
- *                   rows in a table. User can confirm or go back.
+ * Step 2 (preview): Shows detected format, example, row count and the
+ *                   parsed rows in a table. User can confirm or go back.
  * Step 3 (result):  Shows inserted / skipped summary.
+ *
+ * The dataset is injected: the caller supplies the preview/confirm calls,
+ * the preview table columns and the accepted-columns hint, so measurements
+ * and medication doses share this whole flow.
  *
  * On success calls onComplete() so the parent can advance the wizard.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { Upload, CheckCircle, AlertCircle, ChevronLeft, FileText } from "lucide-react";
-import { confirmCsvImport, previewCsv } from "../../lib/api";
-import type { CsvImportResult, CsvPreview } from "../../lib/types";
+import type {
+  CsvImportResult,
+  CsvPreviewColumn,
+  CsvPreviewOf,
+} from "../../lib/types";
 import { Spinner } from "../ui/Spinner";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 
-interface Props {
+interface Props<TRow> {
+  /** Uploads the file to the dataset's preview endpoint. */
+  onPreview: (file: File) => Promise<CsvPreviewOf<TRow>>;
+  /** Persists the reviewed rows to the dataset's confirm endpoint. */
+  onConfirm: (rows: TRow[], dateFormat: string) => Promise<CsvImportResult>;
+  /** Columns rendered in the preview table. */
+  columns: CsvPreviewColumn<TRow>[];
+  /** Short description of the columns the file must contain. */
+  columnsHint: ReactNode;
   onComplete: (result: CsvImportResult) => void;
   onBack: () => void;
   accent: string;
@@ -38,10 +53,18 @@ const FORMAT_LABELS: Record<string, string> = {
   "%Y/%m/%d": "YYYY/MM/DD",
 };
 
-export function CsvImport({ onComplete, onBack, accent }: Props) {
+export function CsvImport<TRow>({
+  onPreview,
+  onConfirm,
+  columns,
+  columnsHint,
+  onComplete,
+  onBack,
+  accent,
+}: Props<TRow>) {
   const { t } = useTranslation("onboarding");
   const [stage, setStage] = useState<Stage>("upload");
-  const [preview, setPreview] = useState<CsvPreview | null>(null);
+  const [preview, setPreview] = useState<CsvPreviewOf<TRow> | null>(null);
   const [result, setResult] = useState<CsvImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -56,14 +79,14 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
     setStage("previewing");
     setError(null);
     try {
-      const data = await previewCsv(file);
+      const data = await onPreview(file);
       setPreview(data);
       setStage("preview");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("csv.errorParseFailed"));
       setStage("error");
     }
-  }, [t]);
+  }, [onPreview, t]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -79,7 +102,7 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
     if (!preview) return;
     setStage("importing");
     try {
-      const res = await confirmCsvImport(preview.rows, preview.detected_date_format);
+      const res = await onConfirm(preview.rows, preview.detected_date_format);
       setResult(res);
       setStage("done");
       onComplete(res);
@@ -87,7 +110,7 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
       setError(err instanceof Error ? err.message : t("csv.errorImportFailed"));
       setStage("error");
     }
-  }, [preview, onComplete, t]);
+  }, [preview, onConfirm, onComplete, t]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,14 +150,7 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
                   {stage === "previewing" ? t("csv.analysing") : t("csv.dropHint")}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  <Trans
-                    t={t}
-                    i18nKey="csv.columnsHint"
-                    components={[
-                      <code className="font-mono" />,
-                      <code className="font-mono" />,
-                    ]}
-                  />
+                  {columnsHint}
                 </p>
               </div>
               <input
@@ -183,27 +199,40 @@ export function CsvImport({ onComplete, onBack, accent }: Props) {
               )}
             </div>
 
-            {/* Preview table — all rows, scrollable */}
+            {/* Preview table — all rows, scrollable. One table so the header
+                and body columns stay aligned whatever the dataset. */}
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Sticky header */}
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">#</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400">{t("csv.tableDate")}</th>
-                    <th className="px-4 py-2 text-right font-medium text-gray-500 dark:text-gray-400">{t("csv.tableWeight")}</th>
-                  </tr>
-                </thead>
-              </table>
-              {/* Scrollable body — capped at ~10 rows, user scrolls for more */}
-              <div className="overflow-y-auto max-h-64">
+              <div className="overflow-y-auto overflow-x-auto max-h-64">
                 <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400 w-10">#</th>
+                      {columns.map((col) => (
+                        <th
+                          key={col.label}
+                          className={`px-4 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap ${
+                            col.align === "right" ? "text-right" : "text-left"
+                          }`}
+                        >
+                          {col.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {preview.rows.map((row, i) => (
-                      <tr key={row.date} className="bg-white dark:bg-gray-900">
+                      <tr key={i} className="bg-white dark:bg-gray-900">
                         <td className="px-4 py-2 text-gray-400 dark:text-gray-500 text-xs w-10">{i + 1}</td>
-                        <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-mono text-xs">{row.date}</td>
-                        <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">{row.weight}</td>
+                        {columns.map((col) => (
+                          <td
+                            key={col.label}
+                            className={`px-4 py-2 text-gray-700 dark:text-gray-300 ${
+                              col.align === "right" ? "text-right" : "text-left"
+                            } ${col.className ?? ""}`}
+                          >
+                            {col.render(row)}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>

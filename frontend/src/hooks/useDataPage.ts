@@ -13,7 +13,7 @@ import {
   deleteMeasurement,
   deleteAllMeasurements,
 } from "../lib/api";
-import type { CsvImportResult, Measurement, MeasurementUpdate } from "../lib/types";
+import type { Measurement, MeasurementUpdate } from "../lib/types";
 import { displayToKg, kgToDisplay, unitLabel, weightBounds } from "../lib/units";
 
 export function useDataPage() {
@@ -32,8 +32,8 @@ export function useDataPage() {
   }, [refreshKey]);
 
   // ── Modal open state ─────────────────────────────────────────────────────
-  const [csvOpen, setCsvOpen] = useState(false);
-  const [csvKey, setCsvKey] = useState(0);
+  // CSV import/export state lives in useCsvTransfer — it is shared with the
+  // medication panel.
   const [deleteTarget, setDeleteTarget] = useState<Measurement | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
 
@@ -143,32 +143,11 @@ export function useDataPage() {
     }
   }, [bump]);
 
-  const handleCsvComplete = useCallback(
-    (_result: CsvImportResult) => {
-      bump();
-      setTimeout(() => {
-        setCsvOpen(false);
-        setCsvKey((k) => k + 1);
-      }, 1800);
-    },
-    [bump],
-  );
-
-  const openCsvModal = useCallback(() => setCsvOpen(true), []);
-  const closeCsvModal = useCallback((open: boolean) => {
-    if (!open) setCsvKey((k) => k + 1);
-    setCsvOpen(open);
-  }, []);
-
   return {
     // Data
     measurements,
     loading,
     // Modal state
-    csvOpen,
-    csvKey,
-    openCsvModal,
-    closeCsvModal,
     deleteTarget,
     setDeleteTarget,
     deleteAllOpen,
@@ -193,6 +172,5 @@ export function useDataPage() {
     handleKeyDown,
     handleDelete,
     handleDeleteAll,
-    handleCsvComplete,
   };
 }

@@ -84,10 +84,12 @@ export interface ChartParams {
   showExp: boolean;
   showLinear: boolean;
   showBand: boolean;
-  // Pure rendering flag (like `palette`/`dark`): toggles the medication-dose
-  // markers on the weight chart. Not sent to the backend and deliberately
-  // excluded from the chart refresh key so toggling never refetches.
+  // Pure rendering flags (like `palette`/`dark`): toggle the medication-dose
+  // markers and the rolling-mean line on the weight chart. Not sent to the
+  // backend and deliberately excluded from the chart refresh key so toggling
+  // never refetches.
   showDoses: boolean;
+  showSmoothed: boolean;
 }
 
 // Enum-like constant. The project's tsconfig enables `erasableSyntaxOnly`,
@@ -240,6 +242,17 @@ export const AUTO_AXES: ChartAxes = {
   y: { min: null, max: null, step: null },
 };
 
+/**
+ * The concrete axis values a chart actually renders, once data and any manual
+ * overrides are resolved. Used to keep the axis controls populated and in sync
+ * with the current state (never blank). `stepDays`/`step` may be null when the
+ * axis has fewer than two ticks.
+ */
+export interface EffectiveAxes {
+  x: { min: string; max: string; stepDays: number | null };
+  y: { min: number; max: number; step: number | null };
+}
+
 export interface UserProfile {
   id: number;
   keycloak_sub: string;
@@ -339,13 +352,35 @@ export interface CsvPreviewRow {
   weight: number;
 }
 
-export interface CsvPreview {
-  rows: CsvPreviewRow[];
+export interface MedicationCsvPreviewRow {
+  date: string;
+  medication: string;
+  dose_mg: number | null;
+  note: string | null;
+}
+
+/** Dialect metadata every CSV preview response carries. */
+export interface CsvPreviewMeta {
   total_rows: number;
   detected_date_format: string;
   date_format_example: string;
   delimiter: string;
   skipped_rows: number;
+}
+
+/** A preview response for a dataset whose rows are `TRow`. */
+export type CsvPreviewOf<TRow> = CsvPreviewMeta & { rows: TRow[] };
+
+export type CsvPreview = CsvPreviewOf<CsvPreviewRow>;
+
+export type MedicationCsvPreview = CsvPreviewOf<MedicationCsvPreviewRow>;
+
+/** One column of the CSV import preview table, for a dataset of `TRow`. */
+export interface CsvPreviewColumn<TRow> {
+  label: string;
+  align?: "left" | "right";
+  className?: string;
+  render: (row: TRow) => string;
 }
 
 export interface CsvImportResult {
