@@ -2,9 +2,9 @@
  * MedicationPanel — the "Medication" (GLP-1) section panel.
  *
  * Fills the shared DataSectionPanel skeleton with the dose journal, the
- * inline add-dose form and the delete-with-confirmation flow. Replaces the
- * former MedicationSection block that was stacked under the measurements
- * table.
+ * inline add-dose form, CSV import/export and the delete-with-confirmation
+ * flow. Replaces the former MedicationSection block that was stacked under
+ * the measurements table.
  */
 
 import { useState } from "react";
@@ -12,9 +12,13 @@ import { useTranslation } from "react-i18next";
 import { Syringe } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { AddMedicationDose } from "../../components/forms/AddMedicationDose";
+import { useCsvTransfer } from "../../hooks/useCsvTransfer";
+import { useMedicationCsvDataset } from "../../lib/csv/datasets";
 import type { useMedicationDoses } from "../../hooks/useMedicationDoses";
 import { DataSectionPanel } from "./DataSectionPanel";
+import { CsvTransferActions } from "./CsvTransferActions";
 import { MedicationDoseRow } from "./MedicationDoseRow";
+import { CsvImportModal } from "./modals/CsvImportModal";
 import { DeleteDoseModal } from "./modals/DeleteDoseModal";
 
 interface MedicationPanelProps {
@@ -24,8 +28,11 @@ interface MedicationPanelProps {
 
 export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
   const { t } = useTranslation("medication");
-  const { bump } = useWeightTracker();
+  const { bump, accent } = useWeightTracker();
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const dataset = useMedicationCsvDataset();
+  const csv = useCsvTransfer(dataset);
 
   const { doses, loading, deleteTarget, setDeleteTarget, deleting, handleDelete } = data;
 
@@ -48,6 +55,14 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
         onFormOpenChange={setIsFormOpen}
         onBack={onBack}
         addForm={<AddMedicationDose onSuccess={bump} />}
+        toolbarActions={
+          <CsvTransferActions
+            onImport={csv.openImport}
+            onExport={csv.handleExport}
+            canExport={doses.length > 0}
+            isExporting={csv.isExporting}
+          />
+        }
         columns={columns}
         loading={loading}
         empty={
@@ -71,6 +86,16 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
           />
         ))}
       </DataSectionPanel>
+
+      <CsvImportModal
+        open={csv.isImportOpen}
+        onOpenChange={csv.setImportOpen}
+        csvKey={csv.csvKey}
+        accent={accent}
+        dataset={dataset}
+        onComplete={csv.handleImportComplete}
+        onBack={() => csv.setImportOpen(false)}
+      />
 
       <DeleteDoseModal
         target={deleteTarget}

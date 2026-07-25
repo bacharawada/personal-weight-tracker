@@ -41,6 +41,13 @@ const medication = {
     mg: "{{value}} mg",
     none: "—",
   },
+  csvModal: {
+    title: "Import doses (CSV)",
+    description:
+      "Upload a CSV file with <code>date</code> and <code>medication</code> columns. <code>dose_mg</code> and <code>note</code> are optional. Rows already in your journal are skipped.",
+    columnsHint:
+      "Columns <0>date</0>, <1>medication</1>, and optionally <2>dose_mg</2>, <3>note</3>",
+  },
   deleteModal: {
     title: "Delete dose",
     description:
