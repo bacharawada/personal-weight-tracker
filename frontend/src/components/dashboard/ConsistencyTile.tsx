@@ -49,13 +49,17 @@ export function ConsistencyTile({ consistency }: ConsistencyTileProps) {
                 }
               />
             ))}
-            {/* The rule is one weigh-in a week, so the week itself gets a mark. */}
+            {/* The rule is one weigh-in a week, so the week itself gets a mark.
+                A centred dot, held off the last day cell and kept out of the
+                accent: as a flush accent-coloured bar the width of a day cell,
+                it read as a bottom row of squares clipped by the text below. */}
             <span
               className={[
-                "mt-0.5 h-0.5 w-2 rounded-full",
-                week.isCovered ? "" : "bg-gray-100 dark:bg-gray-700",
+                "mt-2 mx-auto h-1 w-1 rounded-full",
+                week.isCovered
+                  ? "bg-gray-400 dark:bg-gray-500"
+                  : "bg-gray-200 dark:bg-gray-700",
               ].join(" ")}
-              style={week.isCovered ? { backgroundColor: "var(--color-accent)" } : undefined}
             />
           </div>
         ))}
