@@ -7,8 +7,7 @@ const auth: AuthResource = {
     signInWithEmail: "Se connecter par e-mail",
     or: "ou",
     signInWithGoogle: "Se connecter avec Google",
-    signInWithGoogleAria: "Se connecter avec Google — bientôt disponible",
-    comingSoon: "Bientôt disponible",
+    signInWithGoogleAria: "Se connecter avec votre compte Google",
     footerNote:
       'Nouveau ici ? Choisissez « Se connecter par e-mail » et créez un compte gratuit.',
     attribution: "Weight Tracker — tableau de bord santé personnel",

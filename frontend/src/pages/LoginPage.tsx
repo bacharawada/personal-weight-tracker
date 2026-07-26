@@ -3,7 +3,8 @@
  *
  * Shown to unauthenticated users. Presents two entry points:
  *   - "Sign in" → redirects to Keycloak (standard login/register forms)
- *   - "Sign in with Google" → coming soon (disabled until IdP is configured)
+ *   - "Sign in with Google" → redirects to Keycloak with kc_idp_hint=google,
+ *     which skips the IdP chooser and lands straight on Google
  *
  * The actual credentials are handled by Keycloak; this page only
  * initiates the OIDC authorization code flow with PKCE.
@@ -19,13 +20,19 @@ import { Button } from "../components/ui/button";
 import { GoogleIcon } from "../components/ui/google-icon";
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const { t } = useTranslation("auth");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   async function handleLogin() {
     setIsLoading(true);
     await login();
+  }
+
+  async function handleGoogleLogin() {
+    setIsGoogleLoading(true);
+    await loginWithGoogle();
   }
 
   return (
@@ -57,7 +64,7 @@ export function LoginPage() {
             variant="primary"
             size="lg"
             onClick={handleLogin}
-            disabled={isLoading}
+            disabled={isLoading || isGoogleLoading}
             className="w-full rounded-xl"
           >
             {isLoading ? (
@@ -77,33 +84,22 @@ export function LoginPage() {
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
 
-          {/* Google — disabled until IdP is configured in Keycloak */}
-          <div className="relative group">
-            <Button
-              variant="secondary"
-              size="lg"
-              disabled
-              className="w-full rounded-xl"
-              aria-label={t("login.signInWithGoogleAria")}
-            >
+          {/* Google — brokered through Keycloak via kc_idp_hint */}
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={handleGoogleLogin}
+            disabled={isLoading || isGoogleLoading}
+            className="w-full rounded-xl"
+            aria-label={t("login.signInWithGoogleAria")}
+          >
+            {isGoogleLoading ? (
+              <span className="w-4 h-4 border-2 border-gray-400/40 border-t-gray-500 rounded-full animate-spin" />
+            ) : (
               <GoogleIcon className="w-4 h-4" />
-              {t("login.signInWithGoogle")}
-            </Button>
-            {/* Tooltip */}
-            <div
-              role="tooltip"
-              className="absolute left-1/2 -translate-x-1/2 -bottom-9 px-2.5 py-1 rounded-md
-                         bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900
-                         text-xs whitespace-nowrap
-                         opacity-0 group-hover:opacity-100
-                         transition-opacity duration-150 pointer-events-none
-                         after:content-[''] after:absolute after:left-1/2 after:-translate-x-1/2
-                         after:-top-1 after:border-4 after:border-transparent
-                         after:border-b-gray-900 dark:after:border-b-gray-100"
-            >
-              {t("login.comingSoon")}
-            </div>
-          </div>
+            )}
+            {t("login.signInWithGoogle")}
+          </Button>
         </div>
 
         {/* Footer note */}
