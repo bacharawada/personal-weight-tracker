@@ -45,11 +45,17 @@ services:
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
+      # Consumed by configure-google-idp.sh, not by Keycloak itself.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     volumes:
       # Realm config is auto-imported on first boot.
       - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
       # Custom theme — mounted directly into Keycloak's themes directory.
       - ./docker/keycloak/theme:/opt/keycloak/themes:ro
+      # Google IdP setup — run manually once Keycloak is healthy:
+      #   docker compose exec keycloak /opt/keycloak/bin/configure-google-idp.sh
+      - ./docker/keycloak/configure-google-idp.sh:/opt/keycloak/bin/configure-google-idp.sh:ro
     ports:
       - "8080:8080"
     depends_on:
