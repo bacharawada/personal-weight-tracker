@@ -5,9 +5,9 @@
  * the add dialog, CSV import/export and the delete-all control.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Scale, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { Button } from "../../components/ui/button";
 import { AddMeasurement } from "../../components/forms/AddMeasurement";
@@ -26,9 +26,11 @@ import { DeleteAllModal } from "./modals/DeleteAllModal";
 interface MeasurementsPanelProps {
   data: ReturnType<typeof useDataPage>;
   onBack: () => void;
+  /** Desktop section switcher, rendered in the panel header. */
+  switcher?: ReactNode;
 }
 
-export function MeasurementsPanel({ data, onBack }: MeasurementsPanelProps) {
+export function MeasurementsPanel({ data, onBack, switcher }: MeasurementsPanelProps) {
   const { t } = useTranslation("data");
   const { bump, accent, hasData, unit } = useWeightTracker();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -58,12 +60,12 @@ export function MeasurementsPanel({ data, onBack }: MeasurementsPanelProps) {
   return (
     <>
       <DataSectionPanel
-        icon={<Scale size={18} />}
         title={t("picker.measurementsTitle")}
         subtitle={t("page.subtitle", { count: measurements.length })}
         addLabel={t("panel.addEntry")}
         onAdd={() => setIsAddOpen(true)}
         onBack={onBack}
+        switcher={switcher}
         toolbarActions={
           <CsvTransferActions
             onImport={csv.openImport}

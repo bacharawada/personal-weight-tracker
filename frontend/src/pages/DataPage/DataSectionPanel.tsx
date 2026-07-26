@@ -2,9 +2,14 @@
  * DataSectionPanel — shared skeleton for every Data-page section panel.
  *
  * Owns the layout contract the measurements and medication panels both
- * follow: header (mobile back button, icon badge, title/subtitle, header
- * actions), a toolbar whose primary button opens the panel's add dialog,
- * and the scrolling table beneath it.
+ * follow: header (mobile back button, title/subtitle or the desktop section
+ * switcher, header actions), a toolbar whose primary button opens the panel's
+ * add dialog, and the scrolling table beneath it.
+ *
+ * The header swaps identity by breakpoint. On mobile the panel is reached by
+ * drilling into a card, so it names itself. On desktop the switcher sits in
+ * that slot and names the section instead — repeating the title next to it
+ * would only cost a row of table height.
  */
 
 import type { ReactNode } from "react";
@@ -14,12 +19,13 @@ import { Button } from "../../components/ui/button";
 import { DataTable, type Column } from "../../components/ui/DataTable";
 
 interface DataSectionPanelProps {
-  icon: ReactNode;
   title: string;
   subtitle: string;
   /** Label of the toolbar button that opens the add dialog. */
   addLabel: string;
   onAdd: () => void;
+  /** Desktop only — the control that switches between sections. */
+  switcher?: ReactNode;
   /** Extra controls rendered next to the add button (import, export…). */
   toolbarActions?: ReactNode;
   /** Destructive / global controls rendered in the header, right-aligned. */
@@ -33,11 +39,11 @@ interface DataSectionPanelProps {
 }
 
 export function DataSectionPanel({
-  icon,
   title,
   subtitle,
   addLabel,
   onAdd,
+  switcher,
   toolbarActions,
   headerActions,
   onBack,
@@ -62,14 +68,7 @@ export function DataSectionPanel({
           <ArrowLeft size={20} />
         </Button>
 
-        <span
-          className="hidden md:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
-        >
-          {icon}
-        </span>
-
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 md:hidden">
           <h2 className="truncate text-lg font-semibold text-gray-900 dark:text-gray-100">
             {title}
           </h2>
@@ -78,8 +77,16 @@ export function DataSectionPanel({
           </p>
         </div>
 
+        {switcher && (
+          <div className="hidden min-w-0 flex-1 md:block md:max-w-sm">
+            {switcher}
+          </div>
+        )}
+
         {headerActions && (
-          <div className="flex shrink-0 items-center gap-2">{headerActions}</div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {headerActions}
+          </div>
         )}
       </div>
 

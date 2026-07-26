@@ -7,9 +7,8 @@
  * the measurements table.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Syringe } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { AddMedicationDose } from "../../components/forms/AddMedicationDose";
 import { useCsvTransfer } from "../../hooks/useCsvTransfer";
@@ -25,9 +24,11 @@ import { DeleteDoseModal } from "./modals/DeleteDoseModal";
 interface MedicationPanelProps {
   data: ReturnType<typeof useMedicationDoses>;
   onBack: () => void;
+  /** Desktop section switcher, rendered in the panel header. */
+  switcher?: ReactNode;
 }
 
-export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
+export function MedicationPanel({ data, onBack, switcher }: MedicationPanelProps) {
   const { t } = useTranslation("medication");
   const { bump, accent } = useWeightTracker();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -48,12 +49,12 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
   return (
     <>
       <DataSectionPanel
-        icon={<Syringe size={18} />}
         title={t("section.title")}
         subtitle={t("section.subtitle", { count: doses.length })}
         addLabel={t("form.heading")}
         onAdd={() => setIsAddOpen(true)}
         onBack={onBack}
+        switcher={switcher}
         toolbarActions={
           <CsvTransferActions
             onImport={csv.openImport}

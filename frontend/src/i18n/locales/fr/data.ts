@@ -26,6 +26,7 @@ const data: DataResource = {
   },
   picker: {
     measurementsTitle: "Mesures de poids",
+    ariaLabel: "Section de données",
   },
   panel: {
     addEntry: "Ajouter une mesure",

@@ -26,6 +26,7 @@ const data = {
   },
   picker: {
     measurementsTitle: "Weight measurements",
+    ariaLabel: "Data section",
   },
   panel: {
     addEntry: "Add a measurement",
