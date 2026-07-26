@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useDisplayPreferences } from "../../context/DisplayPreferencesContext";
 import { getResidualsChart } from "../../lib/api";
-import { getChartTheme, getPalette } from "../../lib/palettes";
+import { getChartTheme, getPalette, hexToRgba } from "../../lib/palettes";
 import { linePath } from "../../lib/charts/geometry";
 import { useChartData } from "../../lib/charts/useChartData";
 import {
@@ -77,6 +77,7 @@ export function ResidualsChart({
                   data={data}
                   axes={axes}
                   seriesColor={seriesColor}
+                  bandColor={palette.band}
                   theme={theme}
                   innerWidth={innerWidth}
                   innerHeight={innerHeight}
@@ -94,12 +95,22 @@ interface BodyProps {
   data: ResidualsChartData;
   axes: ChartAxes;
   seriesColor: (id: string) => string;
+  /** Fill of the inner ±0.5σ band — distinct from the neutral ±1σ band. */
+  bandColor: string;
   theme: ReturnType<typeof getChartTheme>;
   innerWidth: number;
   innerHeight: number;
 }
 
-function ResidualsChartBody({ data, axes, seriesColor, theme, innerWidth, innerHeight }: BodyProps) {
+function ResidualsChartBody({
+  data,
+  axes,
+  seriesColor,
+  bandColor,
+  theme,
+  innerWidth,
+  innerHeight,
+}: BodyProps) {
   const { t } = useTranslation("charts");
   const { formatDate } = useDisplayPreferences();
   const allPoints = data.series.flatMap((s) => s.points);
@@ -128,16 +139,25 @@ function ResidualsChartBody({ data, axes, seriesColor, theme, innerWidth, innerH
       <AxisLeft ticks={yTicks} scale={y} innerWidth={innerWidth} theme={theme} precision={1} />
       <AxisBottom ticks={xTicks} scale={x} innerWidth={innerWidth} innerHeight={innerHeight} theme={theme} />
 
-      {/* ±1σ band */}
+      {/* ±1σ then ±0.5σ band — the inner band is drawn last so it reads on top */}
       {data.sigma > 0 && (
-        <rect
-          x={0}
-          y={y(data.sigma)}
-          width={innerWidth}
-          height={Math.abs(y(-data.sigma) - y(data.sigma))}
-          fill={theme.mutedText}
-          opacity={0.08}
-        />
+        <>
+          <rect
+            x={0}
+            y={y(data.sigma)}
+            width={innerWidth}
+            height={Math.abs(y(-data.sigma) - y(data.sigma))}
+            fill={theme.mutedText}
+            opacity={0.08}
+          />
+          <rect
+            x={0}
+            y={y(data.sigma / 2)}
+            width={innerWidth}
+            height={Math.abs(y(-data.sigma / 2) - y(data.sigma / 2))}
+            fill={hexToRgba(bandColor, 0.22)}
+          />
+        </>
       )}
 
       {/* Zero reference */}
