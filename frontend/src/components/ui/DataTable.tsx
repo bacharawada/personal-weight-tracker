@@ -14,6 +14,7 @@
 
 import { Children, type ReactNode } from "react";
 import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Spinner } from "./Spinner";
 
@@ -87,9 +88,23 @@ export function DataTable({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto">
-      <div className="flex items-start divide-x divide-gray-100 dark:divide-gray-700">
+      <div
+        className={cn(
+          "flex items-start",
+          // The rule is darker than the row dividers and the halves pad away
+          // from it symmetrically. Without both, the two tables read as one
+          // 8-column table whose rows happen to line up.
+          isSplit && "divide-x divide-gray-200 dark:divide-gray-700",
+        )}
+      >
         {groups.map((group, index) => (
-          <div key={index} className="min-w-0 flex-1">
+          <div
+            key={index}
+            className={cn(
+              "min-w-0 flex-1",
+              isSplit && (index === 0 ? "pr-6" : "pl-6"),
+            )}
+          >
             <motion.table
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
