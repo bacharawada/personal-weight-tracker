@@ -31,14 +31,6 @@ export function AnalysisPage() {
     () => resolveEffectiveAxes(weightData, axes),
     [weightData, axes]
   );
-  // Flatten every model's projection so the axis presets can keep the
-  // extrapolation horizon in view. "All history" (the default AUTO_AXES) already
-  // shows it via full auto-fit, so no initial preset needs to be applied.
-  const projection = useMemo(
-    () => weightData?.models.flatMap((model) => model.projection) ?? [],
-    [weightData]
-  );
-
   // Titles name both axes and their units, so they follow the display unit.
   const unitSuffix = unitLabel(unit);
 
@@ -58,7 +50,6 @@ export function AnalysisPage() {
         axes={axes}
         onChange={setAxes}
         points={weightData?.raw ?? []}
-        projection={projection}
         effective={effectiveAxes}
         height={chartHeight}
         onHeightChange={setChartHeight}

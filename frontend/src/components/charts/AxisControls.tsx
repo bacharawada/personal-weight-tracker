@@ -13,11 +13,8 @@ import {
 interface AxisControlsProps {
   axes: ChartAxes;
   onChange: (axes: ChartAxes) => void;
-  /** Raw measurements — used to auto-fit the weight axis for a range preset. */
+  /** Raw measurements — used to anchor a range preset on the latest one. */
   points: ChartPoint[];
-  /** Model projection points — used so a range preset's window still fits the
-   * extrapolation horizon (both axes) instead of clipping it. */
-  projection: ChartPoint[];
   /**
    * The concrete values the chart currently renders. Fills every field so the
    * controls always reflect the active state, even when an axis is on "auto".
@@ -53,7 +50,6 @@ export function AxisControls({
   axes,
   onChange,
   points,
-  projection,
   effective,
   height,
   onHeightChange,
@@ -61,7 +57,7 @@ export function AxisControls({
   const { t } = useTranslation("analysis");
   // "Auto" is the full-history view: reset returns to the "all" preset (full
   // auto — both axes fit every series, including the projection horizon).
-  const allPreset = computeRangePreset(points, projection, null);
+  const allPreset = computeRangePreset(points, null);
   const autoHeight = defaultChartHeight();
   const isCustom =
     JSON.stringify(axes) !== JSON.stringify(allPreset) || height !== autoHeight;
@@ -70,7 +66,7 @@ export function AxisControls({
   const activePreset = points.length === 0
     ? null
     : RANGE_PRESETS.find(
-        (preset) => JSON.stringify(computeRangePreset(points, projection, preset.days)) === activeAxes,
+        (preset) => JSON.stringify(computeRangePreset(points, preset.days)) === activeAxes,
       )?.key ?? null;
 
   return (
@@ -108,7 +104,7 @@ export function AxisControls({
           value={activePreset}
           onChange={(key) => {
             const preset = RANGE_PRESETS.find((candidate) => candidate.key === key);
-            if (preset) onChange(computeRangePreset(points, projection, preset.days));
+            if (preset) onChange(computeRangePreset(points, preset.days));
           }}
           ariaLabel={t("axes.presets")}
         />

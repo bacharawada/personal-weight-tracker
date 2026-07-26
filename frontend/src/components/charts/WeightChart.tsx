@@ -8,7 +8,7 @@ import { bandPath, linePath, type PixelPoint } from "../../lib/charts/geometry";
 import { findGoalCrossing } from "../../lib/charts/goalCrossing";
 import { exportSvgToPng } from "../../lib/charts/exportPng";
 import { useChartData } from "../../lib/charts/useChartData";
-import { collectChartDomains } from "../../lib/charts/effectiveAxes";
+import { collectChartDomains, valuesInWindow } from "../../lib/charts/effectiveAxes";
 import { rangeWindowAxes } from "../../lib/charts/rangePreset";
 import {
   dateTicks,
@@ -248,10 +248,11 @@ function WeightChartBody({
   // Colons in a generated id are legal in HTML but awkward in a url(#…) reference.
   const clipId = `plot-clip-${useId().replace(/:/g, "")}`;
   // -- Collect domains across every series ----------------------------------
-  const { dateMs: allMs, values: allValues } = collectChartDomains(data);
-
-  const xDomain = resolveDateDomain(allMs, axes.x);
-  const yDomain = resolveValueDomain(allValues, axes.y);
+  // The weight axis is fitted to the visible date window, not the whole
+  // history: a pinned window (range preset) then zooms both axes coherently.
+  const domains = collectChartDomains(data);
+  const xDomain = resolveDateDomain(domains.dateMs, axes.x);
+  const yDomain = resolveValueDomain(valuesInWindow(domains, xDomain), axes.y);
   const xScale = timeScale(xDomain, [0, innerWidth]);
   const yScale = linearScale(yDomain, [innerHeight, 0]);
   const x = (ms: number) => xScale(new Date(ms));
