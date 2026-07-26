@@ -26,6 +26,12 @@ const dashboard = {
     },
     cta: "Add your first measurement",
   },
+  loadError: {
+    title: "Couldn't load your measurements",
+    body:
+      "The request didn't come back, so the dashboard can't tell what you've recorded. Your data is untouched — this is only a failed read.",
+    retry: "Try again",
+  },
   locked: {
     needMeasurements_one: "{{count}} more weigh-in and this fills in.",
     needMeasurements_other: "{{count}} more weigh-ins and this fills in.",

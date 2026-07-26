@@ -50,6 +50,17 @@ export interface DashboardData extends DashboardPayloads {
   /** Most recent measurement, or `null` when the user has none. */
   latest: Measurement | null;
   deltas: WeightDeltas;
+  /**
+   * True until the first fetch pass settles. Only the first one: later refreshes
+   * keep the data on screen rather than flashing a spinner on every poll tick.
+   */
+  isLoading: boolean;
+  /**
+   * The measurements request failed on the last pass. It gates every module, so
+   * an empty `measurements` is ambiguous without this: the account may have no
+   * weigh-ins, or the request may simply not have arrived.
+   */
+  hasLoadError: boolean;
 }
 
 const EMPTY: DashboardPayloads = {
@@ -76,6 +87,8 @@ function settled<T>(result: PromiseSettledResult<T>): T | null {
 export function useDashboardData(): DashboardData {
   const { chartParams, refreshKey } = useWeightTracker();
   const [payloads, setPayloads] = useState<DashboardPayloads>(EMPTY);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadError, setHasLoadError] = useState(false);
 
   // The energy series is the one payload that takes chart params, but depending
   // on the object itself would refetch all six endpoints whenever the palette or
@@ -101,16 +114,23 @@ export function useDashboardData(): DashboardData {
     ]).then(
       ([goal, milestones, plateau, energy, energyChart, doseChanges, measurements]) => {
         if (isCancelled) return;
-        const rows = settled(measurements) ?? [];
-        setPayloads({
+        const rows = settled(measurements);
+        setPayloads((prev) => ({
           goal: settled(goal),
           milestones: settled(milestones),
           plateau: settled(plateau),
           energy: settled(energy),
           energySeries: settled(energyChart)?.bars ?? [],
           doseChanges: settled(doseChanges) ?? [],
-          measurements: [...rows].sort((a, b) => a.date.localeCompare(b.date)),
-        });
+          // Falling back to [] here would render the "no measurements yet"
+          // welcome panel to a user who has plenty — keep the rows we already
+          // had and let hasLoadError carry the failure instead.
+          measurements: rows
+            ? [...rows].sort((a, b) => a.date.localeCompare(b.date))
+            : prev.measurements,
+        }));
+        setHasLoadError(rows === null);
+        setIsLoading(false);
       },
     );
 
@@ -126,7 +146,9 @@ export function useDashboardData(): DashboardData {
       ...payloads,
       latest: measurements.length > 0 ? measurements[measurements.length - 1] : null,
       deltas: computeDeltas(measurements),
+      isLoading,
+      hasLoadError,
     }),
-    [payloads, measurements],
+    [payloads, measurements, isLoading, hasLoadError],
   );
 }

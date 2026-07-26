@@ -24,6 +24,12 @@ const dashboard: DashboardResource = {
     },
     cta: "Ajouter ma première mesure",
   },
+  loadError: {
+    title: "Impossible de charger vos mesures",
+    body:
+      "La requête n'a pas abouti, le tableau de bord ne peut donc pas savoir ce que vous avez enregistré. Vos données sont intactes — il s'agit seulement d'une lecture échouée.",
+    retry: "Réessayer",
+  },
   locked: {
     needMeasurements_one: "Encore {{count}} pesée et ceci se remplit.",
     needMeasurements_other: "Encore {{count}} pesées et ceci se remplit.",
