@@ -19,12 +19,13 @@ import { ResidualsChartExplainer } from "../components/charts/explainers/Residua
 import { resolveEffectiveAxes } from "../lib/charts/effectiveAxes";
 import { defaultChartHeight } from "../lib/charts/chartHeight";
 import { unitLabel } from "../lib/units";
-import { AUTO_AXES, type ChartAxes, type WeightChartData } from "../lib/types";
+import { WEIGHT_AXES_DEFAULT } from "../lib/charts/rangePreset";
+import { type ChartAxes, type WeightChartData } from "../lib/types";
 
 export function AnalysisPage() {
   const { t } = useTranslation("analysis");
   const { chartParams, setChartParams, refreshKey, setSelectedPoint, unit } = useWeightTracker();
-  const [axes, setAxes] = useState<ChartAxes>(AUTO_AXES);
+  const [axes, setAxes] = useState<ChartAxes>(WEIGHT_AXES_DEFAULT);
   const [chartHeight, setChartHeight] = useState<number>(defaultChartHeight);
   const [weightData, setWeightData] = useState<WeightChartData | null>(null);
   const effectiveAxes = useMemo(
