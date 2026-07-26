@@ -17,6 +17,7 @@ interface SparklineProps {
 }
 
 const VIEW_WIDTH = 100;
+const STROKE_WIDTH = 2;
 
 export function Sparkline({ values, ariaLabel, height = 32 }: SparklineProps) {
   if (values.length < 2) return null;
@@ -25,8 +26,14 @@ export function Sparkline({ values, ariaLabel, height = 32 }: SparklineProps) {
   const max = Math.max(0, ...values);
   const span = max - min || 1;
 
+  // The extreme values sit on the edge of the domain, so plotting them on the
+  // edge of the viewBox puts half the stroke outside it, where the SVG viewport
+  // clips it. Inset the plot by that half so the curve stays whole.
+  const inset = STROKE_WIDTH / 2;
+  const plotHeight = height - STROKE_WIDTH;
+
   const x = (index: number) => (index / (values.length - 1)) * VIEW_WIDTH;
-  const y = (value: number) => ((max - value) / span) * height;
+  const y = (value: number) => inset + ((max - value) / span) * plotHeight;
 
   const line = values.map((value, index) => `${x(index)},${y(value)}`).join(" ");
   const zeroY = y(0);
@@ -46,7 +53,7 @@ export function Sparkline({ values, ariaLabel, height = 32 }: SparklineProps) {
         points={line}
         fill="none"
         stroke="var(--color-accent)"
-        strokeWidth={2}
+        strokeWidth={STROKE_WIDTH}
         vectorEffect="non-scaling-stroke"
       />
       <line
