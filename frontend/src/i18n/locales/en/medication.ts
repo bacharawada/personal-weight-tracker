@@ -41,6 +41,12 @@ const medication = {
     mg: "{{value}} mg",
     none: "—",
   },
+  actionCard: {
+    addTitle: "Log a dose",
+    addDescription: "Record an injection",
+    importTitle: "Import CSV",
+    importDescription: "Load a file in bulk",
+  },
   addModal: {
     title: "Log a dose",
     description: "Pick a date and the molecule. Dose and note are optional.",

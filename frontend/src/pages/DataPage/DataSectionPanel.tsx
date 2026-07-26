@@ -1,37 +1,28 @@
 /**
- * DataSectionPanel — shared skeleton for every Data-page section panel.
+ * DataSectionPanel — shared skeleton for every Data-page section.
  *
- * Owns the layout contract the measurements and medication panels both
- * follow: header (mobile back button, title/subtitle or the desktop section
- * switcher, header actions), a toolbar whose primary button opens the panel's
- * add dialog, and the scrolling table beneath it.
+ * One self-contained card: header (icon badge, title/subtitle, discreet
+ * controls), the icon cards that open the add and import dialogs, then the
+ * scrolling table.
  *
- * The header swaps identity by breakpoint. On mobile the panel is reached by
- * drilling into a card, so it names itself. On desktop the switcher sits in
- * that slot and names the section instead — repeating the title next to it
- * would only cost a row of table height.
+ * Height is breakpoint-dependent. From xl the page locks to the viewport and
+ * the card fills its grid cell, so the table scrolls inside it. Below that the
+ * two sections stack and the page scrolls, so the card caps itself instead —
+ * otherwise a long measurement list would bury the medication section far
+ * below the fold.
  */
 
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { ArrowLeft, Plus } from "lucide-react";
-import { Button } from "../../components/ui/button";
 import { DataTable, type Column } from "../../components/ui/DataTable";
 
 interface DataSectionPanelProps {
+  icon: ReactNode;
   title: string;
   subtitle: string;
-  /** Label of the toolbar button that opens the add dialog. */
-  addLabel: string;
-  onAdd: () => void;
-  /** Desktop only — the control that switches between sections. */
-  switcher?: ReactNode;
-  /** Extra controls rendered next to the add button (import, export…). */
-  toolbarActions?: ReactNode;
-  /** Destructive / global controls rendered in the header, right-aligned. */
+  /** The section's add / import icon cards. */
+  actions: ReactNode;
+  /** Discreet controls rendered in the header, right-aligned. */
   headerActions?: ReactNode;
-  /** Mobile only — returns to the section picker. */
-  onBack: () => void;
   columns: Column[];
   loading?: boolean;
   empty?: ReactNode;
@@ -39,71 +30,53 @@ interface DataSectionPanelProps {
 }
 
 export function DataSectionPanel({
+  icon,
   title,
   subtitle,
-  addLabel,
-  onAdd,
-  switcher,
-  toolbarActions,
+  actions,
   headerActions,
-  onBack,
   columns,
   loading,
   empty,
   children,
 }: DataSectionPanelProps) {
-  const { t } = useTranslation("common");
-
   return (
-    <section className="flex flex-1 min-h-0 min-w-0 flex-col gap-4">
+    <section className="flex max-h-[70vh] min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 xl:max-h-none">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onBack}
-          aria-label={t("actions.back")}
-          className="md:hidden -ml-2 h-11 w-11 shrink-0"
+      <div className="flex shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--color-accent) 12%, transparent)",
+            color: "var(--color-accent)",
+          }}
         >
-          <ArrowLeft size={20} />
-        </Button>
+          {icon}
+        </span>
 
-        <div className="min-w-0 flex-1 md:hidden">
-          <h2 className="truncate text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
             {title}
           </h2>
-          <p className="truncate text-sm text-gray-500 dark:text-gray-400">
+          <p className="truncate text-xs text-gray-500 dark:text-gray-400">
             {subtitle}
           </p>
         </div>
 
-        {switcher && (
-          <div className="hidden min-w-0 flex-1 md:block md:max-w-sm">
-            {switcher}
-          </div>
-        )}
-
         {headerActions && (
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            {headerActions}
-          </div>
+          <div className="flex shrink-0 items-center gap-2">{headerActions}</div>
         )}
       </div>
 
-      {/* Card: toolbar + table */}
-      <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
-        <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2.5 dark:border-gray-700">
-          <Button variant="primary" size="sm" onClick={onAdd}>
-            <Plus size={15} />
-            {addLabel}
-          </Button>
-          {toolbarActions}
-        </div>
-
-        <DataTable columns={columns} loading={loading} empty={empty} isSplitOnWide>
-          {children}
-        </DataTable>
+      {/* Add / import entry points */}
+      <div className="shrink-0 border-b border-gray-100 p-4 dark:border-gray-700">
+        {actions}
       </div>
+
+      <DataTable columns={columns} loading={loading} empty={empty}>
+        {children}
+      </DataTable>
     </section>
   );
 }

@@ -1,13 +1,13 @@
 /**
- * MeasurementsPanel — the "Weight measurements" section panel.
+ * MeasurementsPanel — the "Weight measurements" section.
  *
  * Fills the shared DataSectionPanel skeleton with the measurements table,
  * the add dialog, CSV import/export and the delete-all control.
  */
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2 } from "lucide-react";
+import { Scale, Trash2 } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { Button } from "../../components/ui/button";
 import { AddMeasurement } from "../../components/forms/AddMeasurement";
@@ -16,7 +16,8 @@ import { useMeasurementCsvDataset } from "../../lib/csv/datasets";
 import { unitLabel } from "../../lib/units";
 import type { useDataPage } from "../../hooks/useDataPage";
 import { DataSectionPanel } from "./DataSectionPanel";
-import { CsvTransferActions } from "./CsvTransferActions";
+import { SectionActionCards } from "./SectionActionCards";
+import { ExportCsvButton } from "./ExportCsvButton";
 import { MeasurementRow } from "./MeasurementRow";
 import { AddEntryModal } from "./modals/AddEntryModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
@@ -25,12 +26,9 @@ import { DeleteAllModal } from "./modals/DeleteAllModal";
 
 interface MeasurementsPanelProps {
   data: ReturnType<typeof useDataPage>;
-  onBack: () => void;
-  /** Desktop section switcher, rendered in the panel header. */
-  switcher?: ReactNode;
 }
 
-export function MeasurementsPanel({ data, onBack, switcher }: MeasurementsPanelProps) {
+export function MeasurementsPanel({ data }: MeasurementsPanelProps) {
   const { t } = useTranslation("data");
   const { bump, accent, hasData, unit } = useWeightTracker();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -53,6 +51,7 @@ export function MeasurementsPanel({ data, onBack, switcher }: MeasurementsPanelP
   const columns = [
     { label: t("table.date"), align: "left" as const },
     { label: t("table.weight", { unit: unitLabel(unit) }), align: "right" as const },
+    { label: t("table.delta"), align: "right" as const },
     { label: t("table.note"), align: "left" as const },
     { label: t("table.actions"), align: "right" as const, className: "w-24" },
   ];
@@ -60,31 +59,38 @@ export function MeasurementsPanel({ data, onBack, switcher }: MeasurementsPanelP
   return (
     <>
       <DataSectionPanel
+        icon={<Scale size={20} />}
         title={t("picker.measurementsTitle")}
         subtitle={t("page.subtitle", { count: measurements.length })}
-        addLabel={t("panel.addEntry")}
-        onAdd={() => setIsAddOpen(true)}
-        onBack={onBack}
-        switcher={switcher}
-        toolbarActions={
-          <CsvTransferActions
+        actions={
+          <SectionActionCards
+            addTitle={t("actionCard.addTitle")}
+            addDescription={t("actionCard.addDescription")}
+            onAdd={() => setIsAddOpen(true)}
+            importTitle={t("actionCard.importTitle")}
+            importDescription={t("actionCard.importDescription")}
             onImport={csv.openImport}
-            onExport={csv.handleExport}
-            canExport={hasData}
-            isExporting={csv.isExporting}
           />
         }
         headerActions={
-          hasData && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleteAllOpen(true)}
-            >
-              <Trash2 size={15} />
-              <span className="hidden sm:inline">{t("toolbar.deleteAll")}</span>
-            </Button>
-          )
+          <>
+            <ExportCsvButton
+              onExport={csv.handleExport}
+              canExport={hasData}
+              isExporting={csv.isExporting}
+            />
+            {hasData && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteAllOpen(true)}
+                aria-label={t("toolbar.deleteAll")}
+              >
+                <Trash2 size={15} />
+                <span className="hidden sm:inline">{t("toolbar.deleteAll")}</span>
+              </Button>
+            )}
+          </>
         }
         columns={columns}
         loading={loading}
@@ -101,10 +107,12 @@ export function MeasurementsPanel({ data, onBack, switcher }: MeasurementsPanelP
           </>
         }
       >
-        {measurements.map((m) => (
+        {measurements.map((m, index) => (
           <MeasurementRow
             key={m.date}
             measurement={m}
+            // Rows are oldest-first, so the row above holds the earlier weight.
+            deltaKg={index === 0 ? null : m.weight - measurements[index - 1].weight}
             unit={unit}
             isEditing={editingDate === m.date}
             editWeight={editWeight}

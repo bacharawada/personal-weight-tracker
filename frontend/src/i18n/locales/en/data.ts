@@ -15,6 +15,7 @@ const data = {
   table: {
     date: "Date",
     weight: "Weight ({{unit}})",
+    delta: "Change",
     note: "Note",
     actions: "Actions",
     empty: "No measurements yet.",
@@ -26,13 +27,12 @@ const data = {
   },
   picker: {
     measurementsTitle: "Weight measurements",
-    ariaLabel: "Data section",
-  },
-  panel: {
-    addEntry: "Add a measurement",
   },
   actionCard: {
+    addTitle: "Add a measurement",
+    addDescription: "Log a weight for a date",
     importTitle: "Import CSV",
+    importDescription: "Load a file in bulk",
   },
   row: {
     editWeight: "Edit",

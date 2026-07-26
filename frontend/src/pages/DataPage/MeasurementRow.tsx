@@ -16,8 +16,16 @@ import { kgToDisplay, weightBounds } from "../../lib/units";
 
 const NOTE_MAX_LENGTH = 500;
 
+/**
+ * Below this magnitude (kg) a change is scale noise, not a trend — same
+ * threshold the dashboard's DeltaStat uses, so both read a flat day the same.
+ */
+const FLAT_THRESHOLD_KG = 0.05;
+
 interface MeasurementRowProps {
   measurement: Measurement;
+  /** Signed change against the previous measurement; `null` on the first row. */
+  deltaKg: number | null;
   unit: WeightUnit;
   isEditing: boolean;
   editWeight: string;
@@ -37,6 +45,7 @@ interface MeasurementRowProps {
 
 export function MeasurementRow({
   measurement: m,
+  deltaKg,
   unit,
   isEditing,
   editWeight,
@@ -56,6 +65,19 @@ export function MeasurementRow({
   const { t } = useTranslation("data");
   const { formatDate } = useDisplayPreferences();
   const bounds = weightBounds(unit);
+
+  // Losing weight is the goal, so a drop reads green and a gain red.
+  const isFlat = deltaKg == null || Math.abs(deltaKg) < FLAT_THRESHOLD_KG;
+  const deltaTone = isFlat
+    ? "text-gray-400 dark:text-gray-500"
+    : deltaKg < 0
+      ? "text-green-600"
+      : "text-red-600";
+  const deltaDisplay = deltaKg == null ? null : kgToDisplay(deltaKg, unit);
+  const deltaText =
+    deltaDisplay == null
+      ? null
+      : `${!isFlat && deltaDisplay > 0 ? "+" : ""}${deltaDisplay.toFixed(2)}`;
   return (
     <tr
       className={`group transition-colors ${
@@ -111,6 +133,15 @@ export function MeasurementRow({
             </motion.span>
           )}
         </AnimatePresence>
+      </td>
+
+      {/* Change against the previous measurement */}
+      <td className="px-4 py-2 text-right whitespace-nowrap">
+        {deltaText == null ? (
+          <span className="text-gray-300 dark:text-gray-600">—</span>
+        ) : (
+          <span className={`font-mono text-xs ${deltaTone}`}>{deltaText}</span>
+        )}
       </td>
 
       {/* Note — static preview or inline edit input */}

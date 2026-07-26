@@ -41,6 +41,12 @@ const medication: MedicationResource = {
     mg: "{{value}} mg",
     none: "—",
   },
+  actionCard: {
+    addTitle: "Enregistrer une dose",
+    addDescription: "Consigner une injection",
+    importTitle: "Importer CSV",
+    importDescription: "Charger un fichier en masse",
+  },
   addModal: {
     title: "Enregistrer une dose",
     description:
