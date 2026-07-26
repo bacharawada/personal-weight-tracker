@@ -58,6 +58,14 @@ const medication = {
     columnsHint:
       "Columns <0>date</0>, <1>medication</1>, and optionally <2>dose_mg</2>, <3>note</3>",
   },
+  deleteAllModal: {
+    title: "Delete all doses",
+    description_one:
+      "This will permanently delete all <strong>{{count}} dose</strong>. This cannot be undone.",
+    description_other:
+      "This will permanently delete all <strong>{{count}} doses</strong>. This cannot be undone.",
+    confirmLabel: "Delete all",
+  },
   deleteModal: {
     title: "Delete dose",
     description:

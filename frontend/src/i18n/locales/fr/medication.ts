@@ -59,6 +59,14 @@ const medication: MedicationResource = {
     columnsHint:
       "Colonnes <0>date</0>, <1>medication</1>, et éventuellement <2>dose_mg</2>, <3>note</3>",
   },
+  deleteAllModal: {
+    title: "Supprimer toutes les doses",
+    description_one:
+      "Cela supprimera définitivement <strong>{{count}} dose</strong>. Cette action est irréversible.",
+    description_other:
+      "Cela supprimera définitivement les <strong>{{count}} doses</strong>. Cette action est irréversible.",
+    confirmLabel: "Tout supprimer",
+  },
   deleteModal: {
     title: "Supprimer la dose",
     description:

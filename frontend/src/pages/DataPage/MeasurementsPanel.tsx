@@ -7,9 +7,8 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Scale, Trash2 } from "lucide-react";
+import { Scale } from "lucide-react";
 import { useWeightTracker } from "../../context/WeightTrackerContext";
-import { Button } from "../../components/ui/button";
 import { AddMeasurement } from "../../components/forms/AddMeasurement";
 import { useCsvTransfer } from "../../hooks/useCsvTransfer";
 import { useMeasurementCsvDataset } from "../../lib/csv/datasets";
@@ -18,6 +17,7 @@ import type { useDataPage } from "../../hooks/useDataPage";
 import { DataSectionPanel } from "./DataSectionPanel";
 import { SectionActionCards } from "./SectionActionCards";
 import { ExportCsvButton } from "./ExportCsvButton";
+import { DeleteAllButton } from "./DeleteAllButton";
 import { MeasurementRow } from "./MeasurementRow";
 import { AddEntryModal } from "./modals/AddEntryModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
@@ -80,15 +80,7 @@ export function MeasurementsPanel({ data }: MeasurementsPanelProps) {
               isExporting={csv.isExporting}
             />
             {hasData && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setDeleteAllOpen(true)}
-                aria-label={t("toolbar.deleteAll")}
-              >
-                <Trash2 size={15} />
-                <span className="hidden sm:inline">{t("toolbar.deleteAll")}</span>
-              </Button>
+              <DeleteAllButton onClick={() => setDeleteAllOpen(true)} />
             )}
           </>
         }

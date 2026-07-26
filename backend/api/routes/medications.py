@@ -124,6 +124,24 @@ def get_medication_impact(
 
 
 @router.delete(
+    "/medications",
+    status_code=204,
+    summary="Delete all medication doses for the current user",
+)
+def delete_all_doses(
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> None:
+    """Delete every medication dose belonging to the current user.
+
+    Args:
+        keycloak_sub: Injected from the auth dependency.
+        store: Injected data store.
+    """
+    store.delete_all_doses(keycloak_sub)
+
+
+@router.delete(
     "/medications/{dose_id}",
     status_code=204,
     responses={404: {"description": "Dose not found"}},

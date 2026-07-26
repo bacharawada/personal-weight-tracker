@@ -701,6 +701,21 @@ class WeightDataStore:
             if result.rowcount == 0:
                 raise NotFoundError(f"No medication dose found with id {dose_id}")
 
+    def delete_all_doses(self, keycloak_sub: str) -> int:
+        """Delete every medication dose belonging to *keycloak_sub*.
+
+        Args:
+            keycloak_sub: The ``sub`` claim from the Keycloak JWT.
+
+        Returns:
+            The number of rows deleted.
+        """
+        user_id = self.get_or_create_user(keycloak_sub)
+        stmt = medication_doses.delete().where(medication_doses.c.user_id == user_id)
+        with self._engine.begin() as conn:
+            result = conn.execute(stmt)
+        return result.rowcount
+
     def update_dose(
         self,
         keycloak_sub: str,
