@@ -74,7 +74,7 @@ export function ChartControls({ params, onChange }: ChartControlsProps) {
         }`}
       >
         <SlidersHorizontal size={15} className="shrink-0 text-gray-400" />
-        <span className="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-200">
+        <span className="shrink-0 text-base font-semibold text-gray-900 dark:text-gray-100">
           {t("controls.heading")}
         </span>
         <span className="min-w-0 flex-1 truncate text-xs text-gray-400 dark:text-gray-500">

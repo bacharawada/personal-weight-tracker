@@ -24,11 +24,18 @@ interface EnergyChartProps {
   params: ChartParams;
   refreshKey: number;
   axes?: ChartAxes;
+  /** Heading shown inside the card — see ChartCard's `title`. */
+  title?: string;
 }
 
 const MARGIN: Margin = { top: 12, right: 20, bottom: 30, left: 56 };
 
-export function EnergyChart({ params, refreshKey, axes = AUTO_AXES }: EnergyChartProps) {
+export function EnergyChart({
+  params,
+  refreshKey,
+  axes = AUTO_AXES,
+  title,
+}: EnergyChartProps) {
   const { t } = useTranslation("charts");
   const fetcher = useCallback(() => getEnergyChart(params), [params]);
   const { data, loading, error } = useChartData<EnergyChartData>(fetcher, [refreshKey]);
@@ -50,6 +57,7 @@ export function EnergyChart({ params, refreshKey, axes = AUTO_AXES }: EnergyChar
       error={error}
       isEmpty={isEmpty}
       emptyMessage={t("energy.empty")}
+      title={title}
       className="h-[260px] md:h-[380px]"
     >
       <div className="flex h-full flex-col p-3">

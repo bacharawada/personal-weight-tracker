@@ -25,11 +25,18 @@ interface ResidualsChartProps {
   params: ChartParams;
   refreshKey: number;
   axes?: ChartAxes;
+  /** Heading shown inside the card — see ChartCard's `title`. */
+  title?: string;
 }
 
 const MARGIN: Margin = { top: 12, right: 20, bottom: 30, left: 46 };
 
-export function ResidualsChart({ params, refreshKey, axes = AUTO_AXES }: ResidualsChartProps) {
+export function ResidualsChart({
+  params,
+  refreshKey,
+  axes = AUTO_AXES,
+  title,
+}: ResidualsChartProps) {
   const { t } = useTranslation("charts");
   const fetcher = useCallback(() => getResidualsChart(params), [params]);
   const { data, loading, error } = useChartData<ResidualsChartData>(fetcher, [
@@ -55,6 +62,7 @@ export function ResidualsChart({ params, refreshKey, axes = AUTO_AXES }: Residua
       error={error}
       isEmpty={isEmpty}
       emptyMessage={t("residuals.empty")}
+      title={title}
       className="h-[260px] md:h-[380px]"
     >
       <div className="flex h-full flex-col p-3">

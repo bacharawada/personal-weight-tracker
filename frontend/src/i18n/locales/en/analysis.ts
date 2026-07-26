@@ -46,6 +46,13 @@ const analysis = {
     short_months_one: "{{count}} mo",
     short_months_other: "{{count}} mo",
   },
+  chartTitles: {
+    weight: "Evolution of weight ({{unit}}) as a function of time (days)",
+    derivative:
+      "Evolution of the rate of change ({{unit}}/week) as a function of time (days)",
+    energy: "Evolution of the energy balance (kcal/day) as a function of time (days)",
+    residuals: "Evolution of the residuals ({{unit}}) as a function of time (days)",
+  },
   explainerTitles: {
     weight: "How this chart works — smoothing and prediction models",
     derivative: "How this chart works — rate of change",
@@ -178,6 +185,10 @@ const analysis = {
     max: "Max",
     step: "Step",
     autoPlaceholder: "auto",
+    chartHeight: "Chart height",
+    chartHeightValue: "{{value}} px",
+    chartHeightHint:
+      "A taller plot spreads the weight gridlines further apart — raise it when a fine step packs them too tightly.",
   },
 };
 

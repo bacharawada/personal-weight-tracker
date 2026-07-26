@@ -47,6 +47,13 @@ const analysis: AnalysisResource = {
     short_months_one: "{{count}} mois",
     short_months_other: "{{count}} mois",
   },
+  chartTitles: {
+    weight: "Évolution du poids ({{unit}}) en fonction du temps (jours)",
+    derivative:
+      "Évolution du taux de variation ({{unit}}/sem) en fonction du temps (jours)",
+    energy: "Évolution du bilan énergétique (kcal/jour) en fonction du temps (jours)",
+    residuals: "Évolution des résidus ({{unit}}) en fonction du temps (jours)",
+  },
   explainerTitles: {
     weight: "Comment ce graphique fonctionne — lissage et modèles de prédiction",
     derivative: "Comment ce graphique fonctionne — taux de variation",
@@ -179,6 +186,10 @@ const analysis: AnalysisResource = {
     max: "Max",
     step: "Pas",
     autoPlaceholder: "auto",
+    chartHeight: "Hauteur du graphique",
+    chartHeightValue: "{{value}} px",
+    chartHeightHint:
+      "Un graphique plus haut espace davantage les lignes de poids — à augmenter quand un pas fin les tasse.",
   },
 };
 
