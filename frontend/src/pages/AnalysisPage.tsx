@@ -17,12 +17,15 @@ import { DerivativeChartExplainer } from "../components/charts/explainers/Deriva
 import { EnergyChartExplainer } from "../components/charts/explainers/EnergyChartExplainer";
 import { ResidualsChartExplainer } from "../components/charts/explainers/ResidualsChartExplainer";
 import { resolveEffectiveAxes } from "../lib/charts/effectiveAxes";
+import { defaultChartHeight } from "../lib/charts/chartHeight";
+import { unitLabel } from "../lib/units";
 import { AUTO_AXES, type ChartAxes, type WeightChartData } from "../lib/types";
 
 export function AnalysisPage() {
   const { t } = useTranslation("analysis");
   const { chartParams, setChartParams, refreshKey, setSelectedPoint, unit } = useWeightTracker();
   const [axes, setAxes] = useState<ChartAxes>(AUTO_AXES);
+  const [chartHeight, setChartHeight] = useState<number>(defaultChartHeight);
   const [weightData, setWeightData] = useState<WeightChartData | null>(null);
   const effectiveAxes = useMemo(
     () => resolveEffectiveAxes(weightData, axes),
@@ -35,6 +38,9 @@ export function AnalysisPage() {
     () => weightData?.models.flatMap((model) => model.projection) ?? [],
     [weightData]
   );
+
+  // Titles name both axes and their units, so they follow the display unit.
+  const unitSuffix = unitLabel(unit);
 
   const handlePointClick = useCallback(
     (point: { date: string; weight: number }) => setSelectedPoint(point),
@@ -54,35 +60,54 @@ export function AnalysisPage() {
         points={weightData?.raw ?? []}
         projection={projection}
         effective={effectiveAxes}
+        height={chartHeight}
+        onHeightChange={setChartHeight}
       />
 
       <ModelStatsStrip models={weightData?.models ?? []} unit={unit} />
 
-      <WeightChart
-        params={chartParams}
-        refreshKey={refreshKey}
-        onPointClick={handlePointClick}
-        axes={axes}
-        className="h-[260px] md:h-[380px]"
-        onDataLoaded={setWeightData}
-      />
+      {/* The height lives on a wrapper, not the card: it is a runtime pixel value
+          from the axis controls, which Tailwind cannot express as a class. */}
+      <div style={{ height: chartHeight }}>
+        <WeightChart
+          params={chartParams}
+          refreshKey={refreshKey}
+          onPointClick={handlePointClick}
+          axes={axes}
+          className="h-full"
+          title={t("chartTitles.weight", { unit: unitSuffix })}
+          onDataLoaded={setWeightData}
+        />
+      </div>
       <ChartExplainer title={t("explainerTitles.weight")}>
         <WeightChartExplainer data={weightData} params={chartParams} unit={unit} />
       </ChartExplainer>
 
       <DoseImpactTable refreshKey={refreshKey} unit={unit} />
 
-      <DerivativeChart params={chartParams} refreshKey={refreshKey} />
+      <DerivativeChart
+        params={chartParams}
+        refreshKey={refreshKey}
+        title={t("chartTitles.derivative", { unit: unitSuffix })}
+      />
       <ChartExplainer title={t("explainerTitles.derivative")}>
         <DerivativeChartExplainer unit={unit} />
       </ChartExplainer>
 
-      <EnergyChart params={chartParams} refreshKey={refreshKey} />
+      <EnergyChart
+        params={chartParams}
+        refreshKey={refreshKey}
+        title={t("chartTitles.energy")}
+      />
       <ChartExplainer title={t("explainerTitles.energy")}>
         <EnergyChartExplainer />
       </ChartExplainer>
 
-      <ResidualsChart params={chartParams} refreshKey={refreshKey} />
+      <ResidualsChart
+        params={chartParams}
+        refreshKey={refreshKey}
+        title={t("chartTitles.residuals", { unit: unitSuffix })}
+      />
       <ChartExplainer title={t("explainerTitles.residuals")}>
         <ResidualsChartExplainer />
       </ChartExplainer>

@@ -49,6 +49,8 @@ interface WeightChartProps {
    */
   rangeDays?: number;
   className?: string;
+  /** Heading shown inside the card — see ChartCard's `title`. */
+  title?: string;
   /** Called with each fetched payload so the page can reuse the model diagnostics. */
   onDataLoaded?: (data: WeightChartData) => void;
   /**
@@ -76,6 +78,7 @@ export function WeightChart({
   axes,
   rangeDays,
   className,
+  title,
   onDataLoaded,
   fetcher,
   showGoalCrossing = false,
@@ -170,6 +173,7 @@ export function WeightChart({
       error={error}
       isEmpty={isEmpty}
       bare={bare}
+      title={title}
       className={className ?? "h-[300px] md:flex-1 md:h-auto md:min-h-0"}
       toolbar={
         !isEmpty ? (
