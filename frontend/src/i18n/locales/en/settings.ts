@@ -12,11 +12,10 @@ const settings = {
   appearance: {
     heading: "Appearance",
     theme: "Theme",
+    language: "Language",
     currently: "Currently: {{mode}}",
     dark: "Dark",
     light: "Light",
-    switchToDark: "Switch to Dark",
-    switchToLight: "Switch to Light",
   },
   palette: {
     heading: "Colour Palette",

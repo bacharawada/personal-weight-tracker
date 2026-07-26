@@ -13,11 +13,10 @@ const settings: SettingsResource = {
   appearance: {
     heading: "Apparence",
     theme: "Thème",
+    language: "Langue",
     currently: "Actuellement : {{mode}}",
     dark: "Sombre",
     light: "Clair",
-    switchToDark: "Passer en sombre",
-    switchToLight: "Passer en clair",
   },
   palette: {
     heading: "Palette de couleurs",
