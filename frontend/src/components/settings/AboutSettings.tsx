@@ -13,7 +13,7 @@ import { Globe } from "lucide-react";
 import { GithubIcon } from "../ui/github-icon";
 import { Button } from "../ui/button";
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.1.0";
 
 export function AboutSettings() {
   const { t } = useTranslation("settings");
