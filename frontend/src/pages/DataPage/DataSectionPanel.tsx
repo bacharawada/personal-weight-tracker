@@ -100,7 +100,7 @@ export function DataSectionPanel({
           {toolbarActions}
         </div>
 
-        <DataTable columns={columns} loading={loading} empty={empty}>
+        <DataTable columns={columns} loading={loading} empty={empty} isSplitOnWide>
           {children}
         </DataTable>
       </div>
