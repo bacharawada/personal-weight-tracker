@@ -96,8 +96,8 @@ const dashboard: DashboardResource = {
   consistency: {
     label: "Régularité",
     streak_zero: "Aucune série en cours",
-    streak_one: "{{count}} jour de série",
-    streak_other: "{{count}} jours de série",
+    streak_one: "{{count}} semaine de série",
+    streak_other: "{{count}} semaines de série",
     summary_one: "{{count}} pesée sur {{weeks}} semaines",
     summary_other: "{{count}} pesées sur {{weeks}} semaines",
     daysTracked_one: "Suivi depuis {{count}} jour",

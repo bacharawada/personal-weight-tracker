@@ -25,15 +25,24 @@ export interface ConsistencyDay {
   isPadding: boolean;
 }
 
+/** One column of the grid: a Monday-to-Sunday week. */
+export interface ConsistencyWeek {
+  /** ISO date of the Monday the week starts on. */
+  iso: string;
+  days: ConsistencyDay[];
+  /** At least one weigh-in inside the covered window — the week counts. */
+  isCovered: boolean;
+}
+
 export interface Consistency {
   /** Weeks oldest first, each holding seven days from Monday to Sunday. */
-  weeks: ConsistencyDay[][];
+  weeks: ConsistencyWeek[];
   /**
-   * Consecutive days ending today or yesterday that carry a weigh-in. Zero once
-   * the run is broken; yesterday still counts so someone who has not stepped on
-   * the scale yet this morning does not watch their streak vanish.
+   * Consecutive weeks ending with this one or the last that carry a weigh-in.
+   * One measurement is enough to hold a week: the scale is a weekly habit, not
+   * a daily one, and a week still running never breaks a live streak.
    */
-  streakDays: number;
+  streakWeeks: number;
   measurementCount: number;
   /** Calendar days from the first to the latest measurement, inclusive. */
   daysTracked: number;
@@ -58,6 +67,11 @@ function mondayIndex(utcDay: number): number {
   return (new Date(utcDay).getUTCDay() + 6) % 7;
 }
 
+/** UTC midnight of the Monday opening the week that holds `utcDay`. */
+function weekStart(utcDay: number): number {
+  return utcDay - mondayIndex(utcDay) * DAY_MS;
+}
+
 /**
  * Build the grid and streak for `measurements` (any order), as of `now`.
  */
@@ -74,39 +88,49 @@ export function computeConsistency(
   const gridStart = windowStart - mondayIndex(windowStart) * DAY_MS;
   const gridEnd = today + (6 - mondayIndex(today)) * DAY_MS;
 
-  const weeks: ConsistencyDay[][] = [];
-  let week: ConsistencyDay[] = [];
+  const weeks: ConsistencyWeek[] = [];
+  let days: ConsistencyDay[] = [];
   for (let day = gridStart; day <= gridEnd; day += DAY_MS) {
-    week.push({
+    days.push({
       iso: isoOf(day),
       hasMeasurement: measuredDays.has(day),
       isPadding: day < windowStart || day > today,
     });
-    if (week.length === 7) {
-      weeks.push(week);
-      week = [];
+    if (days.length === 7) {
+      weeks.push(toWeek(days));
+      days = [];
     }
   }
-  if (week.length > 0) weeks.push(week);
+  if (days.length > 0) weeks.push(toWeek(days));
 
   return {
     weeks,
-    streakDays: computeStreak(measuredDays, today),
+    streakWeeks: computeStreakWeeks(measuredDays, today),
     measurementCount: measurements.length,
     daysTracked: computeDaysTracked(measuredDays),
   };
 }
 
-function computeStreak(measuredDays: Set<number>, today: number): number {
-  // Anchor on today, else yesterday; anything older means the run is over.
-  let cursor = today;
-  if (!measuredDays.has(cursor)) cursor = today - DAY_MS;
-  if (!measuredDays.has(cursor)) return 0;
+function toWeek(days: ConsistencyDay[]): ConsistencyWeek {
+  return {
+    iso: days[0].iso,
+    days,
+    isCovered: days.some((day) => !day.isPadding && day.hasMeasurement),
+  };
+}
+
+function computeStreakWeeks(measuredDays: Set<number>, today: number): number {
+  const measuredWeeks = new Set([...measuredDays].map(weekStart));
+
+  // Anchor on the current week, else the previous one: a week that has not run
+  // its course yet cannot be counted as missed.
+  let cursor = weekStart(today);
+  if (!measuredWeeks.has(cursor)) cursor -= 7 * DAY_MS;
 
   let streak = 0;
-  while (measuredDays.has(cursor)) {
+  while (measuredWeeks.has(cursor)) {
     streak += 1;
-    cursor -= DAY_MS;
+    cursor -= 7 * DAY_MS;
   }
   return streak;
 }

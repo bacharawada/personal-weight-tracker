@@ -13,24 +13,24 @@ import { CONSISTENCY_WEEKS, type Consistency } from "../../lib/dashboard/consist
 import { Tile } from "./tiles";
 
 interface ConsistencyTileProps {
-  /** Computed by the page, which also needs the streak for the insight banner. */
+  /** Computed by the page, from the measurements it already holds. */
   consistency: Consistency;
 }
 
 export function ConsistencyTile({ consistency }: ConsistencyTileProps) {
   const { t } = useTranslation("dashboard");
-  const { weeks, streakDays, measurementCount, daysTracked } = consistency;
+  const { weeks, streakWeeks, measurementCount, daysTracked } = consistency;
 
   return (
     <Tile label={t("consistency.label")} icon={<CalendarCheck size={16} />}>
       <p className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight mt-2">
-        {t("consistency.streak", { count: streakDays })}
+        {t("consistency.streak", { count: streakWeeks })}
       </p>
 
       <div className="flex gap-1 mt-3" aria-hidden="true">
         {weeks.map((week) => (
-          <div key={week[0].iso} className="flex flex-col gap-1">
-            {week.map((day) => (
+          <div key={week.iso} className="flex flex-col gap-1">
+            {week.days.map((day) => (
               <span
                 key={day.iso}
                 title={day.isPadding ? undefined : day.iso}
@@ -49,6 +49,14 @@ export function ConsistencyTile({ consistency }: ConsistencyTileProps) {
                 }
               />
             ))}
+            {/* The rule is one weigh-in a week, so the week itself gets a mark. */}
+            <span
+              className={[
+                "mt-0.5 h-0.5 w-2 rounded-full",
+                week.isCovered ? "" : "bg-gray-100 dark:bg-gray-700",
+              ].join(" ")}
+              style={week.isCovered ? { backgroundColor: "var(--color-accent)" } : undefined}
+            />
           </div>
         ))}
       </div>

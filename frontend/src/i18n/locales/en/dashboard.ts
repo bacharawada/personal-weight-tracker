@@ -99,8 +99,8 @@ const dashboard = {
   consistency: {
     label: "Consistency",
     streak_zero: "No current streak",
-    streak_one: "{{count}} day streak",
-    streak_other: "{{count}} day streak",
+    streak_one: "{{count}} week streak",
+    streak_other: "{{count}} week streak",
     summary_one: "{{count}} weigh-in over {{weeks}} weeks",
     summary_other: "{{count}} weigh-ins over {{weeks}} weeks",
     daysTracked_one: "Tracking for {{count}} day",
