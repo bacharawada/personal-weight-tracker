@@ -48,11 +48,13 @@ export function MeasurementsPanel({ data }: MeasurementsPanelProps) {
     handleDelete, handleDeleteAll,
   } = data;
 
+  // `hidden sm:table-cell` mirrors MeasurementRow: below sm only date, weight
+  // and actions fit, and the note moves into the row's own second line.
   const columns = [
     { label: t("table.date"), align: "left" as const },
     { label: t("table.weight", { unit: unitLabel(unit) }), align: "right" as const },
-    { label: t("table.delta"), align: "right" as const },
-    { label: t("table.note"), align: "left" as const },
+    { label: t("table.delta"), align: "right" as const, className: "hidden sm:table-cell" },
+    { label: t("table.note"), align: "left" as const, className: "hidden sm:table-cell" },
     { label: t("table.actions"), align: "right" as const, className: "w-24" },
   ];
 
@@ -66,9 +68,11 @@ export function MeasurementsPanel({ data }: MeasurementsPanelProps) {
           <SectionActionCards
             addTitle={t("actionCard.addTitle")}
             addDescription={t("actionCard.addDescription")}
+            addShortTitle={t("actionCard.addShort")}
             onAdd={() => setIsAddOpen(true)}
             importTitle={t("actionCard.importTitle")}
             importDescription={t("actionCard.importDescription")}
+            importShortTitle={t("actionCard.importShort")}
             onImport={csv.openImport}
           />
         }

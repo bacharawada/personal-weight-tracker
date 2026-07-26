@@ -11,6 +11,8 @@ const medication: MedicationResource = {
     title: "Médication",
     subtitle_one: "{{count}} dose enregistrée",
     subtitle_other: "{{count}} doses enregistrées",
+    countDoses_one: "{{count}} dose",
+    countDoses_other: "{{count}} doses",
     empty: "Aucune dose enregistrée pour l'instant.",
   },
   table: {
@@ -44,8 +46,10 @@ const medication: MedicationResource = {
   actionCard: {
     addTitle: "Enregistrer une dose",
     addDescription: "Consigner une injection",
+    addShort: "Ajouter",
     importTitle: "Importer CSV",
     importDescription: "Charger un fichier en masse",
+    importShort: "Importer",
   },
   addModal: {
     title: "Enregistrer une dose",

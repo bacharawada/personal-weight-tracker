@@ -163,6 +163,14 @@ export const ModelId = {
 } as const;
 export type ModelId = (typeof ModelId)[keyof typeof ModelId];
 
+// The two datasets of the Data page. Only used below xl, where a single section
+// fits the viewport and tabs decide which one is on screen.
+export const DataSection = {
+  Measurements: "measurements",
+  Medication: "medication",
+} as const;
+export type DataSection = (typeof DataSection)[keyof typeof DataSection];
+
 export const ZoneKind = {
   Plateau: "plateau",
   Acceleration: "acceleration",

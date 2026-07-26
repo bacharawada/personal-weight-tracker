@@ -11,6 +11,9 @@ const medication = {
     title: "Medication",
     subtitle_one: "{{count}} dose logged",
     subtitle_other: "{{count}} doses logged",
+    /** Compact count for the Data page subtitle, which sums up both sections. */
+    countDoses_one: "{{count}} dose",
+    countDoses_other: "{{count}} doses",
     empty: "No doses logged yet.",
   },
   table: {
@@ -44,8 +47,10 @@ const medication = {
   actionCard: {
     addTitle: "Log a dose",
     addDescription: "Record an injection",
+    addShort: "Add dose",
     importTitle: "Import CSV",
     importDescription: "Load a file in bulk",
+    importShort: "Import",
   },
   addModal: {
     title: "Log a dose",

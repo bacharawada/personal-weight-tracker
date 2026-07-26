@@ -45,11 +45,13 @@ export function MedicationPanel({ data }: MedicationPanelProps) {
   } = data;
   const hasDoses = doses.length > 0;
 
+  // `hidden sm:table-cell` mirrors MedicationDoseRow: below sm the note moves
+  // under the molecule instead of holding a column of its own.
   const columns = [
     { label: t("table.date"), align: "left" as const },
     { label: t("table.medication"), align: "left" as const },
     { label: t("table.dose"), align: "right" as const },
-    { label: t("table.note"), align: "left" as const },
+    { label: t("table.note"), align: "left" as const, className: "hidden sm:table-cell" },
     { label: t("table.actions"), align: "right" as const, className: "w-16" },
   ];
 
@@ -63,9 +65,11 @@ export function MedicationPanel({ data }: MedicationPanelProps) {
           <SectionActionCards
             addTitle={t("actionCard.addTitle")}
             addDescription={t("actionCard.addDescription")}
+            addShortTitle={t("actionCard.addShort")}
             onAdd={() => setIsAddOpen(true)}
             importTitle={t("actionCard.importTitle")}
             importDescription={t("actionCard.importDescription")}
+            importShortTitle={t("actionCard.importShort")}
             onImport={csv.openImport}
           />
         }

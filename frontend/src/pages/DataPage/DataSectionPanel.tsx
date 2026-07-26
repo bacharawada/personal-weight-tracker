@@ -5,11 +5,9 @@
  * controls), the icon cards that open the add and import dialogs, then the
  * scrolling table.
  *
- * Height is breakpoint-dependent. From xl the page locks to the viewport and
- * the card fills its grid cell, so the table scrolls inside it. Below that the
- * two sections stack and the page scrolls, so the card caps itself instead —
- * otherwise a long measurement list would bury the medication section far
- * below the fold.
+ * The card always fills its grid cell and the table scrolls inside it — the
+ * page is locked to the viewport at every breakpoint, since below xl the tab
+ * bar keeps a single section on screen.
  */
 
 import type { ReactNode } from "react";
@@ -41,9 +39,9 @@ export function DataSectionPanel({
   children,
 }: DataSectionPanelProps) {
   return (
-    <section className="flex max-h-[70vh] min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 xl:max-h-none">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
       {/* Header */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+      <div className="flex shrink-0 items-center gap-3 border-b border-gray-100 px-3 py-2.5 dark:border-gray-700 sm:px-4 sm:py-3">
         <span
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
           style={{
@@ -70,7 +68,7 @@ export function DataSectionPanel({
       </div>
 
       {/* Add / import entry points */}
-      <div className="shrink-0 border-b border-gray-100 p-4 dark:border-gray-700">
+      <div className="shrink-0 border-b border-gray-100 p-3 dark:border-gray-700 sm:p-4">
         {actions}
       </div>
 

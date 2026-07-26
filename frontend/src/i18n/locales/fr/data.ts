@@ -11,6 +11,8 @@ const data: DataResource = {
     title: "Données",
     subtitle_one: "{{count}} mesure enregistrée",
     subtitle_other: "{{count}} mesures enregistrées",
+    countMeasurements_one: "{{count}} mesure",
+    countMeasurements_other: "{{count}} mesures",
   },
   table: {
     date: "Date",
@@ -28,11 +30,18 @@ const data: DataResource = {
   picker: {
     measurementsTitle: "Mesures de poids",
   },
+  tabs: {
+    ariaLabel: "Section de données",
+    measurements: "Poids",
+    medication: "Médication",
+  },
   actionCard: {
     addTitle: "Ajouter une mesure",
     addDescription: "Enregistrer un poids à une date",
+    addShort: "Ajouter",
     importTitle: "Importer CSV",
     importDescription: "Charger un fichier en masse",
+    importShort: "Importer",
   },
   row: {
     editWeight: "Modifier",

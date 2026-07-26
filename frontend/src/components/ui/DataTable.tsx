@@ -13,6 +13,11 @@ import { Spinner } from "./Spinner";
 export interface Column {
   label: string;
   align?: "left" | "right" | "center";
+  /**
+   * Extra classes for the header cell. Use it to size a column, or to hide one
+   * at a breakpoint (`hidden sm:table-cell`) — the matching row cell has to
+   * carry the same classes for the column to line up.
+   */
   className?: string;
 }
 
@@ -54,7 +59,7 @@ export function DataTable({
 
   if (isEmpty && empty) {
     return (
-      <div className="p-12 text-center text-gray-400 dark:text-gray-500 text-sm">
+      <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm sm:p-12">
         {empty}
       </div>
     );
@@ -62,11 +67,15 @@ export function DataTable({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto">
+      {/*
+        No min-width: on a phone the table has to fit the card. Callers drop
+        their secondary columns below sm instead of forcing a horizontal scroll.
+      */}
       <motion.table
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
-        className="w-full min-w-[26rem] text-sm"
+        className="w-full text-sm"
       >
         <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <tr>
@@ -74,7 +83,7 @@ export function DataTable({
               <th
                 key={col.label}
                 className={[
-                  "px-4 py-3 font-medium text-gray-500 dark:text-gray-400",
+                  "px-2.5 py-2.5 font-medium text-gray-500 dark:text-gray-400 sm:px-4 sm:py-3",
                   alignClass(col.align),
                   col.className ?? "",
                 ].join(" ")}
