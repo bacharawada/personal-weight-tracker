@@ -35,7 +35,7 @@
       "isBackground": true,
       "group": {
         "kind": "build",
-        "isDefault": true
+        "isDefault": false
       },
       "problemMatcher": []
     },
@@ -43,12 +43,13 @@
     {
       // Windows-only compound: starts backend (WSL) + frontend (native npm) together.
       // Use this instead of "Dev: Start" when on Windows.
+      // Default Ctrl+Shift+B target: backend + Vite dev server (hot-reload, no build).
       "label": "Dev: Start (Windows)",
       "dependsOn": ["Dev: Start", "Run Frontend Dev Server"],
       "dependsOrder": "parallel",
       "group": {
         "kind": "build",
-        "isDefault": false
+        "isDefault": true
       },
       "problemMatcher": []
     },
