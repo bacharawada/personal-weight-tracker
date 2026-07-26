@@ -1,43 +1,30 @@
 /**
  * SidebarNav — collapsible left sidebar.
  *
- * Contains the app logo/title, nav links, theme toggle and user profile
- * dropdown. Extracted from AppShell to keep the shell itself thin.
+ * Contains the app logo/title, nav links and the user profile dropdown (which
+ * owns the theme and language switches). Extracted from AppShell to keep the
+ * shell itself thin.
  */
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   BarChart2,
   ChevronLeft,
   ChevronRight,
   CircleUser,
   Database,
-  Globe,
   LayoutDashboard,
-  LogOut,
-  Moon,
   Settings,
-  Sun,
   TrendingDown,
-  UserCog,
 } from "lucide-react";
-import { useWeightTracker } from "../../context/WeightTrackerContext";
 import { useAuth } from "../../context/AuthContext";
-import type { Language } from "../../i18n/config";
-import { LANGUAGE_LABELS } from "../../i18n/config";
 import { cn } from "../../lib/cn";
 import { Button } from "../ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { AccountMenuContent } from "./AccountMenu";
 
 const NAV_ITEMS = [
   { to: "/", labelKey: "links.dashboard", icon: LayoutDashboard, end: true },
@@ -47,15 +34,9 @@ const NAV_ITEMS = [
 ] as const;
 
 export function SidebarNav() {
-  const { t, i18n } = useTranslation("nav");
-  const { isDark, toggleTheme } = useWeightTracker();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { t } = useTranslation("nav");
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-
-  const currentLanguage: Language = i18n.language.startsWith("fr") ? "fr" : "en";
-  const nextLanguage: Language = currentLanguage === "fr" ? "en" : "fr";
-  const nextLanguageLabel = LANGUAGE_LABELS[nextLanguage];
 
   const displayName =
     user?.name ||
@@ -165,68 +146,6 @@ export function SidebarNav() {
         ))}
       </nav>
 
-      {/* ── Language switcher ──────────────────────────────── */}
-      <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
-        <Button
-          variant="ghost"
-          onClick={() => void i18n.changeLanguage(nextLanguage)}
-          title={t("language.switchTo", { language: nextLanguageLabel })}
-          className={cn(
-            "text-sm font-medium text-gray-600 dark:text-gray-400 w-full overflow-hidden",
-            collapsed ? "justify-center p-2 h-auto" : "gap-3 px-3 py-2 h-auto",
-          )}
-        >
-          <Globe size={18} className="shrink-0" />
-          <AnimatePresence initial={false}>
-            {!collapsed && (
-              <motion.span
-                key={`lang-label-${nextLanguage}`}
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.13 }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                {nextLanguageLabel}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Button>
-      </div>
-
-      {/* ── Theme toggle ───────────────────────────────────── */}
-      <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
-        <Button
-          variant="ghost"
-          onClick={toggleTheme}
-          title={isDark ? t("theme.light") : t("theme.dark")}
-          className={cn(
-            "text-sm font-medium text-gray-600 dark:text-gray-400 w-full overflow-hidden",
-            collapsed ? "justify-center p-2 h-auto" : "gap-3 px-3 py-2 h-auto",
-          )}
-        >
-          {isDark ? (
-            <Sun size={18} className="shrink-0" />
-          ) : (
-            <Moon size={18} className="shrink-0" />
-          )}
-          <AnimatePresence initial={false}>
-            {!collapsed && (
-              <motion.span
-                key="theme-label"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.13 }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                {isDark ? t("theme.light") : t("theme.dark")}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Button>
-      </div>
-
       {/* ── User profile dropdown ──────────────────────────── */}
       <div className="px-2 py-3 border-t border-gray-200 dark:border-gray-800">
         <DropdownMenu>
@@ -270,31 +189,7 @@ export function SidebarNav() {
             </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent side="right" align="end">
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                {displayName}
-              </span>
-              {displayEmail && (
-                <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
-                  {displayEmail}
-                </span>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate("/profile")}>
-              <UserCog size={14} />
-              {t("account.profile")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20"
-              onSelect={() => logout()}
-            >
-              <LogOut size={14} />
-              {t("account.signOut")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          <AccountMenuContent side="right" align="end" />
         </DropdownMenu>
       </div>
     </aside>

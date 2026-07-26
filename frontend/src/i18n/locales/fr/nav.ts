@@ -14,11 +14,12 @@ const nav: NavResource = {
     collapse: "Replier la barre latérale",
   },
   theme: {
+    label: "Thème",
     light: "Mode clair",
     dark: "Mode sombre",
   },
   language: {
-    switchTo: "Passer en {{language}}",
+    label: "Langue",
   },
   account: {
     fallback: "Compte",

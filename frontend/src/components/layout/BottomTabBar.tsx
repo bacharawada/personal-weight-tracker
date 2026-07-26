@@ -5,34 +5,19 @@
  * for navigation on phones. Shows 4 nav tabs + a profile/actions button.
  */
 
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import {
   Database,
-  Globe,
   LayoutDashboard,
-  LogOut,
-  Moon,
   Settings,
-  Sun,
   TrendingDown,
   CircleUser,
-  UserCog,
 } from "lucide-react";
-import { useWeightTracker } from "../../context/WeightTrackerContext";
-import { useAuth } from "../../context/AuthContext";
-import type { Language } from "../../i18n/config";
-import { LANGUAGE_LABELS } from "../../i18n/config";
 import { cn } from "../../lib/cn";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { AccountMenuContent } from "./AccountMenu";
 
 const NAV_ITEMS = [
   { to: "/", labelKey: "links.dashboard", icon: LayoutDashboard, end: true },
@@ -42,18 +27,7 @@ const NAV_ITEMS = [
 ] as const;
 
 export function BottomTabBar() {
-  const { t, i18n } = useTranslation("nav");
-  const { isDark, toggleTheme } = useWeightTracker();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const currentLanguage: Language = i18n.language.startsWith("fr") ? "fr" : "en";
-  const nextLanguage: Language = currentLanguage === "fr" ? "en" : "fr";
-
-  const displayName =
-    user?.name ||
-    (user?.email ? user.email.split("@")[0] : t("account.fallback"));
-  const displayEmail = user?.email ?? "";
+  const { t } = useTranslation("nav");
 
   // Fixed-height, centred label box: keeps the icons row-aligned across tabs
   // even when a label wraps to two lines (e.g. French "Tableau de bord").
@@ -115,45 +89,7 @@ export function BottomTabBar() {
               </span>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end" className="mb-1 mr-2">
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                {displayName}
-              </span>
-              {displayEmail && (
-                <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
-                  {displayEmail}
-                </span>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate("/profile")}>
-              <UserCog size={14} />
-              {t("account.profile")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={toggleTheme}>
-              {isDark ? <Sun size={14} /> : <Moon size={14} />}
-              {isDark ? t("theme.light") : t("theme.dark")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(event) => {
-                // Keep the menu open feel consistent; just switch language.
-                event.preventDefault();
-                void i18n.changeLanguage(nextLanguage);
-              }}
-            >
-              <Globe size={14} />
-              {LANGUAGE_LABELS[nextLanguage]}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 focus:bg-red-50 dark:focus:bg-red-900/20"
-              onSelect={() => logout()}
-            >
-              <LogOut size={14} />
-              {t("account.signOut")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          <AccountMenuContent side="top" align="end" className="mb-1 mr-2" />
         </DropdownMenu>
       </div>
     </nav>

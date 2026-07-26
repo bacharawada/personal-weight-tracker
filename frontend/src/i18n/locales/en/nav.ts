@@ -17,11 +17,12 @@ const nav = {
     collapse: "Collapse sidebar",
   },
   theme: {
+    label: "Theme",
     light: "Light mode",
     dark: "Dark mode",
   },
   language: {
-    switchTo: "Switch to {{language}}",
+    label: "Language",
   },
   account: {
     fallback: "Account",
