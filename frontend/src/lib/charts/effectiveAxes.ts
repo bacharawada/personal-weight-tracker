@@ -44,19 +44,19 @@ export interface ChartDomains {
   dateMs: number[];
   /** Values tied to a date, so they can be restricted to a visible window. */
   dated: DatedValue[];
-  /** Values drawn across the full frame width (goal line, asymptotes). */
-  undated: number[];
 }
 
 /**
  * Collect every x (date, as epoch ms) and y (weight) value the chart plots,
- * across raw points, smoothed line, model fits/projections/bands, the goal
- * line and asymptotes. Mirrors the collection done in `WeightChartBody` so the
- * resolved domains match the rendered ones exactly.
+ * across raw points, smoothed line and model fits/projections/bands. Mirrors
+ * the collection done in `WeightChartBody` so the resolved domains match the
+ * rendered ones exactly.
  *
  * Values keep their date so `valuesInWindow` can drop the ones a pinned date
- * window excludes; the goal line and asymptotes span the whole frame and are
- * therefore listed as undated.
+ * window excludes. The full-width references (goal line, model asymptotes) are
+ * deliberately left out: they are single levels rather than measured series,
+ * and an asymptote far from the data would stretch the weight axis over an
+ * empty half-frame.
  */
 export function collectChartDomains(data: WeightChartData): ChartDomains {
   const dateMs: number[] = [
@@ -75,20 +75,16 @@ export function collectChartDomains(data: WeightChartData): ChartDomains {
       ]),
     ]),
   ];
-  const undated: number[] = [];
-  if (data.goal_weight != null) undated.push(data.goal_weight);
-  for (const m of data.models) {
-    if (m.asymptote != null) undated.push(m.asymptote);
-  }
-  return { dateMs, dated, undated };
+  return { dateMs, dated };
 }
 
 /**
  * The values the chart actually draws inside a date window.
  *
  * Dated series are clipped to `xDomain`, so a weight axis on auto fits the
- * visible period instead of the whole history. Full-width references are always
- * kept: they are drawn edge to edge and would otherwise be cut off.
+ * visible period instead of the whole history. Only measured and fitted series
+ * take part: the goal line and model asymptotes are clipped to the plotting
+ * area when they fall outside, rather than dragging the axis out to meet them.
  *
  * Args:
  *   domains: The collected series, from `collectChartDomains`.
@@ -106,8 +102,8 @@ export function valuesInWindow(
   const inside = domains.dated
     .filter((d) => d.ms >= xDomain[0] && d.ms <= xDomain[1])
     .map((d) => d.value);
-  if (inside.length === 0) return [...domains.dated.map((d) => d.value), ...domains.undated];
-  return [...inside, ...domains.undated];
+  if (inside.length === 0) return domains.dated.map((d) => d.value);
+  return inside;
 }
 
 /** Tick spacing (in days) between the first two date ticks, or null. */

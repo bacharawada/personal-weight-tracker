@@ -26,9 +26,9 @@ function subtractDays(isoDate: string, days: number): string {
  * For a fixed range, only the *start* of the date window is pinned (`days` back
  * from the latest measurement); the date axis end stays auto so the projection
  * is never clipped horizontally. The weight axis is left on auto as well: the
- * chart fits it to whatever the window actually contains — measurements, fit,
- * projection, uncertainty bands and the goal line — which keeps the zoom
- * coherent without ever cutting a series off vertically.
+ * chart fits it to the series the window actually contains — measurements, fit,
+ * projection and uncertainty bands — which keeps the zoom coherent without ever
+ * cutting a series off vertically.
  */
 export function computeRangePreset(points: ChartPoint[], days: number | null): ChartAxes {
   if (days === null || points.length === 0) return AUTO_AXES;
