@@ -11,6 +11,9 @@ const medication = {
     title: "Medication",
     subtitle_one: "{{count}} dose logged",
     subtitle_other: "{{count}} doses logged",
+    /** Compact count for the Data page subtitle, which sums up both sections. */
+    countDoses_one: "{{count}} dose",
+    countDoses_other: "{{count}} doses",
     empty: "No doses logged yet.",
   },
   table: {
@@ -41,6 +44,14 @@ const medication = {
     mg: "{{value}} mg",
     none: "—",
   },
+  actionCard: {
+    addTitle: "Log a dose",
+    addDescription: "Record an injection",
+    addShort: "Add dose",
+    importTitle: "Import CSV",
+    importDescription: "Load a file in bulk",
+    importShort: "Import",
+  },
   addModal: {
     title: "Log a dose",
     description: "Pick a date and the molecule. Dose and note are optional.",
@@ -51,6 +62,14 @@ const medication = {
       "Upload a CSV file with <code>date</code> and <code>medication</code> columns. <code>dose_mg</code> and <code>note</code> are optional. Rows already in your journal are skipped.",
     columnsHint:
       "Columns <0>date</0>, <1>medication</1>, and optionally <2>dose_mg</2>, <3>note</3>",
+  },
+  deleteAllModal: {
+    title: "Delete all doses",
+    description_one:
+      "This will permanently delete all <strong>{{count}} dose</strong>. This cannot be undone.",
+    description_other:
+      "This will permanently delete all <strong>{{count}} doses</strong>. This cannot be undone.",
+    confirmLabel: "Delete all",
   },
   deleteModal: {
     title: "Delete dose",

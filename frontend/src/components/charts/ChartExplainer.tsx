@@ -7,6 +7,28 @@ interface ChartExplainerProps {
   children: ReactNode;
 }
 
+/**
+ * Body copy of the panel.
+ *
+ * The page has no max-width, so past `xl` a single column runs a line far beyond a
+ * comfortable measure (the card is then ~1200px wide for 14px text). From there the
+ * prose flows into two columns instead: the measure comes back to ~570px and the
+ * panel is about half as tall.
+ *
+ * Section spacing is bottom margins rather than `space-y`, whose top margins would
+ * push the second column's opening line below the first column's.
+ */
+const PROSE_CLASS = [
+  "px-4 pb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300",
+  "[&>*]:mb-4 [&>*:last-child]:mb-0",
+  // A heading is never left stranded at the foot of a column without its text.
+  "xl:columns-2 xl:gap-8 xl:[&_h4]:break-after-avoid",
+  // Hairline rule centred in the gutter. `column-rule` has no Tailwind utility,
+  // hence the arbitrary property; the colour pair matches the app's light borders.
+  "xl:[column-rule:1px_solid_theme(colors.gray.200)]",
+  "xl:dark:[column-rule-color:theme(colors.gray.700)]",
+].join(" ");
+
 /** Collapsible "how this works" panel shown under a chart. Closed by default. */
 export function ChartExplainer({ title, children }: ChartExplainerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,9 +56,7 @@ export function ChartExplainer({ title, children }: ChartExplainerProps) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="space-y-4 px-4 pb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-              {children}
-            </div>
+            <div className={PROSE_CLASS}>{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

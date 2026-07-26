@@ -49,11 +49,19 @@ export function HoverLayer<T>({
 }: HoverLayerProps<T>) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
+  /** Is this point's x inside the plotting area (i.e. not clipped away)? */
+  function isVisible(point: HoverPoint<T>): boolean {
+    return point.x >= 0 && point.x <= innerWidth;
+  }
+
   function nearestIndex(mouseX: number): number | null {
-    if (points.length === 0) return null;
-    let best = 0;
+    let best: number | null = null;
     let bestDist = Infinity;
     for (let i = 0; i < points.length; i++) {
+      // A point outside the pinned date window is clipped out of the plot, so it
+      // must not answer the crosshair either — otherwise hovering near an edge
+      // reports an off-screen value the axes were never fitted to.
+      if (!isVisible(points[i])) continue;
       const dist = Math.abs(points[i].x - mouseX);
       if (dist < bestDist) {
         bestDist = dist;
@@ -69,7 +77,10 @@ export function HoverLayer<T>({
     setActiveIndex(nearestIndex(mouseX));
   }
 
-  const active = activeIndex !== null ? points[activeIndex] : null;
+  // Re-checked on every render: the domain can change (a range preset, a resize)
+  // while a point is held active, pushing it out of the plotting area.
+  const held = activeIndex !== null ? points[activeIndex] ?? null : null;
+  const active = held && isVisible(held) ? held : null;
   const headerText = active ? header(active.payload) : "";
   const tooltipLines = active ? lines(active.payload) : [];
   const tooltipDots = active && dots ? dots(active.payload) : [];

@@ -12,13 +12,28 @@ const analysis: AnalysisResource = {
     subtitle: "Taux de variation et résidus par rapport aux modèles de prédiction sélectionnés",
   },
   controls: {
-    smoothingWindow: "Fenêtre de lissage :",
-    extrapolationHorizon: "Horizon d'extrapolation",
-    predictionModels: "Modèles de prédiction",
+    heading: "Réglages du graphique",
+    reset: "Réinitialiser",
+    smoothingWindow: "Fenêtre de lissage",
+    smoothingValue_one: "{{count}} point",
+    smoothingValue_other: "{{count}} points",
+    smoothingHint:
+      "Chaque point est moyenné avec ses voisins — une fenêtre plus large lisse davantage mais réagit plus tard aux changements de rythme.",
+    smoothingNeedsRollingMean:
+      "Seule la moyenne glissante utilise cette fenêtre — activez cette courbe pour la modifier.",
+    extrapolationHorizon: "Projection",
+    horizonHint: "Jusqu'où chaque modèle est prolongé après votre dernière mesure.",
+    predictionModels: "Séries affichées",
     rollingMean: "Moyenne glissante",
     exponentialDecay: "Décroissance exponentielle",
     linearTrend: "Tendance linéaire",
-    showUncertaintyBand: "Afficher la bande d'incertitude",
+    showUncertaintyBand: "Bande d'incertitude",
+    bandNeedsModel: "Activez un modèle de prédiction pour voir sa bande d'incertitude",
+    summarySmoothing: "lissage {{count}} pts",
+    summaryProjection: "projection {{horizon}}",
+    summaryNoProjection: "sans projection",
+    summarySeries_one: "{{count}} série",
+    summarySeries_other: "{{count}} séries",
   },
   horizon: {
     none: "Aucune",
@@ -26,6 +41,18 @@ const analysis: AnalysisResource = {
     weeks_other: "{{count}} semaines",
     months_one: "{{count}} mois",
     months_other: "{{count}} mois",
+    short_none: "Aucune",
+    short_weeks_one: "{{count}} sem",
+    short_weeks_other: "{{count}} sem",
+    short_months_one: "{{count}} mois",
+    short_months_other: "{{count}} mois",
+  },
+  chartTitles: {
+    weight: "Évolution du poids ({{unit}}) en fonction du temps (jours)",
+    derivative:
+      "Évolution du taux de variation ({{unit}}/sem) en fonction du temps (jours)",
+    energy: "Évolution du bilan énergétique (kcal/jour) en fonction du temps (jours)",
+    residuals: "Évolution des résidus ({{unit}}) en fonction du temps (jours)",
   },
   explainerTitles: {
     weight: "Comment ce graphique fonctionne — lissage et modèles de prédiction",
@@ -144,6 +171,12 @@ const analysis: AnalysisResource = {
       months6: "6 derniers mois",
       all: "Tout l'historique",
     },
+    presetShortLabels: {
+      weeks4: "4 sem",
+      months3: "3 mois",
+      months6: "6 mois",
+      all: "Tout",
+    },
     dateAxis: "Axe des dates",
     weightAxis: "Axe des poids (kg)",
     start: "Début",
@@ -153,6 +186,10 @@ const analysis: AnalysisResource = {
     max: "Max",
     step: "Pas",
     autoPlaceholder: "auto",
+    chartHeight: "Hauteur du graphique",
+    chartHeightValue: "{{value}} px",
+    chartHeightHint:
+      "Un graphique plus haut espace davantage les lignes de poids — à augmenter quand un pas fin les tasse.",
   },
 };
 

@@ -15,7 +15,12 @@ export function Formula({ tex, block = false }: FormulaProps) {
     displayMode: block,
   });
   return block ? (
-    <div className="my-2 overflow-x-auto" dangerouslySetInnerHTML={{ __html: html }} />
+    <div
+      // `break-inside-avoid`: a display formula must never be split down the
+      // middle by the column break in a multi-column explainer panel.
+      className="my-2 overflow-x-auto break-inside-avoid"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   ) : (
     <span dangerouslySetInnerHTML={{ __html: html }} />
   );

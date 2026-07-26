@@ -3,6 +3,9 @@
  *
  * Read-only row (date, molecule, dose, note) with a hover-revealed delete
  * action, mirroring MeasurementRow's interaction pattern.
+ *
+ * Below sm the note column is dropped and the note becomes a second line under
+ * the molecule — on a phone vertical space is cheaper than horizontal.
  */
 
 import { useTranslation } from "react-i18next";
@@ -24,21 +27,29 @@ export function MedicationDoseRow({
   const { formatDate } = useDisplayPreferences();
   return (
     <tr className="group transition-colors">
-      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100 font-medium whitespace-nowrap">
+      <td className="px-2.5 py-2.5 text-gray-900 dark:text-gray-100 font-medium whitespace-nowrap sm:px-4">
         {formatDate(dose.date)}
       </td>
-      <td className="px-4 py-2.5 text-gray-900 dark:text-gray-100">
-        {dose.medication}
+      <td className="px-2.5 py-2.5 text-gray-900 dark:text-gray-100 sm:px-4">
+        <span className="block">{dose.medication}</span>
+        {dose.note && (
+          <span
+            title={dose.note}
+            className="mt-0.5 block max-w-[8rem] truncate text-xs font-normal text-gray-500 dark:text-gray-400 sm:hidden"
+          >
+            {dose.note}
+          </span>
+        )}
       </td>
-      <td className="px-4 py-2.5 text-right font-mono text-gray-900 dark:text-gray-100 whitespace-nowrap">
+      <td className="px-2.5 py-2.5 text-right font-mono text-gray-900 dark:text-gray-100 whitespace-nowrap sm:px-4">
         {dose.dose_mg != null
           ? t("dose.mg", { value: dose.dose_mg })
           : t("dose.none")}
       </td>
-      <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 max-w-[16rem] truncate">
+      <td className="hidden px-4 py-2.5 text-gray-500 dark:text-gray-400 max-w-[16rem] truncate sm:table-cell">
         {dose.note ?? ""}
       </td>
-      <td className="px-4 py-2.5 text-right">
+      <td className="px-1.5 py-2.5 text-right sm:px-4">
         <div className="flex items-center justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           <Button
             variant="ghost"

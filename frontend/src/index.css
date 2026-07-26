@@ -42,7 +42,13 @@
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    /*
+     * Card surfaces sit on the app shell's gray-950 page background, so they
+     * must be lighter than it. The shadcn default reuses --background here,
+     * which made every Card invisible in dark mode; this is gray-800, the
+     * value the hand-rolled card classes across the app already use.
+     */
+    --card: 215 28% 17%;
     --card-foreground: 210 40% 98%;
 
     --popover: 222.2 84% 4.9%;

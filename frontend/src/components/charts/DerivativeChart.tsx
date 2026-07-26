@@ -25,11 +25,18 @@ interface DerivativeChartProps {
   params: ChartParams;
   refreshKey: number;
   axes?: ChartAxes;
+  /** Heading shown inside the card — see ChartCard's `title`. */
+  title?: string;
 }
 
 const MARGIN: Margin = { top: 12, right: 20, bottom: 30, left: 46 };
 
-export function DerivativeChart({ params, refreshKey, axes = AUTO_AXES }: DerivativeChartProps) {
+export function DerivativeChart({
+  params,
+  refreshKey,
+  axes = AUTO_AXES,
+  title,
+}: DerivativeChartProps) {
   const { t } = useTranslation("charts");
   const fetcher = useCallback(() => getDerivativeChart(params), [params]);
   const { data, loading, error } = useChartData<DerivativeChartData>(fetcher, [refreshKey]);
@@ -52,6 +59,7 @@ export function DerivativeChart({ params, refreshKey, axes = AUTO_AXES }: Deriva
       error={error}
       isEmpty={isEmpty}
       emptyMessage={t("derivative.empty")}
+      title={title}
       className="h-[260px] md:h-[380px]"
     >
       <div className="flex h-full flex-col p-3">

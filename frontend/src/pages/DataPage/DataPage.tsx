@@ -1,123 +1,88 @@
 /**
- * DataPage — two-panel host for the data sections.
+ * DataPage — host for the two data sections.
  *
- * Desktop (md+): a persistent left rail with the two section cards, the
- * selected section's panel filling the rest of the width.
- * Mobile: master-detail drill-down — the cards fill the screen until one is
- * picked, then the panel replaces them (its own back button returns here).
+ * From xl both sections are on screen at once, splitting the width evenly.
+ * Below that only one section fits, so a tab bar gates which one shows: the
+ * previous stacked layout buried the medication section under a long
+ * measurement list and forced the page to scroll on top of the tables.
  *
- * The split is pure CSS. `selected` only seeds the initial state from the
- * viewport width — null on mobile so the rail shows first, measurements on
- * desktop so a card starts highlighted. Later resizes need no listener: the
- * rail and panel visibility are breakpoint classes, and the panel falls back
- * to the measurements section whenever nothing is selected.
+ * Both panels stay mounted at every breakpoint — the inactive one is only
+ * display:none — so switching tabs keeps each section's dialog and CSV state.
+ *
+ * The page itself never scrolls: title and tabs are fixed, the active card
+ * fills the rest and its table scrolls inside it.
  */
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "motion/react";
-import { Scale, Syringe } from "lucide-react";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { PageTitle } from "../../components/layout/PageTitle";
+import {
+  SegmentedControl,
+  type SegmentedControlOption,
+} from "../../components/ui/segmented-control";
 import { useDataPage } from "../../hooks/useDataPage";
 import { useMedicationDoses } from "../../hooks/useMedicationDoses";
+import { DataSection } from "../../lib/types";
 import { cn } from "../../lib/cn";
-import { DataSectionCard } from "./DataSectionCard";
 import { MeasurementsPanel } from "./MeasurementsPanel";
 import { MedicationPanel } from "./MedicationPanel";
-
-const SECTIONS = {
-  measurements: "measurements",
-  medication: "medication",
-} as const;
-
-type Section = (typeof SECTIONS)[keyof typeof SECTIONS];
-
-/** Tailwind's `md` breakpoint — the point where both panes fit side by side. */
-const TWO_PANE_QUERY = "(min-width: 768px)";
-
-function initialSection(): Section | null {
-  return window.matchMedia(TWO_PANE_QUERY).matches
-    ? SECTIONS.measurements
-    : null;
-}
 
 export function DataPage() {
   const { t } = useTranslation("data");
   const measurementsData = useDataPage();
   const medicationData = useMedicationDoses();
+  const [activeSection, setActiveSection] = useState<DataSection>(
+    DataSection.Measurements,
+  );
 
-  const [selected, setSelected] = useState<Section | null>(initialSection);
-  const active: Section = selected ?? SECTIONS.measurements;
+  const tabs: readonly SegmentedControlOption<DataSection>[] = [
+    { value: DataSection.Measurements, label: t("tabs.measurements") },
+    { value: DataSection.Medication, label: t("tabs.medication") },
+  ];
 
-  const measurementCount = measurementsData.measurements.length;
-  const doseCount = medicationData.doses.length;
+  /** Hidden below xl unless active; from xl both cells are always shown. */
+  const cellClass = (section: DataSection) =>
+    cn(
+      "min-h-0 flex-col xl:flex",
+      activeSection === section ? "flex" : "hidden",
+    );
+
+  // The title stands for the whole page, so its subtitle counts both datasets —
+  // the per-section totals live in each card's own header.
+  const subtitle = [
+    t("page.countMeasurements", { count: measurementsData.measurements.length }),
+    t("section.countDoses", { ns: "medication", count: medicationData.doses.length }),
+  ].join(" · ");
 
   return (
     <PageTransition>
-      <div className="flex h-full flex-col overflow-hidden px-4 pt-4 pb-nav md:px-8 md:pt-8">
-        <div className="mx-auto flex w-full max-w-5xl flex-1 min-h-0 flex-col gap-5">
+      {/*
+        AppShell's <main> already reserves the mobile tab bar's 4rem, so only the
+        iOS safe-area inset and a little breathing room are missing here — and
+        with the page locked to the viewport the usual pb-nav would leave a dead
+        band above the bar.
+      */}
+      <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden px-4 pt-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:gap-5 md:px-8 md:pt-8 md:pb-8">
+        <div className="shrink-0">
+          <PageTitle title={t("page.title")} subtitle={subtitle} />
+        </div>
 
-          {/* Page heading — hidden on mobile once a panel is open */}
-          <div className={cn("shrink-0", selected && "hidden md:block")}>
-            <PageTitle
-              title={t("page.title")}
-              subtitle={t("page.subtitle", { count: measurementCount })}
-            />
+        <div className="shrink-0 xl:hidden">
+          <SegmentedControl
+            options={tabs}
+            value={activeSection}
+            onChange={setActiveSection}
+            ariaLabel={t("tabs.ariaLabel")}
+          />
+        </div>
+
+        <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-2">
+          <div className={cellClass(DataSection.Measurements)}>
+            <MeasurementsPanel data={measurementsData} />
           </div>
-
-          <div className="flex flex-1 min-h-0 gap-6">
-
-            {/* Section picker */}
-            <div
-              className={cn(
-                "w-full shrink-0 flex-col gap-3 md:flex md:w-72",
-                selected ? "hidden" : "flex",
-              )}
-            >
-              <DataSectionCard
-                icon={<Scale size={22} />}
-                title={t("picker.measurementsTitle")}
-                subtitle={t("page.subtitle", { count: measurementCount })}
-                isSelected={selected === SECTIONS.measurements}
-                onClick={() => setSelected(SECTIONS.measurements)}
-              />
-              <DataSectionCard
-                icon={<Syringe size={22} />}
-                title={t("section.title", { ns: "medication" })}
-                subtitle={t("section.subtitle", {
-                  ns: "medication",
-                  count: doseCount,
-                })}
-                isSelected={selected === SECTIONS.medication}
-                onClick={() => setSelected(SECTIONS.medication)}
-              />
-            </div>
-
-            {/* Detail panel */}
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, x: 8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.18 }}
-              className={cn(
-                "min-w-0 flex-1 flex-col",
-                selected ? "flex" : "hidden md:flex",
-              )}
-            >
-              {active === SECTIONS.measurements ? (
-                <MeasurementsPanel
-                  data={measurementsData}
-                  onBack={() => setSelected(null)}
-                />
-              ) : (
-                <MedicationPanel
-                  data={medicationData}
-                  onBack={() => setSelected(null)}
-                />
-              )}
-            </motion.div>
-
+          <div className={cellClass(DataSection.Medication)}>
+            <MedicationPanel data={medicationData} />
           </div>
         </div>
       </div>

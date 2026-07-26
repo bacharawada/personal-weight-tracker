@@ -11,10 +11,14 @@ const data = {
     title: "Data",
     subtitle_one: "{{count}} measurement recorded",
     subtitle_other: "{{count}} measurements recorded",
+    /** Compact count for the page subtitle, which sums up both sections. */
+    countMeasurements_one: "{{count}} measurement",
+    countMeasurements_other: "{{count}} measurements",
   },
   table: {
     date: "Date",
     weight: "Weight ({{unit}})",
+    delta: "Change",
     note: "Note",
     actions: "Actions",
     empty: "No measurements yet.",
@@ -27,11 +31,18 @@ const data = {
   picker: {
     measurementsTitle: "Weight measurements",
   },
-  panel: {
-    addEntry: "Add a measurement",
+  tabs: {
+    ariaLabel: "Data section",
+    measurements: "Weight",
+    medication: "Medication",
   },
   actionCard: {
+    addTitle: "Add a measurement",
+    addDescription: "Log a weight for a date",
+    addShort: "Add",
     importTitle: "Import CSV",
+    importDescription: "Load a file in bulk",
+    importShort: "Import",
   },
   row: {
     editWeight: "Edit",

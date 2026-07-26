@@ -983,6 +983,24 @@ class TestMedicationEndpoints:
         r = client.delete("/api/medications/999999")
         assert r.status_code == 404
 
+    def test_delete_all_doses(self) -> None:
+        """DELETE /api/medications empties the journal."""
+        client = _make_client(seed=False)
+        for date in ("2025-06-01", "2025-06-08"):
+            client.post(
+                "/api/medications",
+                json={"date": date, "medication": "semaglutide"},
+            )
+        r = client.delete("/api/medications")
+        assert r.status_code == 204
+        assert client.get("/api/medications").json() == []
+
+    def test_delete_all_doses_on_empty_journal(self) -> None:
+        """DELETE /api/medications succeeds with nothing to delete."""
+        client = _make_client(seed=False)
+        r = client.delete("/api/medications")
+        assert r.status_code == 204
+
 
 class TestMedicationImpactEndpoint:
     """Tests for GET /api/medications/impact."""

@@ -41,7 +41,7 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
     """
     app = FastAPI(
         title="Weight Tracker API",
-        version="2.0.0",
+        version="1.1.0",
         lifespan=lifespan,
     )
 

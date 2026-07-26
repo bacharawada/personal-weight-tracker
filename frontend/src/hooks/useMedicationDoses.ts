@@ -8,7 +8,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
-import { deleteMedicationDose, getMedications } from "../lib/api";
+import {
+  deleteAllMedicationDoses,
+  deleteMedicationDose,
+  getMedications,
+} from "../lib/api";
 import type { MedicationDose } from "../lib/types";
 
 export function useMedicationDoses() {
@@ -18,6 +22,8 @@ export function useMedicationDoses() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<MedicationDose | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   useEffect(() => {
     // `loading` starts true; setState here stays inside async callbacks so the
@@ -42,6 +48,19 @@ export function useMedicationDoses() {
     }
   }, [deleteTarget, bump]);
 
+  const handleDeleteAll = useCallback(async () => {
+    setDeletingAll(true);
+    try {
+      await deleteAllMedicationDoses();
+      setDeleteAllOpen(false);
+      bump();
+    } catch (err: unknown) {
+      console.error(err);
+    } finally {
+      setDeletingAll(false);
+    }
+  }, [bump]);
+
   return {
     doses,
     loading,
@@ -49,5 +68,9 @@ export function useMedicationDoses() {
     setDeleteTarget,
     deleting,
     handleDelete,
+    deleteAllOpen,
+    setDeleteAllOpen,
+    deletingAll,
+    handleDeleteAll,
   };
 }

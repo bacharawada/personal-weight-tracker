@@ -1,10 +1,8 @@
 /**
- * MedicationPanel — the "Medication" (GLP-1) section panel.
+ * MedicationPanel — the "Medication" (GLP-1) section.
  *
  * Fills the shared DataSectionPanel skeleton with the dose journal, the
- * add-dose dialog, CSV import/export and the delete-with-confirmation
- * flow. Replaces the former MedicationSection block that was stacked under
- * the measurements table.
+ * add-dose dialog, CSV import/export and the delete-with-confirmation flow.
  */
 
 import { useState } from "react";
@@ -16,18 +14,20 @@ import { useCsvTransfer } from "../../hooks/useCsvTransfer";
 import { useMedicationCsvDataset } from "../../lib/csv/datasets";
 import type { useMedicationDoses } from "../../hooks/useMedicationDoses";
 import { DataSectionPanel } from "./DataSectionPanel";
-import { CsvTransferActions } from "./CsvTransferActions";
+import { SectionActionCards } from "./SectionActionCards";
+import { ExportCsvButton } from "./ExportCsvButton";
+import { DeleteAllButton } from "./DeleteAllButton";
 import { MedicationDoseRow } from "./MedicationDoseRow";
 import { AddEntryModal } from "./modals/AddEntryModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
 import { DeleteDoseModal } from "./modals/DeleteDoseModal";
+import { DeleteAllDosesModal } from "./modals/DeleteAllDosesModal";
 
 interface MedicationPanelProps {
   data: ReturnType<typeof useMedicationDoses>;
-  onBack: () => void;
 }
 
-export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
+export function MedicationPanel({ data }: MedicationPanelProps) {
   const { t } = useTranslation("medication");
   const { bump, accent } = useWeightTracker();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -35,32 +35,55 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
   const dataset = useMedicationCsvDataset();
   const csv = useCsvTransfer(dataset);
 
-  const { doses, loading, deleteTarget, setDeleteTarget, deleting, handleDelete } = data;
+  const {
+    doses,
+    loading,
+    deleteTarget, setDeleteTarget,
+    deleting, handleDelete,
+    deleteAllOpen, setDeleteAllOpen,
+    deletingAll, handleDeleteAll,
+  } = data;
+  const hasDoses = doses.length > 0;
 
+  // `hidden sm:table-cell` mirrors MedicationDoseRow: below sm the note moves
+  // under the molecule instead of holding a column of its own.
   const columns = [
     { label: t("table.date"), align: "left" as const },
     { label: t("table.medication"), align: "left" as const },
     { label: t("table.dose"), align: "right" as const },
-    { label: t("table.note"), align: "left" as const },
+    { label: t("table.note"), align: "left" as const, className: "hidden sm:table-cell" },
     { label: t("table.actions"), align: "right" as const, className: "w-16" },
   ];
 
   return (
     <>
       <DataSectionPanel
-        icon={<Syringe size={18} />}
+        icon={<Syringe size={20} />}
         title={t("section.title")}
         subtitle={t("section.subtitle", { count: doses.length })}
-        addLabel={t("form.heading")}
-        onAdd={() => setIsAddOpen(true)}
-        onBack={onBack}
-        toolbarActions={
-          <CsvTransferActions
+        actions={
+          <SectionActionCards
+            addTitle={t("actionCard.addTitle")}
+            addDescription={t("actionCard.addDescription")}
+            addShortTitle={t("actionCard.addShort")}
+            onAdd={() => setIsAddOpen(true)}
+            importTitle={t("actionCard.importTitle")}
+            importDescription={t("actionCard.importDescription")}
+            importShortTitle={t("actionCard.importShort")}
             onImport={csv.openImport}
-            onExport={csv.handleExport}
-            canExport={doses.length > 0}
-            isExporting={csv.isExporting}
           />
+        }
+        headerActions={
+          <>
+            <ExportCsvButton
+              onExport={csv.handleExport}
+              canExport={hasDoses}
+              isExporting={csv.isExporting}
+            />
+            {hasDoses && (
+              <DeleteAllButton onClick={() => setDeleteAllOpen(true)} />
+            )}
+          </>
         }
         columns={columns}
         loading={loading}
@@ -112,6 +135,14 @@ export function MedicationPanel({ data, onBack }: MedicationPanelProps) {
         }}
         onConfirm={handleDelete}
         loading={deleting}
+      />
+
+      <DeleteAllDosesModal
+        open={deleteAllOpen}
+        onOpenChange={setDeleteAllOpen}
+        onConfirm={handleDeleteAll}
+        loading={deletingAll}
+        doseCount={doses.length}
       />
     </>
   );

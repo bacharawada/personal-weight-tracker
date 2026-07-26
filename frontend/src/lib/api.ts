@@ -151,6 +151,17 @@ export async function deleteMedicationDose(id: number): Promise<void> {
   }
 }
 
+export async function deleteAllMedicationDoses(): Promise<void> {
+  const res = await fetch(`${BASE}/medications`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(body.detail || res.statusText);
+  }
+}
+
 export async function getMedicationImpact(): Promise<DoseImpact[]> {
   return fetchJson<DoseImpact[]>(`${BASE}/medications/impact`);
 }

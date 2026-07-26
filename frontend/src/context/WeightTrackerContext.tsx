@@ -31,7 +31,7 @@ import type {
   UserProfile,
   UserProfileUpdate,
 } from "../lib/types";
-import { Theme, WeightUnit } from "../lib/types";
+import { DEFAULT_CHART_CONTROLS, Theme, WeightUnit } from "../lib/types";
 import i18n from "../i18n";
 import { isLanguage } from "../i18n/config";
 import { usePolling } from "../hooks/usePolling";
@@ -82,15 +82,9 @@ export function WeightTrackerProvider({ children }: { children: React.ReactNode 
   const { refreshKey, bump } = usePolling();
 
   const [chartParams, setChartParams] = useState<ChartParams>({
-    smoothing: 5,
-    horizon: 56,
+    ...DEFAULT_CHART_CONTROLS,
     palette: "Classic",
     dark: isDark,
-    showExp: true,
-    showLinear: false,
-    showBand: true,
-    showDoses: true,
-    showSmoothed: true,
   });
 
   const [hasData, setHasData] = useState(false);

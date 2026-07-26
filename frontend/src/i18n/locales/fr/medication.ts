@@ -11,6 +11,8 @@ const medication: MedicationResource = {
     title: "Médication",
     subtitle_one: "{{count}} dose enregistrée",
     subtitle_other: "{{count}} doses enregistrées",
+    countDoses_one: "{{count}} dose",
+    countDoses_other: "{{count}} doses",
     empty: "Aucune dose enregistrée pour l'instant.",
   },
   table: {
@@ -41,6 +43,14 @@ const medication: MedicationResource = {
     mg: "{{value}} mg",
     none: "—",
   },
+  actionCard: {
+    addTitle: "Enregistrer une dose",
+    addDescription: "Consigner une injection",
+    addShort: "Ajouter",
+    importTitle: "Importer CSV",
+    importDescription: "Charger un fichier en masse",
+    importShort: "Importer",
+  },
   addModal: {
     title: "Enregistrer une dose",
     description:
@@ -52,6 +62,14 @@ const medication: MedicationResource = {
       "Chargez un fichier CSV avec les colonnes <code>date</code> et <code>medication</code>. <code>dose_mg</code> et <code>note</code> sont facultatives. Les lignes déjà présentes dans le journal sont ignorées.",
     columnsHint:
       "Colonnes <0>date</0>, <1>medication</1>, et éventuellement <2>dose_mg</2>, <3>note</3>",
+  },
+  deleteAllModal: {
+    title: "Supprimer toutes les doses",
+    description_one:
+      "Cela supprimera définitivement <strong>{{count}} dose</strong>. Cette action est irréversible.",
+    description_other:
+      "Cela supprimera définitivement les <strong>{{count}} doses</strong>. Cette action est irréversible.",
+    confirmLabel: "Tout supprimer",
   },
   deleteModal: {
     title: "Supprimer la dose",

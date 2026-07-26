@@ -11,6 +11,41 @@ const dashboard: DashboardResource = {
     title: "Tableau de bord",
     subtitle: "Vue d'ensemble de votre progression de poids",
   },
+  welcome: {
+    title: "Votre tableau de bord commence par une pesée",
+    body:
+      "Tout ici se déduit de vos mesures — rien à configurer, rien à saisir à la main. Enregistrez un poids et la page se remplit.",
+    steps: {
+      first: "Une mesure : votre poids actuel et le calendrier des pesées",
+      trend: "{{count}} mesures sur une semaine : la tendance et sa projection",
+      goal:
+        "Un poids cible dans les Paramètres : anneau de progression, jalons et rythme nécessaire",
+      energy: "{{count}} jours d'historique : bilan énergétique et détection de plateau",
+    },
+    cta: "Ajouter ma première mesure",
+  },
+  loadError: {
+    title: "Impossible de charger vos mesures",
+    body:
+      "La requête n'a pas abouti, le tableau de bord ne peut donc pas savoir ce que vous avez enregistré. Vos données sont intactes — il s'agit seulement d'une lecture échouée.",
+    retry: "Réessayer",
+  },
+  locked: {
+    needMeasurements_one: "Encore {{count}} pesée et ceci se remplit.",
+    needMeasurements_other: "Encore {{count}} pesées et ceci se remplit.",
+    needDays_one: "Encore {{count}} jour de suivi et ceci se remplit.",
+    needDays_other: "Encore {{count}} jours de suivi et ceci se remplit.",
+    needGoal: "Définissez un poids cible dans les Paramètres pour débloquer ceci.",
+    needHeight: "Ajoutez votre taille dans les Paramètres pour débloquer ceci.",
+  },
+  trajectory: {
+    currentWeight: "Poids actuel",
+    noWeight: "Ajoutez une mesure pour démarrer votre trajectoire.",
+    last7Days: "7 jours",
+    last30Days: "30 jours",
+    sinceStart: "Depuis le début",
+    noComparison: "—",
+  },
   stats: {
     totalLoss: "Perte totale",
     avgLossPerWeek: "Perte moy./semaine",
@@ -19,13 +54,13 @@ const dashboard: DashboardResource = {
     measurements: "Mesures",
   },
   goal: {
-    setupPrompt:
-      "Définissez un poids cible et une taille dans les Paramètres pour suivre votre progression et votre IMC.",
     label: "Objectif",
     onTrack: "Sur la bonne voie",
     behind: "En retard",
-    daysToGo_one: "~{{count}} jour restant",
-    daysToGo_other: "~{{count}} jours restants",
+    reached: "Atteint",
+    remaining: "Reste {{value}}",
+    projectedDate: "Projeté au {{date}}",
+    ringLabel: "{{percent}} % du chemin vers votre objectif",
     status: {
       noGoal: "Aucun poids cible défini.",
       noData: "Ajoutez des mesures pour projeter votre objectif.",
@@ -50,9 +85,50 @@ const dashboard: DashboardResource = {
       earliest: "Le {{date}} au plus tôt ; plus tard si votre rythme ralentit.",
     },
   },
+  timeline: {
+    label: "Historique",
+    empty: "Les jalons, plateaux et changements de dose apparaîtront ici.",
+    start: "Début du suivi",
+    milestone: "Jalon {{index}} franchi",
+    plateau_one: "Plateau de {{count}} jour",
+    plateau_other: "Plateau de {{count}} jours",
+    plateauUntil: "Jusqu'au {{date}}",
+    doseStarted: "{{medication}} démarré à {{dose}}",
+    doseChanged: "{{medication}} {{from}} → {{to}}",
+    paceShift: "Rythme {{before}} → {{after}}",
+    more_one: "+{{count}} évènement antérieur",
+    more_other: "+{{count}} évènements antérieurs",
+  },
+  consistency: {
+    label: "Régularité",
+    streak_zero: "Aucune série en cours",
+    streak_one: "{{count}} semaine de série",
+    streak_other: "{{count}} semaines de série",
+    summary_one: "{{count}} pesée sur {{weeks}} semaines",
+    summary_other: "{{count}} pesées sur {{weeks}} semaines",
+    daysTracked_one: "Suivi depuis {{count}} jour",
+    daysTracked_other: "Suivi depuis {{count}} jours",
+  },
+  momentum: {
+    label: "Momentum",
+    barsLabel: "Variation hebdomadaire sur les {{count}} dernières semaines",
+    losingWeeks: "{{losing}} semaines de perte sur {{total}}",
+  },
+  pace: {
+    label: "Rythme",
+    required: "requis {{value}}",
+    typicalRange: "Plage de perte usuelle {{from}}–{{to}} {{unit}}/semaine",
+    meterLabel: "Rythme actuel {{value}}",
+    insufficient: "Ajoutez quelques mesures pour voir votre rythme.",
+    noTargetDate:
+      "Définissez une date cible dans les Paramètres pour voir le rythme nécessaire.",
+    targetDatePassed: "Votre date cible est dépassée.",
+  },
   bmi: {
     label: "Indice de masse corporelle",
     addMeasurement: "Ajoutez une mesure pour voir votre IMC.",
+    atGoal: "{{value}} à l'objectif",
+    scaleLabel: "IMC {{value}}, {{category}}",
     category: {
       underweight: "Insuffisance pondérale",
       normal: "Corpulence normale",
@@ -62,17 +138,15 @@ const dashboard: DashboardResource = {
   },
   milestones: {
     label: "Jalons",
-    setupPrompt:
-      "Définissez un poids cible dans les Paramètres pour suivre vos jalons.",
     counter: "{{achieved}}/{{total}}",
-    nextMilestone: "Prochain jalon",
-    kgRemaining: "{{value}} restant",
-    allAchieved: "Tous les jalons atteints — objectif atteint !",
     startWeight: "Départ",
     goalWeight: "Objectif",
+    trailLabel: "Chemin de {{total}} jalons, {{achieved}} franchis",
+    notYet: "Pas encore franchi",
+    next: "Prochain {{target}} — reste {{remaining}}",
+    allAchieved: "Tous les jalons sont franchis.",
   },
   plateau: {
-    cardLabel: "Statut du plateau",
     plateauBadge_one: "Plateau depuis {{count}} jour",
     plateauBadge_other: "Plateau depuis {{count}} jours",
     losingBadge: "Perte régulière",
@@ -80,8 +154,6 @@ const dashboard: DashboardResource = {
     recentRate: "Taux récent",
     historySummary_one: "{{count}} plateau passé, moy. {{avgDays}} jour",
     historySummary_other: "{{count}} plateaux passés, moy. {{avgDays}} jours",
-    noHistory: "Aucun plateau détecté dans votre historique pour le moment.",
-    historyUnavailable: "Pas assez d'historique pour rechercher d'anciens plateaux.",
     explainer:
       "Un plateau : votre tendance est restée sous 0,1 kg/semaine pendant au moins 14 jours.",
     insufficientData: "Ajoutez quelques mesures pour voir votre statut de plateau.",
@@ -92,6 +164,9 @@ const dashboard: DashboardResource = {
     surplus: "Surplus ~{{value}} kcal/jour",
     maintenance: "Proche de l'équilibre",
     range: "{{low}} à {{high}} kcal/jour",
+    sparklineLabel: "Évolution du bilan quotidien estimé",
+    window_one: "Sur le dernier jour",
+    window_other: "Sur les {{count}} derniers jours",
     insufficient:
       "Ajoutez quelques semaines de mesures pour estimer votre bilan énergétique.",
   },

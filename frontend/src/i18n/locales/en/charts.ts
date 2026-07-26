@@ -12,6 +12,7 @@ const charts = {
   },
   weight: {
     exportPng: "Export PNG",
+    goalCrossing: "Projected to reach your goal on {{date}}",
     legend: {
       measurements: "Measurements",
       rollingMean: "Rolling mean ({{count}}-pt)",

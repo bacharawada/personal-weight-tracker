@@ -11,13 +11,28 @@ const analysis = {
     subtitle: "Rate of change and residuals vs. your selected prediction models",
   },
   controls: {
-    smoothingWindow: "Smoothing Window:",
-    extrapolationHorizon: "Extrapolation Horizon",
-    predictionModels: "Prediction Models",
+    heading: "Chart controls",
+    reset: "Reset",
+    smoothingWindow: "Smoothing window",
+    smoothingValue_one: "{{count}} point",
+    smoothingValue_other: "{{count}} points",
+    smoothingHint:
+      "Each point is averaged with its neighbours — a wider window is smoother but reacts later to a change of pace.",
+    smoothingNeedsRollingMean:
+      "Only the rolling mean uses this window — turn that line on to change it.",
+    extrapolationHorizon: "Projection",
+    horizonHint: "How far past your last measurement each model is extended.",
+    predictionModels: "Series shown",
     rollingMean: "Rolling mean",
     exponentialDecay: "Exponential decay",
     linearTrend: "Linear trend",
-    showUncertaintyBand: "Show uncertainty band",
+    showUncertaintyBand: "Uncertainty band",
+    bandNeedsModel: "Turn on a prediction model to see its uncertainty band",
+    summarySmoothing: "{{count}}-point smoothing",
+    summaryProjection: "{{horizon}} ahead",
+    summaryNoProjection: "no projection",
+    summarySeries_one: "{{count}} series",
+    summarySeries_other: "{{count}} series",
   },
   horizon: {
     none: "None",
@@ -25,6 +40,18 @@ const analysis = {
     weeks_other: "{{count}} weeks",
     months_one: "{{count}} month",
     months_other: "{{count}} months",
+    short_none: "None",
+    short_weeks_one: "{{count}} w",
+    short_weeks_other: "{{count}} w",
+    short_months_one: "{{count}} mo",
+    short_months_other: "{{count}} mo",
+  },
+  chartTitles: {
+    weight: "Evolution of weight ({{unit}}) as a function of time (days)",
+    derivative:
+      "Evolution of the rate of change ({{unit}}/week) as a function of time (days)",
+    energy: "Evolution of the energy balance (kcal/day) as a function of time (days)",
+    residuals: "Evolution of the residuals ({{unit}}) as a function of time (days)",
   },
   explainerTitles: {
     weight: "How this chart works — smoothing and prediction models",
@@ -143,6 +170,12 @@ const analysis = {
       months6: "Last 6 months",
       all: "All time",
     },
+    presetShortLabels: {
+      weeks4: "4 w",
+      months3: "3 mo",
+      months6: "6 mo",
+      all: "All",
+    },
     dateAxis: "Date axis",
     weightAxis: "Weight axis (kg)",
     start: "Start",
@@ -152,6 +185,10 @@ const analysis = {
     max: "Max",
     step: "Step",
     autoPlaceholder: "auto",
+    chartHeight: "Chart height",
+    chartHeightValue: "{{value}} px",
+    chartHeightHint:
+      "A taller plot spreads the weight gridlines further apart — raise it when a fine step packs them too tightly.",
   },
 };
 

@@ -12,6 +12,7 @@ const charts: ChartsResource = {
   },
   weight: {
     exportPng: "Exporter en PNG",
+    goalCrossing: "Objectif projeté au {{date}}",
     legend: {
       measurements: "Mesures",
       rollingMean: "Moyenne mobile ({{count}} pts)",

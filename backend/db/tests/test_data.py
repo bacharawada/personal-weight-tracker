@@ -497,6 +497,32 @@ class TestMedicationDoses:
         # The dose still belongs to the owner.
         assert len(s.list_doses("owner-user")) == 1
 
+    def test_delete_all_doses(self, engine: sa.engine.Engine) -> None:
+        """delete_all_doses() clears the user's journal and reports the count."""
+        s = WeightDataStore(engine)
+        s.add_dose("dose-user", datetime.date(2025, 6, 1), "semaglutide")
+        s.add_dose("dose-user", datetime.date(2025, 6, 8), "semaglutide")
+        assert s.delete_all_doses("dose-user") == 2
+        assert s.list_doses("dose-user") == []
+
+    def test_delete_all_doses_on_empty_journal(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """delete_all_doses() reports zero rather than raising when empty."""
+        s = WeightDataStore(engine)
+        assert s.delete_all_doses("dose-user") == 0
+
+    def test_delete_all_doses_spares_other_users(
+        self, engine: sa.engine.Engine
+    ) -> None:
+        """delete_all_doses() only touches the calling user's rows."""
+        s = WeightDataStore(engine)
+        s.add_dose("user-a", datetime.date(2025, 6, 1), "semaglutide")
+        s.add_dose("user-b", datetime.date(2025, 6, 1), "tirzepatide")
+        assert s.delete_all_doses("user-a") == 1
+        assert s.list_doses("user-a") == []
+        assert len(s.list_doses("user-b")) == 1
+
     def test_dose_isolation_between_users(
         self, engine: sa.engine.Engine
     ) -> None:
