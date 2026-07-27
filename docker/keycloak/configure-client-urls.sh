@@ -29,9 +29,13 @@
 #
 # Usage (local, against the running Keycloak — no-op, the default is
 # already the dev URL). The compose file mounts this script, but at mode
-# 644, hence the explicit `sh`:
-#   podman exec "$(podman ps --format '{{.Names}}' | grep keycloak | head -1)" \
-#     sh /opt/keycloak/bin/configure-client-urls.sh
+# 644, hence the explicit `sh`. Run this from WSL, where the stack is
+# started: dev.sh uses the rootless podman *inside* WSL, whose containers
+# podman.exe on the Windows host cannot see.
+#   podman-compose exec keycloak sh /opt/keycloak/bin/configure-client-urls.sh
+# Or by container name (`podman ps` to get it — no grep, so this form also
+# works from PowerShell):
+#   podman exec weight_analysis_keycloak_1 sh /opt/keycloak/bin/configure-client-urls.sh
 #
 # Usage (prod — the Keycloak ingress is public, so drive it from a
 # throwaway container pointed at the prod URL; no compose, the script

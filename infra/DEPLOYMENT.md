@@ -218,10 +218,12 @@ only; `redirectUris` / `webOrigins` are left alone because a kcadm `-s` would
 replace the whole list and drop the localhost entries.
 
 Local (no-op — the default `APP_BASE_URL` is already the dev URL; the mounted
-script is mode 644, hence the explicit `sh`):
+script is mode 644, hence the explicit `sh`). Run it **from WSL**: `dev.sh`
+drives the rootless podman inside WSL, and `podman.exe` on the Windows host
+talks to a different machine that cannot see those containers.
 
 ```bash
-podman exec "$(podman ps --format '{{.Names}}' | grep keycloak | head -1)" sh /opt/keycloak/bin/configure-client-urls.sh
+podman-compose exec keycloak sh /opt/keycloak/bin/configure-client-urls.sh
 ```
 
 Prod — throwaway container, script on stdin (no compose involved):
