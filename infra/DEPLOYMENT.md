@@ -164,7 +164,7 @@ free tier.
 3. Apply to the prod realm. The SMTP config is realm-level and lives in
    Keycloak's Postgres, so this is a one-shot that survives new revisions —
    nothing to inject at container startup, no Terraform change. The prod
-   Keycloak ingress is public, so drive it from the local container:
+   Keycloak ingress is public, so drive it from a container:
 
    ```bash
    docker compose exec \
@@ -172,6 +172,23 @@ free tier.
      -e KEYCLOAK_ADMIN_PASSWORD='<prod-admin-password>' \
      keycloak /opt/keycloak/bin/configure-smtp.sh
    ```
+
+   **This does not work from the current workstation**, for two stacked reasons:
+   there is no Docker (podman only — `podman run --rm -i --entrypoint sh
+   --env-file .env … quay.io/keycloak/keycloak:26.0 -s < configure-smtp.sh` is
+   the equivalent), and the podman WSL machine has **no egress to the prod
+   ingress on 443** (`Connection timed out` to `4.178.254.95`) even though the
+   Windows host reaches it fine. Note this is the mirror image of the Terraform
+   gotcha above, where the host is blocked and WSL works — check which side has
+   connectivity before assuming.
+
+   Fallback that does work from the host, and what was actually used: the admin
+   REST API. Get a token from `master` (`client_id=admin-cli`, password grant,
+   creds from `terraform.tfvars`), then send a **partial** PUT to
+   `/admin/realms/weight-tracker` with only `{"smtpServer": {...}}`.
+   `RepresentationToModel.updateRealm` applies non-null fields only, so nothing
+   else on the realm is touched — verified by diffing the realm representation
+   before and after (empty diff). Keycloak masks the SMTP password on read.
 
    Verify with a real "Forgot password?" from `https://weighttracker.bawada.fr`.
    Keycloak's own "Test connection" button (Realm settings → Email) only proves
