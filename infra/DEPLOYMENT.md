@@ -197,6 +197,49 @@ free tier.
 
 ---
 
+## Client Root/Base URL (the "Back to application" button)
+
+Symptom: on the password-reset info page ("email sent") and on any Keycloak
+error page, the **← Back to application** button sends the user to
+`http://localhost:5173`.
+
+Cause: the login theme links that button to `${client.baseUrl}`, and Keycloak
+derives `pageRedirectUri` from the same Root/Base URL pair. `docker/keycloak/
+realm-export.json` ships `rootUrl` / `baseUrl` = `http://localhost:5173` — right
+for dev, and the prod realm was created from that export on first boot, so prod
+inherited the dev URL. The `redirectUris` / `webOrigins` lists do contain
+`https://weighttracker.bawada.fr`, which is why login itself works; only these
+two fields are wrong. Editing the export does **not** fix an existing realm
+(`--import-realm` runs on first boot only).
+
+Fix — `docker/keycloak/configure-client-urls.sh` (idempotent, kcadm, mounted
+into the container by `docker-compose.yml`). It touches `rootUrl` and `baseUrl`
+only; `redirectUris` / `webOrigins` are left alone because a kcadm `-s` would
+replace the whole list and drop the localhost entries.
+
+```bash
+docker compose exec -e KEYCLOAK_URL=https://weighttracker-auth.bawada.fr -e KEYCLOAK_ADMIN_PASSWORD='<prod-admin-password>' -e APP_BASE_URL=https://weighttracker.bawada.fr keycloak /opt/keycloak/bin/configure-client-urls.sh
+```
+
+Same connectivity caveat as the SMTP script above: from this workstation the
+container cannot reach the prod ingress on 443. Fallback that works from the
+host — admin REST API, token from `master` (`client_id=admin-cli`, password
+grant), then:
+
+```
+GET /admin/realms/weight-tracker/clients?clientId=weight-tracker-frontend   → take .[0].id
+PUT /admin/realms/weight-tracker/clients/<id>  {"rootUrl": "https://weighttracker.bawada.fr", "baseUrl": "https://weighttracker.bawada.fr"}
+```
+
+A client PUT is a **full** representation update, unlike the partial realm PUT
+used for SMTP: send back the object from the GET with only those two fields
+changed, otherwise the rest of the client config is wiped.
+
+Verify: trigger "Forgot password?" in prod and hover the button on the
+confirmation page.
+
+---
+
 ## Deferred / follow-ups
 
 - **CI/CD (GitHub Actions OIDC):** blocked until a tenant admin creates a service
