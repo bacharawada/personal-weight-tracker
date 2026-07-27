@@ -71,6 +71,11 @@ services:
       # hence the explicit `sh`:
       #   podman-compose exec keycloak sh /opt/keycloak/bin/configure-client-urls.sh
       - ./docker/keycloak/configure-client-urls.sh:/opt/keycloak/bin/configure-client-urls.sh:ro
+      # Realm themes + i18n — run manually once Keycloak is healthy. Only
+      # needed on a realm that already existed before these settings landed
+      # in realm-export.json:
+      #   podman-compose exec keycloak sh /opt/keycloak/bin/configure-branding.sh
+      - ./docker/keycloak/configure-branding.sh:/opt/keycloak/bin/configure-branding.sh:ro
     ports:
       - "8080:8080"
     depends_on:
