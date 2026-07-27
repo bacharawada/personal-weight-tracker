@@ -67,8 +67,9 @@ services:
       #   docker compose exec keycloak /opt/keycloak/bin/configure-smtp.sh
       - ./docker/keycloak/configure-smtp.sh:/opt/keycloak/bin/configure-smtp.sh:ro
       # Client Root/Base URL setup — run manually once Keycloak is healthy
-      # (no-op locally, the default is the dev URL):
-      #   docker compose exec keycloak /opt/keycloak/bin/configure-client-urls.sh
+      # (no-op locally, the default is the dev URL). Mounted at mode 644,
+      # hence the explicit `sh`:
+      #   podman exec <keycloak-container> sh /opt/keycloak/bin/configure-client-urls.sh
       - ./docker/keycloak/configure-client-urls.sh:/opt/keycloak/bin/configure-client-urls.sh:ro
     ports:
       - "8080:8080"

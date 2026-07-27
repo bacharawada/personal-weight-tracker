@@ -217,13 +217,23 @@ into the container by `docker-compose.yml`). It touches `rootUrl` and `baseUrl`
 only; `redirectUris` / `webOrigins` are left alone because a kcadm `-s` would
 replace the whole list and drop the localhost entries.
 
+Local (no-op — the default `APP_BASE_URL` is already the dev URL; the mounted
+script is mode 644, hence the explicit `sh`):
+
 ```bash
-docker compose exec -e KEYCLOAK_URL=https://weighttracker-auth.bawada.fr -e KEYCLOAK_ADMIN_PASSWORD='<prod-admin-password>' -e APP_BASE_URL=https://weighttracker.bawada.fr keycloak /opt/keycloak/bin/configure-client-urls.sh
+podman exec "$(podman ps --format '{{.Names}}' | grep keycloak | head -1)" sh /opt/keycloak/bin/configure-client-urls.sh
 ```
 
-Same connectivity caveat as the SMTP script above: from this workstation the
-container cannot reach the prod ingress on 443. Fallback that works from the
-host — admin REST API, token from `master` (`client_id=admin-cli`, password
+Prod — throwaway container, script on stdin (no compose involved):
+
+```bash
+podman run --rm -i --entrypoint sh -e KEYCLOAK_URL=https://weighttracker-auth.bawada.fr -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD='<prod-admin-password>' -e APP_BASE_URL=https://weighttracker.bawada.fr quay.io/keycloak/keycloak:24.0 -s < docker/keycloak/configure-client-urls.sh
+```
+
+Same connectivity caveat as the SMTP script above: this workstation has podman
+only (no Docker), and the podman WSL machine has no egress to the prod ingress
+on 443 — so the prod form above times out from here. Fallback that works from
+the host — admin REST API, token from `master` (`client_id=admin-cli`, password
 grant), then:
 
 ```
@@ -233,7 +243,27 @@ PUT /admin/realms/weight-tracker/clients/<id>  {"rootUrl": "https://weighttracke
 
 A client PUT is a **full** representation update, unlike the partial realm PUT
 used for SMTP: send back the object from the GET with only those two fields
-changed, otherwise the rest of the client config is wiped.
+changed, otherwise the rest of the client config is wiped. Round-tripping the
+GET response is exactly what the snippet below does — from the Windows host,
+which does reach the ingress:
+
+```powershell
+$kc  = "https://weighttracker-auth.bawada.fr"
+$app = "https://weighttracker.bawada.fr"
+$sec = Read-Host "Keycloak admin password" -AsSecureString
+$pw  = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
+$tok = (Invoke-RestMethod -Method Post "$kc/realms/master/protocol/openid-connect/token" -Body @{ grant_type = 'password'; client_id = 'admin-cli'; username = 'admin'; password = $pw }).access_token
+$h   = @{ Authorization = "Bearer $tok" }
+$c   = (Invoke-RestMethod "$kc/admin/realms/weight-tracker/clients?clientId=weight-tracker-frontend" -Headers $h)[0]
+$c.rootUrl = $app
+$c.baseUrl = $app
+Invoke-RestMethod -Method Put "$kc/admin/realms/weight-tracker/clients/$($c.id)" -Headers $h -ContentType 'application/json' -Body ($c | ConvertTo-Json -Depth 10)
+Invoke-RestMethod "$kc/admin/realms/weight-tracker/clients/$($c.id)" -Headers $h | Select-Object clientId, rootUrl, baseUrl
+```
+
+`-AsSecureString` keeps the admin password out of the shell history; `-Depth 10`
+matters because a shallower `ConvertTo-Json` truncates the client's nested
+`attributes` / `protocolMappers` into strings and the PUT then loses them.
 
 Verify: trigger "Forgot password?" in prod and hover the button on the
 confirmation page.

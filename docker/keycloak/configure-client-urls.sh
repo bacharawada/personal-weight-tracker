@@ -27,20 +27,27 @@
 # would REPLACE the whole list (dropping the localhost entries), so they
 # are deliberately left untouched.
 #
-# Usage (local, from the repo root — no-op, the default is already the
-# dev URL):
-#   docker compose exec keycloak /opt/keycloak/bin/configure-client-urls.sh
+# Usage (local, against the running Keycloak — no-op, the default is
+# already the dev URL). The compose file mounts this script, but at mode
+# 644, hence the explicit `sh`:
+#   podman exec "$(podman ps --format '{{.Names}}' | grep keycloak | head -1)" \
+#     sh /opt/keycloak/bin/configure-client-urls.sh
 #
-# Usage (prod — the Keycloak ingress is public, so drive it from the
-# local container pointed at the prod URL):
-#   docker compose exec \
+# Usage (prod — the Keycloak ingress is public, so drive it from a
+# throwaway container pointed at the prod URL; no compose, the script
+# comes in on stdin):
+#   podman run --rm -i --entrypoint sh \
 #     -e KEYCLOAK_URL=https://weighttracker-auth.bawada.fr \
+#     -e KEYCLOAK_ADMIN=admin \
 #     -e KEYCLOAK_ADMIN_PASSWORD='<prod-admin-password>' \
 #     -e APP_BASE_URL=https://weighttracker.bawada.fr \
-#     keycloak /opt/keycloak/bin/configure-client-urls.sh
+#     quay.io/keycloak/keycloak:24.0 -s < docker/keycloak/configure-client-urls.sh
 #
-# If the workstation cannot reach the prod ingress from inside the
-# container, use the admin REST fallback documented in
+# (`docker compose exec keycloak /opt/keycloak/bin/configure-client-urls.sh`
+# is the Docker equivalent — this workstation has podman only.)
+#
+# The podman WSL machine has no egress to the prod ingress on 443, so the
+# prod form above fails here — use the admin REST fallback documented in
 # infra/DEPLOYMENT.md.
 # ============================================================
 set -eu
