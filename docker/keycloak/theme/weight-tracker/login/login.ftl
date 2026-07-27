@@ -10,7 +10,7 @@
                 </svg>
             </div>
             <div class="weight-tracker-logo-title">Weight Tracker</div>
-            <div class="weight-tracker-logo-sub">Sign in to your account</div>
+            <div class="weight-tracker-logo-sub">${msg("wtLoginSubtitle")}</div>
         </div>
 
     <#elseif section = "form">
@@ -34,13 +34,13 @@
                         <#else>
                             <span class="text-icon">${p.displayName}</span>
                         </#if>
-                        <#if p.alias = 'google'>Continue with Google<#else>${p.displayName}</#if>
+                        <#if p.alias = 'google'>${msg("wtContinueWithGoogle")}<#else>${p.displayName}</#if>
                     </a>
                 </#list>
             </div>
 
             <#if realm.password>
-                <div class="wt-divider"><span>or</span></div>
+                <div class="wt-divider"><span>${msg("wtOr")}</span></div>
             </#if>
         </#if>
 

@@ -10,7 +10,7 @@
                 </svg>
             </div>
             <div class="weight-tracker-logo-title">Weight Tracker</div>
-            <div class="weight-tracker-logo-sub">Create your account</div>
+            <div class="weight-tracker-logo-sub">${msg("wtRegisterSubtitle")}</div>
         </div>
 
     <#elseif section = "form">
@@ -25,7 +25,7 @@
                 <input type="text" id="firstName" name="firstName" class="wt-input"
                        autocomplete="given-name"
                        value="${(register.formData.firstName!'')}"
-                       placeholder="Jane" />
+                       placeholder="${msg('wtFirstNamePlaceholder')}" />
                 <#if messagesPerField.existsError('firstName')>
                     <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('firstName'))?no_esc}</span>
                 </#if>
@@ -36,7 +36,7 @@
                 <input type="text" id="lastName" name="lastName" class="wt-input"
                        autocomplete="family-name"
                        value="${(register.formData.lastName!'')}"
-                       placeholder="Doe" />
+                       placeholder="${msg('wtLastNamePlaceholder')}" />
                 <#if messagesPerField.existsError('lastName')>
                     <span class="kc-feedback-text">${kcSanitize(messagesPerField.get('lastName'))?no_esc}</span>
                 </#if>
