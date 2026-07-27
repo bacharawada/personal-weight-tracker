@@ -48,6 +48,13 @@ services:
       # Consumed by configure-google-idp.sh, not by Keycloak itself.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # Consumed by configure-smtp.sh, not by Keycloak itself.
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_FROM_DISPLAY_NAME: ${SMTP_FROM_DISPLAY_NAME}
     volumes:
       # Realm config is auto-imported on first boot.
       - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
@@ -56,6 +63,9 @@ services:
       # Google IdP setup — run manually once Keycloak is healthy:
       #   docker compose exec keycloak /opt/keycloak/bin/configure-google-idp.sh
       - ./docker/keycloak/configure-google-idp.sh:/opt/keycloak/bin/configure-google-idp.sh:ro
+      # SMTP setup — run manually once Keycloak is healthy:
+      #   docker compose exec keycloak /opt/keycloak/bin/configure-smtp.sh
+      - ./docker/keycloak/configure-smtp.sh:/opt/keycloak/bin/configure-smtp.sh:ro
     ports:
       - "8080:8080"
     depends_on:

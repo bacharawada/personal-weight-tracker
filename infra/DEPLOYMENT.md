@@ -133,6 +133,53 @@ Auth only works once `weighttracker-auth.bawada.fr` is bound, because the SPA's
 
 ---
 
+## Outgoing mail (Keycloak "Forgot password?")
+
+Provider is **Brevo** (free tier, 300 mails/day, real SMTP relay). Azure
+Communication Services was ruled out: its SMTP relay authenticates through an
+Entra ID app registration + a custom RBAC role, which this account cannot create
+(same tenant-rights blocker as the GitHub OIDC service principal), and it has no
+free tier.
+
+1. DNS on `bawada.fr` (OVH). The sender domain **cannot** be
+   `weighttracker.bawada.fr` — that name is a CNAME to the ingress, and a CNAME
+   cannot coexist with the TXT record Brevo needs for verification.
+
+   ```
+   TXT  bawada.fr                  brevo-code:<hash>            (from Brevo)
+   TXT  mail._domainkey.bawada.fr  <brevo DKIM public key>      (from Brevo)
+   TXT  _dmarc.bawada.fr           v=DMARC1; p=none;
+   ```
+
+   The existing SPF record must be **edited**, not duplicated — one TXT SPF per
+   name, and it ends in `-all` (hard fail), so Brevo has to be included:
+
+   ```
+   v=spf1 include:mx.ovh.com include:spf.brevo.com -all
+   ```
+
+2. Brevo → SMTP & API → SMTP tab: copy the SMTP login and generate an SMTP key.
+   Put both in the local `.env` (`SMTP_USER` / `SMTP_PASSWORD`).
+
+3. Apply to the prod realm. The SMTP config is realm-level and lives in
+   Keycloak's Postgres, so this is a one-shot that survives new revisions —
+   nothing to inject at container startup, no Terraform change. The prod
+   Keycloak ingress is public, so drive it from the local container:
+
+   ```bash
+   docker compose exec \
+     -e KEYCLOAK_URL=https://weighttracker-auth.bawada.fr \
+     -e KEYCLOAK_ADMIN_PASSWORD='<prod-admin-password>' \
+     keycloak /opt/keycloak/bin/configure-smtp.sh
+   ```
+
+   Verify with a real "Forgot password?" from `https://weighttracker.bawada.fr`.
+   Keycloak's own "Test connection" button (Realm settings → Email) only proves
+   the relay accepts the credentials, not that the mail is delivered — check
+   Brevo's transactional log if it doesn't land.
+
+---
+
 ## Deferred / follow-ups
 
 - **CI/CD (GitHub Actions OIDC):** blocked until a tenant admin creates a service
