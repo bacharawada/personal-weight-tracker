@@ -15,11 +15,7 @@
 
     <#elseif section = "form">
 
-        <#if message?has_content>
-            <div class="alert alert-${message.type}">
-                ${kcSanitize(message.summary)?no_esc}
-            </div>
-        </#if>
+        <#-- The flash message is rendered by template.ftl — do not repeat it here. -->
 
         <form id="kc-register-form" action="${url.registrationAction}" method="post">
 

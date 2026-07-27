@@ -15,13 +15,8 @@
 
     <#elseif section = "form">
 
-        <#-- Flash message (wrong credentials, etc.) -->
-        <#if message?has_content && (message.type != 'warning' || !isAppInitiatedAction??)>
-            <div class="alert alert-${message.type}">
-                <#if message.type = 'error'><span class="pficon pficon-error-circle-o"></span></#if>
-                ${kcSanitize(message.summary)?no_esc}
-            </div>
-        </#if>
+        <#-- The flash message (wrong credentials, etc.) is rendered by
+             template.ftl — do not repeat it here. -->
 
         <#-- Social / IdP buttons (Google etc.) -->
         <#if realm.password && social.providers??>

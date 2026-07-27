@@ -1,5 +1,8 @@
 <#import "template.ftl" as layout>
-<@layout.registrationLayout; section>
+<#-- displayMessage=false: this page renders the message itself as an
+     instruction paragraph, so letting template.ftl also render it as an
+     alert would show it twice. -->
+<@layout.registrationLayout displayMessage=false; section>
 
     <#if section = "header">
         <div class="weight-tracker-logo">
