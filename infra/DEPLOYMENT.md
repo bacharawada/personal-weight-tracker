@@ -272,12 +272,132 @@ confirmation page.
 
 ---
 
+## Realm branding & i18n (custom themes, fr/en)
+
+Two moving parts that deploy **differently**, and the order matters.
+
+| What | Where it lives | How it ships |
+|---|---|---|
+| The templates (`login/`, `email/`) | `docker/keycloak/theme/weight-tracker/` | Baked into the Keycloak **image** → rebuild + new revision |
+| The pointers (`loginTheme`, `emailTheme`, `internationalizationEnabled`, `supportedLocales`, `defaultLocale`) | Keycloak's Postgres, realm-level | Hot, via the admin REST API |
+
+**Always image first, realm second.** Flipping `emailTheme` to `weight-tracker`
+before the image carries `email/` leaves Keycloak unable to resolve the theme
+when a reset mail is requested. Same for i18n: enabling `fr` before the image
+carries `login/messages/messages_fr.properties` makes the login page render raw
+message keys (`wtLoginSubtitle`) instead of text, because Keycloak falls back to
+the key name when a bundle entry is missing.
+
+`realm-export.json` carries all of these too, but it is only read on **first**
+boot (`--import-realm`) — editing it does nothing to the existing prod realm. It
+is kept in sync so a fresh realm starts out correct.
+
+### 1. Rebuild and deploy the Keycloak image
+
+Build context is `docker/keycloak` (the Dockerfile `COPY`s the whole theme dir,
+so `email/` is picked up with no Dockerfile change). Keycloak discovers themes
+under `/opt/keycloak/themes` at runtime — no `kc.sh build` step needed.
+
+```bash
+cd /mnt/c/Users/bawada/Desktop/Personnel/weight_analysis/docker/keycloak
+SHA=$(git rev-parse --short HEAD)
+
+az acr build --registry crbawweighttrackerprd \
+  --image keycloak-weighttracker:$SHA \
+  --image keycloak-weighttracker:latest \
+  --file Dockerfile .
+
+az containerapp update -n ca-baw-weighttracker-kc-prd -g rg-baw-weighttracker-prd \
+  --image crbawweighttrackerprd.azurecr.io/keycloak-weighttracker:$SHA
+```
+
+### 2. Point the realm at the themes and turn on fr/en
+
+`configure-branding.sh` is the container-side equivalent, and it is what works
+for the **local** stack:
+
+```bash
+podman-compose exec keycloak sh /opt/keycloak/bin/configure-branding.sh
+```
+
+For **prod** that path is blocked for the same two stacked reasons as the SMTP
+config (no Docker, and the podman WSL machine has no egress to the prod ingress
+on 443). Use the admin REST API from the Windows host, which does reach it. A
+**partial** PUT only applies the fields it contains, so nothing else on the
+realm is touched:
+
+```powershell
+$kc    = "https://weighttracker-auth.bawada.fr"
+$admin = "<keycloak admin user>"
+$pass  = Read-Host "Keycloak admin password" -AsSecureString |
+           ConvertFrom-SecureString -AsPlainText          # PowerShell 7+
+
+$tok = (Invoke-RestMethod -Method Post -Uri "$kc/realms/master/protocol/openid-connect/token" `
+          -ContentType 'application/x-www-form-urlencoded' `
+          -Body @{ client_id = 'admin-cli'; grant_type = 'password'
+                   username = $admin; password = $pass }).access_token
+
+$body = @{
+    emailTheme                  = 'weight-tracker'
+    internationalizationEnabled = $true
+    supportedLocales            = @('en', 'fr')
+    defaultLocale               = 'en'
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Put -Uri "$kc/admin/realms/weight-tracker" `
+    -Headers @{ Authorization = "Bearer $tok" } `
+    -ContentType 'application/json' -Body $body
+
+Invoke-RestMethod -Uri "$kc/admin/realms/weight-tracker" -Headers @{ Authorization = "Bearer $tok" } |
+    Select-Object loginTheme, emailTheme, internationalizationEnabled, supportedLocales, defaultLocale
+```
+
+`loginTheme` is already `weight-tracker` on prod and is left out on purpose.
+
+### How the language is chosen
+
+Keycloak resolves the locale in this order: `kc_locale` query param → the user's
+`locale` attribute → the locale cookie → `ui_locales` → the browser
+`Accept-Language` header → `defaultLocale`. The SPA sends neither `kc_locale`
+nor `ui_locales`, so **the reset mail follows the browser language of whoever
+opened the "Forgot password?" page**, not the language picked inside the app.
+Making the two agree would mean passing `ui_locales` from `AuthContext` — not
+done, see follow-ups.
+
+### Verify
+
+1. `https://weighttracker.bawada.fr` → "Forgot password?" with a French browser:
+   the login page is French, and the mail arrives with the French subject
+   (*Réinitialisation de votre mot de passe Weight Tracker*), the branded card,
+   and a working button.
+2. Repeat with `Accept-Language: en` for the English version.
+3. Check accents are not mojibake — the bundles are UTF-8 and Keycloak 24 reads
+   them as UTF-8, but a bad build would show up here first.
+4. If nothing lands, the relay is the suspect, not the theme — check Brevo's
+   transactional log (see **Outgoing mail**).
+
+A FreeMarker error in a template surfaces as a 500 on the reset submit, with the
+stack trace in `az containerapp logs show -n ca-baw-weighttracker-kc-prd -g rg-baw-weighttracker-prd --type console`.
+
+---
+
 ## Deferred / follow-ups
 
 - **CI/CD (GitHub Actions OIDC):** blocked until a tenant admin creates a service
   principal (or grants `Application Developer`). Then set `enable_github_oidc = true`,
   re-apply, set the repo secrets from `terraform output github_actions_secrets`, and
   the `infra.yml` / `app.yml` workflows take over.
-- **Keycloak custom login theme:** `enable_keycloak_theme = false`. The upload of
-  deeply-nested theme dirs races (Azure Files needs parents created first) and the
-  path double-nests. Fix the ordering/path in `storage.tf` before re-enabling.
+- **Keycloak themes via Azure Files:** abandoned, not deferred.
+  `enable_keycloak_theme = false` stays false. Uploading deeply-nested theme dirs
+  races (Azure Files needs parents created first) and the path double-nests.
+  Both the login and the email theme ship inside the Keycloak image instead
+  (see **Realm branding & i18n**) — don't revive the `storage.tf` path.
+- **Mail language follows the browser, not the app.** The SPA does not pass
+  `ui_locales`, so a user reading the app in French on an English-locale browser
+  gets an English reset mail. Fix would be one line in
+  `frontend/src/context/AuthContext.tsx` (add `ui_locales` to the authorization
+  request from the current i18n language) — deliberately out of scope so far.
+- **Email templates not overridden** (`event-login_error`,
+  `identity-provider-link`, `org-invite`, `email-test`): they fall back to
+  `parent=base`, so they render stock and English-only. None is reachable on this
+  realm today; add them to `theme/weight-tracker/email/` if that changes.
