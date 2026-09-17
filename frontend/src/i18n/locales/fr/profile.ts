@@ -20,7 +20,16 @@ const profile: ProfileResource = {
       height: "Taille (cm)",
       goal: "Poids cible ({{unit}})",
       targetDate: "Date cible",
+      sex: "Sexe",
+      birthDate: "Date de naissance",
+      activity: "Niveau d'activité",
     },
+    sex: {
+      male: "Homme",
+      female: "Femme",
+      hint: "Sexe biologique, utilisé uniquement comme paramètre de la formule.",
+    },
+    activityHint: "Choisissez le niveau qui décrit le mieux une semaine type.",
     placeholders: {
       height: "ex. 178",
       goalLb: "ex. 165",
@@ -29,6 +38,59 @@ const profile: ProfileResource = {
     saved: "Enregistré",
     save: "Enregistrer le profil",
     saving: "Enregistrement…",
+  },
+  metabolism: {
+    heading: "Métabolisme",
+    description:
+      "Métabolisme de base (Mifflin-St Jeor) et dépense énergétique journalière, estimés à partir de votre dernière pesée. Formules de population : comptez environ ±10 %.",
+    loading: "Estimation…",
+    loadError: "Impossible de charger l'estimation de votre métabolisme.",
+    missing: "Pour estimer votre métabolisme, ajoutez : {{items}}.",
+    inputs: {
+      weight: "une pesée",
+      height: "votre taille",
+      sex: "votre sexe",
+      birth_date: "votre date de naissance",
+    },
+    bmr: "Métabolisme de base",
+    tdee: "Dépense énergétique journalière",
+    unit: "kcal/jour",
+    kcalPerDay: "{{value}} kcal/jour",
+    pickActivity: "Choisissez un niveau d'activité ci-dessus pour obtenir votre dépense journalière.",
+    intake: "Apport estimé ~{{value}} kcal/jour",
+    intakeRange: "({{low}} à {{high}})",
+    intakeHint:
+      "Dépense journalière plus le bilan énergétique lu sur votre tendance de poids — ce que la balance dit que vous mangez, en moyenne. Aussi fiable que le niveau d'activité choisi.",
+    intakeUnavailable:
+      "Ajoutez quelques semaines de mesures et votre apport estimé apparaîtra ici.",
+    basis: "Basé sur {{weight}}, votre taille et un âge de {{age}} ans.",
+    activity: {
+      sedentary: {
+        label: "Sédentaire",
+        shortLabel: "Sédentaire",
+        description: "Travail de bureau, peu ou pas d'exercice",
+      },
+      light: {
+        label: "Légèrement actif",
+        shortLabel: "Léger",
+        description: "Exercice léger 1 à 3 jours par semaine",
+      },
+      moderate: {
+        label: "Modérément actif",
+        shortLabel: "Modéré",
+        description: "Exercice modéré 3 à 5 jours par semaine",
+      },
+      active: {
+        label: "Actif",
+        shortLabel: "Actif",
+        description: "Exercice intense 6 à 7 jours par semaine",
+      },
+      very_active: {
+        label: "Très actif",
+        shortLabel: "Très",
+        description: "Entraînement intense quotidien ou métier physique",
+      },
+    },
   },
   share: {
     heading: "Partage",

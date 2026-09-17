@@ -37,6 +37,7 @@ const dashboard: DashboardResource = {
     needDays_other: "Encore {{count}} jours de suivi et ceci se remplit.",
     needGoal: "Définissez un poids cible dans les Paramètres pour débloquer ceci.",
     needHeight: "Ajoutez votre taille dans les Paramètres pour débloquer ceci.",
+    needMetabolism: "Ajoutez votre taille, votre sexe et votre date de naissance dans votre Profil pour débloquer ceci.",
   },
   trajectory: {
     currentWeight: "Poids actuel",
@@ -157,6 +158,15 @@ const dashboard: DashboardResource = {
     explainer:
       "Un plateau : votre tendance est restée sous 0,1 kg/semaine pendant au moins 14 jours.",
     insufficientData: "Ajoutez quelques mesures pour voir votre statut de plateau.",
+  },
+  metabolism: {
+    label: "Dépense énergétique journalière",
+    unit: "kcal/jour",
+    bmr: "Métabolisme de base {{value}} kcal/jour",
+    pickActivity: "Métabolisme de base — choisissez un niveau d'activité dans votre Profil pour le chiffre complet.",
+    intake: "Apport estimé ~{{value}} kcal/jour",
+    intakeRange: "{{low}} à {{high}} kcal/jour",
+    unavailable: "Ajoutez une pesée pour estimer votre dépense journalière.",
   },
   energy: {
     label: "Bilan énergétique estimé",

@@ -283,6 +283,52 @@ export interface EnergyBalance {
   reason: string;
 }
 
+// Biological sex as an input of the Mifflin-St Jeor BMR formula — not an
+// identity field.
+export const Sex = {
+  Male: "male",
+  Female: "female",
+} as const;
+export type Sex = (typeof Sex)[keyof typeof Sex];
+
+// Physical-activity level driving the BMR -> TDEE multiplier (1.2 -> 1.9).
+export const ActivityLevel = {
+  Sedentary: "sedentary",
+  Light: "light",
+  Moderate: "moderate",
+  Active: "active",
+  VeryActive: "very_active",
+} as const;
+export type ActivityLevel = (typeof ActivityLevel)[keyof typeof ActivityLevel];
+
+// The body inputs the BMR needs; the estimate names whichever are absent.
+export const MetabolismInput = {
+  Weight: "weight",
+  Height: "height",
+  Sex: "sex",
+  BirthDate: "birth_date",
+} as const;
+export type MetabolismInput = (typeof MetabolismInput)[keyof typeof MetabolismInput];
+
+// BMR / TDEE estimate (kcal/day). `has_data` covers the BMR only: the TDEE
+// also needs an activity level and the intake fields an energy balance, so
+// each of those may be null on its own.
+export interface Metabolism {
+  has_data: boolean;
+  missing: MetabolismInput[];
+  weight_kg: number | null;
+  age_years: number | null;
+  bmr_kcal: number | null;
+  activity_level: ActivityLevel | null;
+  activity_factor: number | null;
+  tdee_kcal: number | null;
+  tdee_by_level: Partial<Record<ActivityLevel, number>>;
+  intake_kcal: number | null;
+  intake_low: number | null;
+  intake_high: number | null;
+  reason: string;
+}
+
 // Manual axis-scale overrides. A `null` field means "auto" (derive from data).
 export interface DateAxisConfig {
   min: string | null; // ISO date (inclusive lower bound)
@@ -331,6 +377,10 @@ export interface UserProfile {
   palette: string;
   /** `null` when never picked — the language is then detected from the browser. */
   language: Language | null;
+  sex: Sex | null;
+  /** ISO `YYYY-MM-DD`. */
+  birth_date: string | null;
+  activity_level: ActivityLevel | null;
 }
 
 export interface UserProfileUpdate {
@@ -343,6 +393,9 @@ export interface UserProfileUpdate {
   theme?: Theme;
   palette?: string;
   language?: Language | null;
+  sex?: Sex | null;
+  birth_date?: string | null;
+  activity_level?: ActivityLevel | null;
 }
 
 /**

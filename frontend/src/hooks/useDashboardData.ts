@@ -19,6 +19,7 @@ import {
   getGoalMilestones,
   getMeasurements,
   getMedicationImpact,
+  getMetabolism,
   getPlateauStatus,
 } from "../lib/api";
 import { computeDeltas, type WeightDeltas } from "../lib/dashboard/series";
@@ -28,6 +29,7 @@ import type {
   EnergyPoint,
   GoalProjection,
   Measurement,
+  Metabolism,
   MilestonesProjection,
   PlateauStatus,
 } from "../lib/types";
@@ -40,6 +42,8 @@ interface DashboardPayloads {
   energy: EnergyBalance | null;
   /** Per-measurement energy balance, for the tile's sparkline. */
   energySeries: EnergyPoint[];
+  /** BMR / TDEE estimate, null until the profile has its inputs. */
+  metabolism: Metabolism | null;
   /** First doses and dose changes, with the trend on either side of each. */
   doseChanges: DoseImpact[];
   /** Ascending by date. Empty until the first fetch settles. */
@@ -69,6 +73,7 @@ const EMPTY: DashboardPayloads = {
   plateau: null,
   energy: null,
   energySeries: [],
+  metabolism: null,
   doseChanges: [],
   measurements: [],
 };
@@ -109,10 +114,11 @@ export function useDashboardData(): DashboardData {
       getPlateauStatus(),
       getEnergyBalance(),
       getEnergyChart(chartParamsRef.current),
+      getMetabolism(),
       getMedicationImpact(),
       getMeasurements(),
     ]).then(
-      ([goal, milestones, plateau, energy, energyChart, doseChanges, measurements]) => {
+      ([goal, milestones, plateau, energy, energyChart, metabolism, doseChanges, measurements]) => {
         if (isCancelled) return;
         const rows = settled(measurements);
         setPayloads((prev) => ({
@@ -121,6 +127,7 @@ export function useDashboardData(): DashboardData {
           plateau: settled(plateau),
           energy: settled(energy),
           energySeries: settled(energyChart)?.bars ?? [],
+          metabolism: settled(metabolism),
           doseChanges: settled(doseChanges) ?? [],
           // Falling back to [] here would render the "no measurements yet"
           // welcome panel to a user who has plenty — keep the rows we already

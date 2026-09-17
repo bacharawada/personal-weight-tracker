@@ -9,7 +9,12 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { DatePicker } from "../components/ui/date-picker";
+import { SegmentedControl } from "../components/ui/segmented-control";
 import { ShareSettings } from "../components/profile/ShareSettings";
+import { MetabolismCard } from "../components/profile/MetabolismCard";
+import { localDateToIso } from "../lib/dates";
+import { ACTIVITY_LEVELS } from "../lib/metabolism";
+import { Sex, type ActivityLevel } from "../lib/types";
 import { displayToKg, kgToDisplay, unitLabel } from "../lib/units";
 
 export function ProfilePage() {
@@ -27,6 +32,9 @@ export function ProfilePage() {
   const [height, setHeight] = useState("");
   const [goal, setGoal] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const [sex, setSex] = useState<Sex | null>(null);
+  const [birthDate, setBirthDate] = useState("");
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel | null>(null);
   const [profileSaved, setProfileSaved] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -41,6 +49,9 @@ export function ProfilePage() {
         : "",
     );
     setTargetDate(profile.target_date ?? "");
+    setSex(profile.sex);
+    setBirthDate(profile.birth_date ?? "");
+    setActivityLevel(profile.activity_level);
   }
 
   async function handleProfileSave() {
@@ -52,6 +63,9 @@ export function ProfilePage() {
         height_cm: heightValue,
         goal_weight: goalValue,
         target_date: targetDate.trim() === "" ? null : targetDate,
+        sex,
+        birth_date: birthDate.trim() === "" ? null : birthDate,
+        activity_level: activityLevel,
       });
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2500);
@@ -63,6 +77,16 @@ export function ProfilePage() {
   }
 
   const u = unitLabel(unit);
+  const today = localDateToIso(new Date());
+  const sexOptions = [
+    { value: Sex.Male, label: t("goalBody.sex.male") },
+    { value: Sex.Female, label: t("goalBody.sex.female") },
+  ];
+  const activityOptions = ACTIVITY_LEVELS.map((level) => ({
+    value: level,
+    label: t(`metabolism.activity.${level}.label`),
+    shortLabel: t(`metabolism.activity.${level}.shortLabel`),
+  }));
 
   return (
     <PageTransition>
@@ -135,6 +159,48 @@ export function ProfilePage() {
               </div>
             </div>
 
+            {/* Metabolism inputs: sex / birth date / activity level */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">{t("goalBody.fields.sex")}</Label>
+                <SegmentedControl
+                  options={sexOptions}
+                  value={sex}
+                  onChange={setSex}
+                  ariaLabel={t("goalBody.fields.sex")}
+                  size="sm"
+                />
+                <p className="text-[11px] text-muted-foreground">{t("goalBody.sex.hint")}</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="profile-birth" className="text-xs text-muted-foreground">{t("goalBody.fields.birthDate")}</Label>
+                <DatePicker
+                  id="profile-birth"
+                  value={birthDate}
+                  onChange={(v) => setBirthDate(v ?? "")}
+                  min="1900-01-01"
+                  max={today}
+                  clearable
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">{t("goalBody.fields.activity")}</Label>
+              <SegmentedControl
+                options={activityOptions}
+                value={activityLevel}
+                onChange={setActivityLevel}
+                ariaLabel={t("goalBody.fields.activity")}
+                size="sm"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                {activityLevel != null
+                  ? t(`metabolism.activity.${activityLevel}.description`)
+                  : t("goalBody.activityHint")}
+              </p>
+            </div>
+
             <div className="flex items-center justify-end gap-3">
               {profileSaved && (
                 <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
@@ -147,6 +213,9 @@ export function ProfilePage() {
             </div>
           </div>
         </section>
+
+        {/* Metabolism */}
+        <MetabolismCard />
 
         {/* Sharing */}
         <ShareSettings />
