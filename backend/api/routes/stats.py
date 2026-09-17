@@ -10,9 +10,10 @@ from analysis import (
     compute_plateau_status,
     compute_summary_stats,
     estimate_energy_balance,
+    estimate_metabolism,
 )
 from api.deps import get_current_user, get_store
-from api.schemas import EnergyBalanceOut, PlateauStatusOut, StatsOut
+from api.schemas import EnergyBalanceOut, MetabolismOut, PlateauStatusOut, StatsOut
 
 if TYPE_CHECKING:
     from db import WeightDataStore
@@ -85,3 +86,34 @@ def get_energy_balance(
     """
     df = store.get_all(keycloak_sub)
     return estimate_energy_balance(df)
+
+
+@router.get("/stats/metabolism", response_model=MetabolismOut)
+def get_metabolism(
+    keycloak_sub: str = Depends(get_current_user),
+    store: WeightDataStore = Depends(get_store),
+) -> dict:
+    """Return the BMR / TDEE estimate for the current user.
+
+    Combines the profile inputs (height, sex, birth date, activity level)
+    with the latest weight and the trend-derived energy balance. Always
+    returns a fully-populated payload; ``missing`` lists absent inputs.
+
+    Args:
+        keycloak_sub: Injected from the auth dependency.
+        store: Injected data store.
+
+    Returns:
+        Metabolism estimate dict.
+    """
+    profile = store.get_user_profile(keycloak_sub)
+    df = store.get_all(keycloak_sub)
+    latest_weight = float(df["weight"].iloc[-1]) if not df.empty else None
+    return estimate_metabolism(
+        weight_kg=latest_weight,
+        height_cm=profile["height_cm"],
+        sex=profile["sex"],
+        birth_date=profile["birth_date"],
+        activity_level=profile["activity_level"],
+        energy_balance=estimate_energy_balance(df),
+    )

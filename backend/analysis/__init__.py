@@ -30,6 +30,14 @@ from analysis.medication import (
     compare_trend_around,
     detect_dose_changes,
 )
+from analysis.metabolism import (
+    ACTIVITY_FACTORS,
+    ActivityLevel,
+    Sex,
+    age_from_birth_date,
+    estimate_metabolism,
+    mifflin_st_jeor,
+)
 from analysis.milestones import DEFAULT_MILESTONE_COUNT, project_milestones
 from analysis.models import (
     MODEL_EXP,
@@ -44,10 +52,12 @@ from analysis.stats import SummaryStats, compute_summary_stats
 from analysis.trend import TrendConfig, TrendFit, fit_recent_trend, trend_curve
 
 __all__ = [
+    "ACTIVITY_FACTORS",
     "DEFAULT_MILESTONE_COUNT",
     "ENERGY_DENSITY_KCAL_PER_KG",
     "MODEL_EXP",
     "MODEL_LINEAR",
+    "ActivityLevel",
     "AnalysisConfig",
     "DoseChange",
     "FitResult",
@@ -56,10 +66,12 @@ __all__ = [
     "ModelCurve",
     "ModelDiagnostics",
     "PlateauConfig",
+    "Sex",
     "SummaryStats",
     "TrendComparison",
     "TrendConfig",
     "TrendFit",
+    "age_from_birth_date",
     "build_model_curve",
     "compare_trend_around",
     "compute_derivative",
@@ -70,11 +82,13 @@ __all__ = [
     "detect_dose_changes",
     "energy_series",
     "estimate_energy_balance",
+    "estimate_metabolism",
     "exp_decay",
     "exp_decay_band",
     "extrapolate_fit",
     "fit_exponential_decay",
     "fit_recent_trend",
+    "mifflin_st_jeor",
     "project_goal",
     "project_milestones",
     "trend_curve",

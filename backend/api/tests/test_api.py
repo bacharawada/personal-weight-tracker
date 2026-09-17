@@ -360,6 +360,64 @@ class TestStatsEndpoint:
         assert data["balance_kcal_day"] is None
         assert data["reason"] != ""
 
+    def test_metabolism_missing_inputs(self) -> None:
+        """GET /api/stats/metabolism lists what the profile lacks."""
+        client = _make_client(seed=False)
+        r = client.get("/api/stats/metabolism")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["has_data"] is False
+        assert data["missing"] == ["weight", "height", "sex", "birth_date"]
+        assert data["bmr_kcal"] is None
+
+    def test_metabolism_full_profile(self) -> None:
+        """With a complete profile the BMR, TDEE and intake are all computed."""
+        client = _make_client(seed=True)
+        # Seed measurements are in kg (183.5 -> 168.5): latest is 168.5 kg.
+        today = datetime.date.today()
+        birth = today.replace(year=today.year - 30)
+        client.patch(
+            "/api/me",
+            json={
+                "height_cm": 180.0,
+                "sex": "male",
+                "birth_date": birth.isoformat(),
+                "activity_level": "sedentary",
+            },
+        )
+        r = client.get("/api/stats/metabolism")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["has_data"] is True
+        assert data["missing"] == []
+        assert data["weight_kg"] == 168.5
+        assert data["age_years"] == 30
+        # 10*168.5 + 6.25*180 - 5*30 + 5 = 1685 + 1125 - 150 + 5
+        assert data["bmr_kcal"] == 2665.0
+        assert data["activity_level"] == "sedentary"
+        assert data["tdee_kcal"] == 2665.0 * 1.2
+        assert set(data["tdee_by_level"]) == {
+            "sedentary", "light", "moderate", "active", "very_active",
+        }
+        # Seed data trends down, so the implied intake sits below the TDEE.
+        assert data["intake_kcal"] is not None
+        assert data["intake_kcal"] < data["tdee_kcal"]
+        assert data["intake_low"] <= data["intake_kcal"] <= data["intake_high"]
+
+    def test_metabolism_without_activity_level(self) -> None:
+        """BMR is available even before an activity level is chosen."""
+        client = _make_client(seed=True)
+        client.patch(
+            "/api/me",
+            json={"height_cm": 170.0, "sex": "female", "birth_date": "1985-01-01"},
+        )
+        data = client.get("/api/stats/metabolism").json()
+        assert data["has_data"] is True
+        assert data["bmr_kcal"] is not None
+        assert data["tdee_kcal"] is None
+        assert data["intake_kcal"] is None
+        assert len(data["tdee_by_level"]) == 5
+
 
 # -----------------------------------------------------------------------
 # Plateau detection
@@ -659,6 +717,9 @@ class TestUserEndpoints:
         assert data["theme"] == "light"
         assert data["palette"] == "Classic"
         assert data["language"] is None
+        assert data["sex"] is None
+        assert data["birth_date"] is None
+        assert data["activity_level"] is None
 
     def test_patch_profile_updates_appearance(self) -> None:
         """PATCH /api/me persists theme, palette and language."""
@@ -690,6 +751,53 @@ class TestUserEndpoints:
         """PATCH /api/me rejects an unsupported language."""
         client = _make_client(seed=False)
         assert client.patch("/api/me", json={"language": "de"}).status_code == 422
+
+    def test_patch_profile_updates_metabolism_inputs(self) -> None:
+        """PATCH /api/me persists sex, birth date and activity level."""
+        client = _make_client(seed=False)
+        r = client.patch(
+            "/api/me",
+            json={"sex": "female", "birth_date": "1990-05-20", "activity_level": "light"},
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["sex"] == "female"
+        assert data["birth_date"] == "1990-05-20"
+        assert data["activity_level"] == "light"
+
+    def test_patch_profile_clears_metabolism_inputs(self) -> None:
+        """An explicit null clears each metabolism input."""
+        client = _make_client(seed=False)
+        client.patch(
+            "/api/me",
+            json={"sex": "male", "birth_date": "1990-05-20", "activity_level": "active"},
+        )
+        r = client.patch(
+            "/api/me",
+            json={"sex": None, "birth_date": None, "activity_level": None},
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["sex"] is None
+        assert data["birth_date"] is None
+        assert data["activity_level"] is None
+
+    def test_patch_profile_rejects_bad_sex(self) -> None:
+        """PATCH /api/me rejects a sex outside the formula's two variants."""
+        client = _make_client(seed=False)
+        assert client.patch("/api/me", json={"sex": "other"}).status_code == 422
+
+    def test_patch_profile_rejects_bad_activity_level(self) -> None:
+        """PATCH /api/me rejects an unknown activity level."""
+        client = _make_client(seed=False)
+        assert client.patch("/api/me", json={"activity_level": "olympian"}).status_code == 422
+
+    def test_patch_profile_rejects_implausible_birth_date(self) -> None:
+        """A future birth date and a 150-year-old are both rejected."""
+        client = _make_client(seed=False)
+        future = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
+        assert client.patch("/api/me", json={"birth_date": future}).status_code == 422
+        assert client.patch("/api/me", json={"birth_date": "1850-01-01"}).status_code == 422
 
     def test_patch_profile_updates_fields(self) -> None:
         """PATCH /api/me persists profile fields."""
