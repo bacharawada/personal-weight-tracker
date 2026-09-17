@@ -20,7 +20,7 @@ interface AddMeasurementProps {
 export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
   const { t } = useTranslation("data");
   const { unit } = useWeightTracker();
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(() => localDateToIso(new Date()));
   const [weight, setWeight] = useState("");
   const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -54,7 +54,7 @@ export function AddMeasurement({ onSuccess }: AddMeasurementProps) {
     try {
       await addMeasurement({ date, weight: w, note: note.trim() || undefined });
       setFeedback({ type: "success", msg: t("form.added", { date, weight: entered, unit: u }) });
-      setDate("");
+      setDate(localDateToIso(new Date()));
       setWeight("");
       setNote("");
       onSuccess();
