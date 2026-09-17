@@ -10,13 +10,13 @@ const onboarding = {
   profile: {
     title: "A bit about you",
     description:
-      "Optional — set a goal and height to unlock progress projections and BMI; add your sex, date of birth and activity level for your daily energy expenditure. You can change these anytime in your Profile.",
+      "Optional — set a goal and height to unlock progress projections and BMI; add your formula variant, date of birth and activity level for your daily energy expenditure. You can change these anytime in your Profile.",
     heightLabel: "Height (cm)",
     heightPlaceholder: "e.g. 178",
     goalLabel: "Goal weight ({{unit}})",
     goalPlaceholderKg: "e.g. 75",
     goalPlaceholderLb: "e.g. 165",
-    sexLabel: "Sex",
+    sexLabel: "Metabolic formula",
     birthDateLabel: "Date of birth",
     activityLabel: "Activity level",
     skip: "Skip",

@@ -7,6 +7,14 @@ indirect calorimetry in the general adult population::
     men:    BMR = 10 * weight_kg + 6.25 * height_cm - 5 * age + 5
     women:  BMR = 10 * weight_kg + 6.25 * height_cm - 5 * age - 161
 
+The formula only exists in those two variants. A third ``"other"`` choice
+uses the midpoint of the two constant terms (-78 kcal) and reports the gap to
+either variant as an explicit uncertainty (+/- 83 kcal/day on the BMR), so
+someone who does not want to, or cannot, pick a side still gets a usable
+number with an honest error bar. The variant is a formula input, not an
+identity: for a person on hormone therapy the variant matching their hormonal
+status is the better estimate.
+
 The TDEE scales the BMR by a physical-activity factor (the classic
 1.2 -> 1.9 ladder). Both are population estimates with a typical error of
 about 10 %, so they are a starting point, not a measurement.
@@ -27,7 +35,7 @@ from __future__ import annotations
 import datetime
 from typing import Literal
 
-Sex = Literal["male", "female"]
+Sex = Literal["male", "female", "other"]
 
 ActivityLevel = Literal["sedentary", "light", "moderate", "active", "very_active"]
 
@@ -41,8 +49,20 @@ ACTIVITY_FACTORS: dict[str, float] = {
     "very_active": 1.9,
 }
 
-# Sex-specific constant term of the Mifflin-St Jeor equation.
-_SEX_OFFSET_KCAL: dict[str, float] = {"male": 5.0, "female": -161.0}
+# Constant term of the Mifflin-St Jeor equation per variant. "other" is the
+# midpoint of the two published variants.
+_SEX_OFFSET_KCAL: dict[str, float] = {"male": 5.0, "female": -161.0, "other": -78.0}
+
+# Half the gap between the two published constants: the +/- uncertainty the
+# "other" variant carries on top of the formula's own error.
+_OTHER_HALF_GAP_KCAL = 83.0
+
+# +/- uncertainty on the BMR attributable to the variant choice alone.
+_SEX_UNCERTAINTY_KCAL: dict[str, float] = {
+    "male": 0.0,
+    "female": 0.0,
+    "other": _OTHER_HALF_GAP_KCAL,
+}
 
 
 def age_from_birth_date(birth_date: datetime.date, today: datetime.date) -> int:
@@ -74,13 +94,14 @@ def mifflin_st_jeor(
         weight_kg: Body weight in kilograms.
         height_cm: Height in centimetres.
         age_years: Age in whole years.
-        sex: ``"male"`` or ``"female"`` (the formula's two variants).
+        sex: ``"male"`` or ``"female"`` (the formula's two variants), or
+            ``"other"`` for the midpoint of the two.
 
     Returns:
         Estimated BMR in kcal/day.
 
     Raises:
-        KeyError: If *sex* is not one of the two supported values.
+        KeyError: If *sex* is not one of the supported values.
     """
     return 10.0 * weight_kg + 6.25 * height_cm - 5.0 * age_years + _SEX_OFFSET_KCAL[sex]
 
@@ -101,6 +122,8 @@ def _empty(missing: list[str], reason: str) -> dict:
         "weight_kg": None,
         "age_years": None,
         "bmr_kcal": None,
+        "bmr_low": None,
+        "bmr_high": None,
         "activity_level": None,
         "activity_factor": None,
         "tdee_kcal": None,
@@ -133,8 +156,8 @@ def estimate_metabolism(
         weight_kg: Latest body weight in kilograms, or ``None`` when the user
             has no measurement yet.
         height_cm: Height in centimetres from the profile.
-        sex: ``"male"`` / ``"female"`` from the profile. Any other value is
-            treated as missing.
+        sex: ``"male"`` / ``"female"`` / ``"other"`` from the profile. Any
+            other value is treated as missing.
         birth_date: Date of birth from the profile.
         activity_level: One of :data:`ACTIVITY_FACTORS`'s keys, or ``None``.
             An unknown value is treated as ``None``.
@@ -166,6 +189,7 @@ def estimate_metabolism(
         return _empty(["birth_date"], "Birth date is in the future.")
 
     bmr = mifflin_st_jeor(weight_kg, height_cm, age_years, sex)
+    half_gap = _SEX_UNCERTAINTY_KCAL[sex]
     tdee_by_level = {level: bmr * factor for level, factor in ACTIVITY_FACTORS.items()}
 
     level = activity_level if activity_level in ACTIVITY_FACTORS else None
@@ -184,6 +208,10 @@ def estimate_metabolism(
         "weight_kg": weight_kg,
         "age_years": age_years,
         "bmr_kcal": bmr,
+        # Equal to bmr_kcal for the two published variants; the "other"
+        # midpoint spans the gap to either one.
+        "bmr_low": bmr - half_gap,
+        "bmr_high": bmr + half_gap,
         "activity_level": level,
         "activity_factor": factor,
         "tdee_kcal": tdee,

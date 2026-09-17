@@ -37,7 +37,7 @@ const dashboard: DashboardResource = {
     needDays_other: "Encore {{count}} jours de suivi et ceci se remplit.",
     needGoal: "Définissez un poids cible dans les Paramètres pour débloquer ceci.",
     needHeight: "Ajoutez votre taille dans les Paramètres pour débloquer ceci.",
-    needMetabolism: "Ajoutez votre taille, votre sexe et votre date de naissance dans votre Profil pour débloquer ceci.",
+    needMetabolism: "Ajoutez votre taille, votre variante de formule et votre date de naissance dans votre Profil pour débloquer ceci.",
   },
   trajectory: {
     currentWeight: "Poids actuel",

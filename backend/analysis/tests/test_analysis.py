@@ -1108,10 +1108,16 @@ class TestMifflinStJeor:
         female = mifflin_st_jeor(70.0, 170.0, 35, "female")
         assert male - female == pytest.approx(166.0)
 
+    def test_other_is_the_midpoint(self) -> None:
+        """The 'other' variant sits exactly halfway between male and female."""
+        male = mifflin_st_jeor(70.0, 170.0, 35, "male")
+        female = mifflin_st_jeor(70.0, 170.0, 35, "female")
+        assert mifflin_st_jeor(70.0, 170.0, 35, "other") == pytest.approx((male + female) / 2)
+
     def test_unknown_sex_raises(self) -> None:
         """The low-level formula does not guess for an unsupported value."""
         with pytest.raises(KeyError):
-            mifflin_st_jeor(70.0, 170.0, 35, "other")
+            mifflin_st_jeor(70.0, 170.0, 35, "unknown")
 
 
 class TestEstimateMetabolism:
@@ -1140,9 +1146,21 @@ class TestEstimateMetabolism:
         assert result["missing"] == []
         assert result["age_years"] == 30
         assert result["bmr_kcal"] == pytest.approx(1780.0)
+        # A published variant carries no variant-choice uncertainty.
+        assert result["bmr_low"] == pytest.approx(1780.0)
+        assert result["bmr_high"] == pytest.approx(1780.0)
         assert result["activity_factor"] == pytest.approx(1.55)
         assert result["tdee_kcal"] == pytest.approx(2759.0)
         assert result["reason"] == ""
+
+    def test_other_variant_carries_uncertainty(self) -> None:
+        """'other' yields the midpoint BMR with a +/- 83 kcal band."""
+        result = self._full(sex="other")
+        assert result["has_data"] is True
+        # 800 + 1125 - 150 - 78 = 1697
+        assert result["bmr_kcal"] == pytest.approx(1697.0)
+        assert result["bmr_low"] == pytest.approx(1697.0 - 83.0)
+        assert result["bmr_high"] == pytest.approx(1697.0 + 83.0)
 
     def test_tdee_table_covers_every_level(self) -> None:
         """The per-level table has one entry per activity factor, ordered."""
@@ -1175,7 +1193,7 @@ class TestEstimateMetabolism:
 
     def test_unknown_sex_counts_as_missing(self) -> None:
         """An unsupported sex value degrades to 'missing' rather than raising."""
-        assert self._full(sex="other")["missing"] == ["sex"]
+        assert self._full(sex="unknown")["missing"] == ["sex"]
 
     def test_no_activity_level_keeps_bmr(self) -> None:
         """Without an activity level the BMR and table are still returned."""

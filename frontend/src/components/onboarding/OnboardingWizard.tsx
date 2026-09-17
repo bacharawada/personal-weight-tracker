@@ -66,6 +66,11 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
   const sexOptions = [
     { value: Sex.Male, label: t("goalBody.sex.male", { ns: "profile" }) },
     { value: Sex.Female, label: t("goalBody.sex.female", { ns: "profile" }) },
+    {
+      value: Sex.Other,
+      label: t("goalBody.sex.other", { ns: "profile" }),
+      shortLabel: t("goalBody.sex.otherShort", { ns: "profile" }),
+    },
   ];
   const activityOptions = ACTIVITY_LEVELS.map((level) => ({
     value: level,
@@ -233,7 +238,18 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                 {/* Metabolism inputs — unlock BMR / TDEE */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{t("profile.sexLabel")}</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">{t("profile.sexLabel")}</Label>
+                      {profileSex != null && (
+                        <button
+                          type="button"
+                          onClick={() => setProfileSex(null)}
+                          className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                        >
+                          {t("goalBody.sex.clear", { ns: "profile" })}
+                        </button>
+                      )}
+                    </div>
                     <SegmentedControl
                       options={sexOptions}
                       value={profileSex}

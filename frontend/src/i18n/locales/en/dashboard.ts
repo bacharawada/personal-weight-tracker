@@ -39,7 +39,7 @@ const dashboard = {
     needDays_other: "{{count}} more days of tracking and this fills in.",
     needGoal: "Set a goal weight in Settings to unlock this.",
     needHeight: "Add your height in Settings to unlock this.",
-    needMetabolism: "Add your height, sex and date of birth in your Profile to unlock this.",
+    needMetabolism: "Add your height, formula variant and date of birth in your Profile to unlock this.",
   },
   trajectory: {
     currentWeight: "Current weight",

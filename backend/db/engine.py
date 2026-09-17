@@ -98,8 +98,9 @@ users = sa.Table(
     # the frontend keeps detecting it from the browser.
     sa.Column("language", sa.String(2), nullable=True),
     # -- Metabolism inputs (all optional) ----------------------------------
-    # Biological sex as used by the Mifflin-St Jeor BMR formula. This is a
-    # formula input, not an identity field, and is never shown publicly.
+    # Which variant of the Mifflin-St Jeor BMR formula to use: 'male',
+    # 'female', or 'other' for the midpoint of the two (wider uncertainty).
+    # A formula input, not an identity field, and never shown publicly.
     sa.Column("sex", sa.String(6), nullable=True),
     # Date of birth, used to derive the age term of the BMR formula.
     sa.Column("birth_date", sa.Date, nullable=True),
@@ -141,7 +142,7 @@ users = sa.Table(
         name="ck_language",
     ),
     sa.CheckConstraint(
-        "sex IS NULL OR sex IN ('male', 'female')",
+        "sex IS NULL OR sex IN ('male', 'female', 'other')",
         name="ck_sex",
     ),
     sa.CheckConstraint(

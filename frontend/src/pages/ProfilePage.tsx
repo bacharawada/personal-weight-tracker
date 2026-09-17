@@ -81,6 +81,7 @@ export function ProfilePage() {
   const sexOptions = [
     { value: Sex.Male, label: t("goalBody.sex.male") },
     { value: Sex.Female, label: t("goalBody.sex.female") },
+    { value: Sex.Other, label: t("goalBody.sex.other"), shortLabel: t("goalBody.sex.otherShort") },
   ];
   const activityOptions = ACTIVITY_LEVELS.map((level) => ({
     value: level,
@@ -162,7 +163,18 @@ export function ProfilePage() {
             {/* Metabolism inputs: sex / birth date / activity level */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">{t("goalBody.fields.sex")}</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">{t("goalBody.fields.sex")}</Label>
+                  {sex != null && (
+                    <button
+                      type="button"
+                      onClick={() => setSex(null)}
+                      className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                    >
+                      {t("goalBody.sex.clear")}
+                    </button>
+                  )}
+                </div>
                 <SegmentedControl
                   options={sexOptions}
                   value={sex}
@@ -170,7 +182,9 @@ export function ProfilePage() {
                   ariaLabel={t("goalBody.fields.sex")}
                   size="sm"
                 />
-                <p className="text-[11px] text-muted-foreground">{t("goalBody.sex.hint")}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {sex === Sex.Other ? t("goalBody.sex.otherHint") : t("goalBody.sex.hint")}
+                </p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="profile-birth" className="text-xs text-muted-foreground">{t("goalBody.fields.birthDate")}</Label>

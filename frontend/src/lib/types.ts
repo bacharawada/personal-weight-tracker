@@ -283,11 +283,13 @@ export interface EnergyBalance {
   reason: string;
 }
 
-// Biological sex as an input of the Mifflin-St Jeor BMR formula — not an
-// identity field.
+// Which variant of the Mifflin-St Jeor BMR formula to use — a formula input,
+// not an identity field. `Other` is the midpoint of the two published variants
+// and carries an explicit uncertainty band.
 export const Sex = {
   Male: "male",
   Female: "female",
+  Other: "other",
 } as const;
 export type Sex = (typeof Sex)[keyof typeof Sex];
 
@@ -319,6 +321,9 @@ export interface Metabolism {
   weight_kg: number | null;
   age_years: number | null;
   bmr_kcal: number | null;
+  /** Equal to `bmr_kcal` for male/female; spans the gap to either for `other`. */
+  bmr_low: number | null;
+  bmr_high: number | null;
   activity_level: ActivityLevel | null;
   activity_factor: number | null;
   tdee_kcal: number | null;

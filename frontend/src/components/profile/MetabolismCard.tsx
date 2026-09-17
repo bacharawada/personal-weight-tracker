@@ -10,6 +10,10 @@
  *
  * Each step degrades to a one-line prompt for what is missing rather than
  * hiding the whole card: the BMR alone is already useful.
+ *
+ * When the "other" formula variant is chosen the backend returns a BMR band
+ * (`bmr_low` / `bmr_high`); the card shows it as a +/- next to the BMR and
+ * TDEE so the wider uncertainty is visible where the number is.
  */
 
 import type { ReactNode } from "react";
@@ -99,7 +103,12 @@ export function MetabolismCard() {
   } else if (!metabolism.has_data || metabolism.bmr_kcal == null) {
     body = <MissingInputs metabolism={metabolism} />;
   } else {
-    const { bmr_kcal, tdee_kcal, intake_kcal, intake_low, intake_high } = metabolism;
+    const { bmr_kcal, bmr_low, bmr_high, tdee_kcal, intake_kcal, intake_low, intake_high } =
+      metabolism;
+    // Half-width of the variant-choice band; 0 for the two published variants.
+    const bmrSpread = bmr_low != null && bmr_high != null ? (bmr_high - bmr_low) / 2 : 0;
+    const tdeeSpread =
+      metabolism.activity_factor != null ? bmrSpread * metabolism.activity_factor : 0;
     body = (
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-3">
@@ -111,6 +120,11 @@ export function MetabolismCard() {
                 {t("metabolism.unit")}
               </span>
             </p>
+            {bmrSpread > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                {t("metabolism.plusMinus", { value: formatKcal(bmrSpread, locale) })}
+              </p>
+            )}
           </div>
           <div>
             <p className="text-xs text-gray-500 dark:text-gray-400">{t("metabolism.tdee")}</p>
@@ -123,6 +137,11 @@ export function MetabolismCard() {
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400 ml-1">
                   {t("metabolism.unit")}
                 </span>
+                {tdeeSpread > 0 && (
+                  <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 tabular-nums">
+                    {t("metabolism.plusMinus", { value: formatKcal(tdeeSpread, locale) })}
+                  </span>
+                )}
               </p>
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -167,6 +186,7 @@ export function MetabolismCard() {
               weight: formatWeight(metabolism.weight_kg, unit),
               age: metabolism.age_years,
             })}
+            {bmrSpread > 0 && <> {t("metabolism.otherVariantNote")}</>}
           </p>
         )}
       </div>

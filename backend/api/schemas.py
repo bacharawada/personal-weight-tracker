@@ -437,6 +437,8 @@ class MetabolismOut(BaseModel):
     weight_kg: float | None
     age_years: int | None
     bmr_kcal: float | None
+    bmr_low: float | None
+    bmr_high: float | None
     activity_level: ActivityLevel | None
     activity_factor: float | None
     tdee_kcal: float | None

@@ -394,6 +394,8 @@ class TestStatsEndpoint:
         assert data["age_years"] == 30
         # 10*168.5 + 6.25*180 - 5*30 + 5 = 1685 + 1125 - 150 + 5
         assert data["bmr_kcal"] == 2665.0
+        assert data["bmr_low"] == 2665.0
+        assert data["bmr_high"] == 2665.0
         assert data["activity_level"] == "sedentary"
         assert data["tdee_kcal"] == 2665.0 * 1.2
         assert set(data["tdee_by_level"]) == {
@@ -782,10 +784,17 @@ class TestUserEndpoints:
         assert data["birth_date"] is None
         assert data["activity_level"] is None
 
-    def test_patch_profile_rejects_bad_sex(self) -> None:
-        """PATCH /api/me rejects a sex outside the formula's two variants."""
+    def test_patch_profile_accepts_other_sex(self) -> None:
+        """PATCH /api/me accepts the inclusive 'other' formula variant."""
         client = _make_client(seed=False)
-        assert client.patch("/api/me", json={"sex": "other"}).status_code == 422
+        r = client.patch("/api/me", json={"sex": "other"})
+        assert r.status_code == 200
+        assert r.json()["sex"] == "other"
+
+    def test_patch_profile_rejects_bad_sex(self) -> None:
+        """PATCH /api/me rejects a value outside the formula variants."""
+        client = _make_client(seed=False)
+        assert client.patch("/api/me", json={"sex": "unknown"}).status_code == 422
 
     def test_patch_profile_rejects_bad_activity_level(self) -> None:
         """PATCH /api/me rejects an unknown activity level."""
