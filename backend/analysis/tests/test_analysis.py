@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 from analysis import (
+    ACTIVITY_FACTORS,
     ENERGY_DENSITY_KCAL_PER_KG,
     MODEL_EXP,
     MODEL_LINEAR,
@@ -20,6 +21,7 @@ from analysis import (
     FitResult,
     PlateauConfig,
     TrendConfig,
+    age_from_birth_date,
     build_model_curve,
     compare_trend_around,
     compute_derivative,
@@ -30,11 +32,13 @@ from analysis import (
     detect_dose_changes,
     energy_series,
     estimate_energy_balance,
+    estimate_metabolism,
     exp_decay,
     exp_decay_band,
     extrapolate_fit,
     fit_exponential_decay,
     fit_recent_trend,
+    mifflin_st_jeor,
     project_goal,
     project_milestones,
     trend_curve,
@@ -1060,3 +1064,186 @@ class TestDetectDoseChanges:
     def test_empty_input(self) -> None:
         """No doses yields no change events."""
         assert detect_dose_changes([]) == []
+
+
+# ---------------------------------------------------------------------------
+# Metabolism (BMR / TDEE)
+# ---------------------------------------------------------------------------
+
+
+class TestAgeFromBirthDate:
+    """Tests for ``age_from_birth_date()``."""
+
+    def test_birthday_already_passed(self) -> None:
+        """Age counts the current year once the birthday has passed."""
+        assert age_from_birth_date(datetime.date(1990, 3, 10), datetime.date(2026, 9, 17)) == 36
+
+    def test_birthday_not_yet_reached(self) -> None:
+        """Age is one less before this year's birthday."""
+        assert age_from_birth_date(datetime.date(1990, 12, 1), datetime.date(2026, 9, 17)) == 35
+
+    def test_birthday_today(self) -> None:
+        """The birthday itself already counts as a completed year."""
+        assert age_from_birth_date(datetime.date(1990, 9, 17), datetime.date(2026, 9, 17)) == 36
+
+    def test_future_birth_date_is_negative(self) -> None:
+        """A birth date after today yields a negative age (caller rejects it)."""
+        assert age_from_birth_date(datetime.date(2030, 1, 1), datetime.date(2026, 9, 17)) < 0
+
+
+class TestMifflinStJeor:
+    """Tests for ``mifflin_st_jeor()`` against hand-computed values."""
+
+    def test_male_reference(self) -> None:
+        """80 kg, 180 cm, 30 y male: 800 + 1125 - 150 + 5 = 1780 kcal."""
+        assert mifflin_st_jeor(80.0, 180.0, 30, "male") == pytest.approx(1780.0)
+
+    def test_female_reference(self) -> None:
+        """65 kg, 165 cm, 40 y female: 650 + 1031.25 - 200 - 161 = 1320.25 kcal."""
+        assert mifflin_st_jeor(65.0, 165.0, 40, "female") == pytest.approx(1320.25)
+
+    def test_sexes_differ_by_constant(self) -> None:
+        """Same body, male minus female is exactly the 166 kcal offset gap."""
+        male = mifflin_st_jeor(70.0, 170.0, 35, "male")
+        female = mifflin_st_jeor(70.0, 170.0, 35, "female")
+        assert male - female == pytest.approx(166.0)
+
+    def test_other_is_the_midpoint(self) -> None:
+        """The 'other' variant sits exactly halfway between male and female."""
+        male = mifflin_st_jeor(70.0, 170.0, 35, "male")
+        female = mifflin_st_jeor(70.0, 170.0, 35, "female")
+        assert mifflin_st_jeor(70.0, 170.0, 35, "other") == pytest.approx((male + female) / 2)
+
+    def test_unknown_sex_raises(self) -> None:
+        """The low-level formula does not guess for an unsupported value."""
+        with pytest.raises(KeyError):
+            mifflin_st_jeor(70.0, 170.0, 35, "unknown")
+
+
+class TestEstimateMetabolism:
+    """Tests for ``estimate_metabolism()``."""
+
+    TODAY = datetime.date(2026, 9, 17)
+    BIRTH = datetime.date(1996, 9, 17)  # exactly 30 today
+
+    def _full(self, **overrides: object) -> dict:
+        kwargs: dict = {
+            "weight_kg": 80.0,
+            "height_cm": 180.0,
+            "sex": "male",
+            "birth_date": self.BIRTH,
+            "activity_level": "moderate",
+            "energy_balance": None,
+            "today": self.TODAY,
+        }
+        kwargs.update(overrides)
+        return estimate_metabolism(**kwargs)
+
+    def test_full_inputs(self) -> None:
+        """All inputs present: BMR 1780, TDEE = 1780 * 1.55 = 2759 kcal."""
+        result = self._full()
+        assert result["has_data"] is True
+        assert result["missing"] == []
+        assert result["age_years"] == 30
+        assert result["bmr_kcal"] == pytest.approx(1780.0)
+        # A published variant carries no variant-choice uncertainty.
+        assert result["bmr_low"] == pytest.approx(1780.0)
+        assert result["bmr_high"] == pytest.approx(1780.0)
+        assert result["activity_factor"] == pytest.approx(1.55)
+        assert result["tdee_kcal"] == pytest.approx(2759.0)
+        assert result["reason"] == ""
+
+    def test_other_variant_carries_uncertainty(self) -> None:
+        """'other' yields the midpoint BMR with a +/- 83 kcal band."""
+        result = self._full(sex="other")
+        assert result["has_data"] is True
+        # 800 + 1125 - 150 - 78 = 1697
+        assert result["bmr_kcal"] == pytest.approx(1697.0)
+        assert result["bmr_low"] == pytest.approx(1697.0 - 83.0)
+        assert result["bmr_high"] == pytest.approx(1697.0 + 83.0)
+
+    def test_tdee_table_covers_every_level(self) -> None:
+        """The per-level table has one entry per activity factor, ordered."""
+        table = self._full()["tdee_by_level"]
+        assert list(table) == list(ACTIVITY_FACTORS)
+        for level, factor in ACTIVITY_FACTORS.items():
+            assert table[level] == pytest.approx(1780.0 * factor)
+
+    def test_missing_inputs_are_listed(self) -> None:
+        """Each absent body input is named so the UI can ask for it."""
+        result = estimate_metabolism(
+            weight_kg=None,
+            height_cm=None,
+            sex=None,
+            birth_date=None,
+            activity_level=None,
+            today=self.TODAY,
+        )
+        assert result["has_data"] is False
+        assert result["missing"] == ["weight", "height", "sex", "birth_date"]
+        assert result["bmr_kcal"] is None
+        assert result["tdee_by_level"] == {}
+        assert result["reason"] != ""
+
+    def test_only_missing_field_is_reported(self) -> None:
+        """A single absent input yields a single-item ``missing`` list."""
+        result = self._full(sex=None)
+        assert result["has_data"] is False
+        assert result["missing"] == ["sex"]
+
+    def test_unknown_sex_counts_as_missing(self) -> None:
+        """An unsupported sex value degrades to 'missing' rather than raising."""
+        assert self._full(sex="unknown")["missing"] == ["sex"]
+
+    def test_no_activity_level_keeps_bmr(self) -> None:
+        """Without an activity level the BMR and table are still returned."""
+        result = self._full(activity_level=None)
+        assert result["has_data"] is True
+        assert result["bmr_kcal"] == pytest.approx(1780.0)
+        assert result["tdee_kcal"] is None
+        assert result["activity_factor"] is None
+        assert result["intake_kcal"] is None
+        assert len(result["tdee_by_level"]) == len(ACTIVITY_FACTORS)
+
+    def test_unknown_activity_level_treated_as_none(self) -> None:
+        """A stale/unknown level does not crash and yields no TDEE."""
+        result = self._full(activity_level="olympian")
+        assert result["has_data"] is True
+        assert result["activity_level"] is None
+        assert result["tdee_kcal"] is None
+
+    def test_future_birth_date(self) -> None:
+        """A birth date after today is rejected gracefully."""
+        result = self._full(birth_date=datetime.date(2030, 1, 1))
+        assert result["has_data"] is False
+        assert result["missing"] == ["birth_date"]
+
+    def test_intake_from_energy_balance(self) -> None:
+        """Intake = TDEE + balance, with the balance range carried over."""
+        balance = {
+            "has_data": True,
+            "balance_kcal_day": -500.0,
+            "balance_low": -700.0,
+            "balance_high": -300.0,
+        }
+        result = self._full(energy_balance=balance)
+        assert result["intake_kcal"] == pytest.approx(2259.0)
+        assert result["intake_low"] == pytest.approx(2059.0)
+        assert result["intake_high"] == pytest.approx(2459.0)
+
+    def test_intake_needs_energy_data(self) -> None:
+        """An energy balance without data leaves the intake fields empty."""
+        result = self._full(energy_balance={"has_data": False})
+        assert result["tdee_kcal"] == pytest.approx(2759.0)
+        assert result["intake_kcal"] is None
+
+    def test_intake_needs_activity_level(self) -> None:
+        """Without a TDEE there is nothing to add the balance to."""
+        balance = {
+            "has_data": True,
+            "balance_kcal_day": -500.0,
+            "balance_low": -700.0,
+            "balance_high": -300.0,
+        }
+        result = self._full(activity_level=None, energy_balance=balance)
+        assert result["intake_kcal"] is None

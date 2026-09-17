@@ -39,6 +39,7 @@ const dashboard = {
     needDays_other: "{{count}} more days of tracking and this fills in.",
     needGoal: "Set a goal weight in Settings to unlock this.",
     needHeight: "Add your height in Settings to unlock this.",
+    needMetabolism: "Add your height, formula variant and date of birth in your Profile to unlock this.",
   },
   trajectory: {
     currentWeight: "Current weight",
@@ -159,6 +160,15 @@ const dashboard = {
     explainer:
       "A plateau: your trend has stayed within 0.1 kg/week for at least 14 days.",
     insufficientData: "Add a few more measurements to see your plateau status.",
+  },
+  metabolism: {
+    label: "Daily energy expenditure",
+    unit: "kcal/day",
+    bmr: "Basal metabolic rate {{value}} kcal/day",
+    pickActivity: "Basal rate — pick an activity level in your Profile for the full figure.",
+    intake: "Estimated intake ~{{value}} kcal/day",
+    intakeRange: "{{low}} to {{high}} kcal/day",
+    unavailable: "Add a weigh-in to estimate your daily expenditure.",
   },
   energy: {
     label: "Estimated energy balance",

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, Flame, Footprints, Target } from "lucide-react";
+import { Activity, Flame, Footprints, Gauge, Target } from "lucide-react";
 import { useWeightTracker } from "../context/WeightTrackerContext";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PageTitle } from "../components/layout/PageTitle";
@@ -10,6 +10,7 @@ import { EnergyTile } from "../components/dashboard/EnergyTile";
 import { TrajectoryPanel } from "../components/dashboard/TrajectoryPanel";
 import { GoalRingTile } from "../components/dashboard/GoalRingTile";
 import { BmiTile } from "../components/dashboard/BmiTile";
+import { MetabolismTile } from "../components/dashboard/MetabolismTile";
 import { MilestonesTile } from "../components/dashboard/MilestonesTile";
 import { ConsistencyTile } from "../components/dashboard/ConsistencyTile";
 import { MomentumTile } from "../components/dashboard/MomentumTile";
@@ -49,6 +50,7 @@ export function DashboardPage() {
     plateau,
     energy,
     energySeries,
+    metabolism,
     doseChanges,
     measurements,
     latest,
@@ -128,7 +130,7 @@ export function DashboardPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
               <ConsistencyTile consistency={consistency} />
 
               {gates.hasTrend ? (
@@ -148,6 +150,17 @@ export function DashboardPage() {
                   label={t("energy.label")}
                   icon={<Flame size={16} />}
                   hint={t("locked.needDays", { count: gates.daysToEnergy })}
+                />
+              )}
+
+              {gates.hasMetabolism ? (
+                <MetabolismTile metabolism={metabolism} />
+              ) : (
+                <LockedTile
+                  label={t("metabolism.label")}
+                  icon={<Gauge size={16} />}
+                  hint={t("locked.needMetabolism")}
+                  to="/profile"
                 />
               )}
 

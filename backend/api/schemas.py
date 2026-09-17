@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 
 # noqa: TC001 below — Pydantic needs the Literal at runtime to build the
 # validator for GoalProjectionOut.status.
-from analysis import GoalStatus  # noqa: TC001
+from analysis import ActivityLevel, GoalStatus, Sex, age_from_birth_date  # noqa: TC001
 
 if TYPE_CHECKING:
     from pydantic.fields import FieldInfo
@@ -422,6 +422,33 @@ class EnergyBalanceOut(BaseModel):
     reason: str
 
 
+class MetabolismOut(BaseModel):
+    """Response model for the BMR / TDEE estimate (GET /api/stats/metabolism).
+
+    ``has_data`` is ``True`` once the BMR can be computed (latest weight,
+    height, sex and birth date all known); ``missing`` lists the absent inputs
+    otherwise. ``tdee_kcal`` and the intake fields additionally need an
+    ``activity_level``, and the intake fields need an energy-balance estimate,
+    so each may be ``None`` even when ``has_data`` is ``True``.
+    """
+
+    has_data: bool
+    missing: list[str]
+    weight_kg: float | None
+    age_years: int | None
+    bmr_kcal: float | None
+    bmr_low: float | None
+    bmr_high: float | None
+    activity_level: ActivityLevel | None
+    activity_factor: float | None
+    tdee_kcal: float | None
+    tdee_by_level: dict[str, float]
+    intake_kcal: float | None
+    intake_low: float | None
+    intake_high: float | None
+    reason: str
+
+
 # ---------------------------------------------------------------------------
 # DB polling
 # ---------------------------------------------------------------------------
@@ -453,6 +480,9 @@ class UserProfileOut(BaseModel):
     theme: Literal["light", "dark"]
     palette: str
     language: Literal["en", "fr"] | None
+    sex: Sex | None
+    birth_date: datetime.date | None
+    activity_level: ActivityLevel | None
 
 
 class UserProfileUpdate(BaseModel):
@@ -462,7 +492,8 @@ class UserProfileUpdate(BaseModel):
     ``null`` clears the corresponding value. ``unit_preference``,
     ``date_order``, ``date_separator``, ``theme`` and ``palette`` back
     ``NOT NULL`` columns, so ``null`` is treated as "leave unchanged" for them.
-    ``language`` is genuinely nullable: clearing it restores browser detection.
+    ``language`` is genuinely nullable: clearing it restores browser detection,
+    as are the metabolism inputs (``sex``, ``birth_date``, ``activity_level``).
     """
 
     height_cm: float | None = Field(default=None, ge=50.0, le=300.0)
@@ -474,6 +505,30 @@ class UserProfileUpdate(BaseModel):
     theme: Literal["light", "dark"] | None = None
     palette: str | None = Field(default=None, max_length=20)
     language: Literal["en", "fr"] | None = None
+    sex: Sex | None = None
+    birth_date: datetime.date | None = None
+    activity_level: ActivityLevel | None = None
+
+    @field_validator("birth_date")
+    @classmethod
+    def _birth_date_plausible(cls, value: datetime.date | None) -> datetime.date | None:
+        """Reject birth dates that give an age outside 10-120 years.
+
+        Args:
+            value: Candidate birth date, or ``None`` to clear it.
+
+        Returns:
+            The validated value unchanged.
+
+        Raises:
+            ValueError: If the implied age is under 10 or over 120.
+        """
+        if value is None:
+            return None
+        age = age_from_birth_date(value, datetime.date.today())
+        if age < 10 or age > 120:
+            raise ValueError("birth_date must give an age between 10 and 120 years")
+        return value
 
 
 class DisplayPreferencesOut(BaseModel):

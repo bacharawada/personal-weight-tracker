@@ -78,7 +78,8 @@ class WeightDataStore:
             Dict with keys ``id``, ``keycloak_sub``, ``onboarding_completed``,
             ``height_cm``, ``goal_weight``, ``target_date``,
             ``unit_preference``, ``date_order``, ``date_separator``, ``theme``,
-            ``palette`` and ``language``.
+            ``palette``, ``language``, ``sex``, ``birth_date`` and
+            ``activity_level``.
         """
         user_id = self.get_or_create_user(keycloak_sub)
         with self._engine.connect() as conn:
@@ -96,6 +97,9 @@ class WeightDataStore:
                     users.c.theme,
                     users.c.palette,
                     users.c.language,
+                    users.c.sex,
+                    users.c.birth_date,
+                    users.c.activity_level,
                 ).where(users.c.id == user_id)
             ).fetchone()
         if row is None:
@@ -113,6 +117,9 @@ class WeightDataStore:
             "theme": row[9],
             "palette": row[10],
             "language": row[11],
+            "sex": row[12],
+            "birth_date": row[13],
+            "activity_level": row[14],
         }
 
     def get_display_preferences_by_user_id(self, user_id: int) -> dict:
@@ -153,7 +160,8 @@ class WeightDataStore:
 
         Only the keys present in *fields* are written, so callers can
         perform partial (PATCH-style) updates. Allowed keys: ``height_cm``,
-        ``goal_weight``, ``target_date``, ``language``, ``unit_preference``,
+        ``goal_weight``, ``target_date``, ``language``, ``sex``,
+        ``birth_date``, ``activity_level``, ``unit_preference``,
         ``date_order``, ``date_separator``, ``theme``, ``palette``. A ``None``
         value clears the corresponding column, except for the ``NOT NULL``
         preferences: passing ``None`` for those leaves them unchanged rather
@@ -165,7 +173,15 @@ class WeightDataStore:
         """
         # ``language`` is nullable: clearing it means "go back to detecting the
         # language from the browser".
-        nullable = {"height_cm", "goal_weight", "target_date", "language"}
+        nullable = {
+            "height_cm",
+            "goal_weight",
+            "target_date",
+            "language",
+            "sex",
+            "birth_date",
+            "activity_level",
+        }
         non_nullable = {
             "unit_preference",
             "date_order",

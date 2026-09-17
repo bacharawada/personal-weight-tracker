@@ -10,12 +10,15 @@ const onboarding: OnboardingResource = {
   profile: {
     title: "Un peu à propos de vous",
     description:
-      "Facultatif — définissez un objectif et une taille pour débloquer les projections de progression et l'IMC. Vous pouvez les modifier à tout moment dans les Paramètres.",
+      "Facultatif — définissez un objectif et une taille pour débloquer les projections de progression et l'IMC ; ajoutez votre variante de formule, votre date de naissance et votre niveau d'activité pour votre dépense énergétique journalière. Vous pouvez les modifier à tout moment dans votre Profil.",
     heightLabel: "Taille (cm)",
     heightPlaceholder: "ex. 178",
     goalLabel: "Poids cible ({{unit}})",
     goalPlaceholderKg: "ex. 75",
     goalPlaceholderLb: "ex. 165",
+    sexLabel: "Formule métabolique",
+    birthDateLabel: "Date de naissance",
+    activityLabel: "Niveau d'activité",
     skip: "Passer",
   },
   welcome: {

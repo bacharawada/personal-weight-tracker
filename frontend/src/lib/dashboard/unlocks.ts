@@ -31,6 +31,8 @@ export interface DashboardGates {
   hasEnergy: boolean;
   hasGoal: boolean;
   hasHeight: boolean;
+  /** Height, sex and birth date all set — the BMR formula has its inputs. */
+  hasMetabolism: boolean;
   /** Measurements still missing for `hasTrend`; 0 once met. */
   measurementsToTrend: number;
   /** Days still missing for `hasTrend`; 0 once met. */
@@ -60,6 +62,8 @@ export function computeGates(
     hasEnergy: points >= MIN_TREND_POINTS && days >= MIN_ENERGY_DAYS,
     hasGoal: profile?.goal_weight != null,
     hasHeight: profile?.height_cm != null,
+    hasMetabolism:
+      profile?.height_cm != null && profile.sex != null && profile.birth_date != null,
     measurementsToTrend: Math.max(0, MIN_TREND_POINTS - points),
     daysToTrend: Math.max(0, MIN_TREND_DAYS - days),
     daysToEnergy: Math.max(0, MIN_ENERGY_DAYS - days),

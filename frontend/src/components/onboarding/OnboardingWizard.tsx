@@ -16,8 +16,10 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { Scale, FileUp, PenLine, ArrowRight, CheckCircle, Plus } from "lucide-react";
 import { completeOnboarding, updateProfile } from "../../lib/api";
-import type { CsvImportResult } from "../../lib/types";
-import { WeightUnit } from "../../lib/types";
+import type { ActivityLevel, CsvImportResult } from "../../lib/types";
+import { Sex, WeightUnit } from "../../lib/types";
+import { localDateToIso } from "../../lib/dates";
+import { ACTIVITY_LEVELS } from "../../lib/metabolism";
 import { displayToKg, unitLabel } from "../../lib/units";
 import { useMeasurementCsvDataset } from "../../lib/csv/datasets";
 import { CsvImport } from "./CsvImport";
@@ -25,6 +27,8 @@ import { AddMeasurement } from "../forms/AddMeasurement";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { DatePicker } from "../ui/date-picker";
+import { SegmentedControl } from "../ui/segmented-control";
 import { ActionCard } from "../ui/ActionCard";
 
 interface Props {
@@ -53,10 +57,34 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
   const [profileUnit, setProfileUnit] = useState<WeightUnit>(WeightUnit.Kg);
   const [profileHeight, setProfileHeight] = useState("");
   const [profileGoal, setProfileGoal] = useState("");
+  const [profileSex, setProfileSex] = useState<Sex | null>(null);
+  const [profileBirthDate, setProfileBirthDate] = useState("");
+  const [profileActivity, setProfileActivity] = useState<ActivityLevel | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const today = localDateToIso(new Date());
+  const sexOptions = [
+    { value: Sex.Male, label: t("goalBody.sex.male", { ns: "profile" }) },
+    { value: Sex.Female, label: t("goalBody.sex.female", { ns: "profile" }) },
+    {
+      value: Sex.Other,
+      label: t("goalBody.sex.other", { ns: "profile" }),
+      shortLabel: t("goalBody.sex.otherShort", { ns: "profile" }),
+    },
+  ];
+  const activityOptions = ACTIVITY_LEVELS.map((level) => ({
+    value: level,
+    label: t(`metabolism.activity.${level}.label`, { ns: "profile" }),
+    shortLabel: t(`metabolism.activity.${level}.shortLabel`, { ns: "profile" }),
+  }));
+
   async function saveProfileAndContinue() {
-    const hasInput = profileHeight.trim() !== "" || profileGoal.trim() !== "";
+    const hasInput =
+      profileHeight.trim() !== "" ||
+      profileGoal.trim() !== "" ||
+      profileSex !== null ||
+      profileBirthDate.trim() !== "" ||
+      profileActivity !== null;
     if (hasInput || profileUnit !== WeightUnit.Kg) {
       try {
         setSavingProfile(true);
@@ -67,6 +95,9 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
             profileGoal.trim() === ""
               ? null
               : displayToKg(parseFloat(profileGoal), profileUnit),
+          sex: profileSex,
+          birth_date: profileBirthDate.trim() === "" ? null : profileBirthDate,
+          activity_level: profileActivity,
         });
       } catch {
         // non-fatal — the user can set these later in Settings
@@ -202,6 +233,53 @@ export function OnboardingWizard({ onComplete, accent }: Props) {
                       className="h-9 text-sm"
                     />
                   </div>
+                </div>
+
+                {/* Metabolism inputs — unlock BMR / TDEE */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">{t("profile.sexLabel")}</Label>
+                      {profileSex != null && (
+                        <button
+                          type="button"
+                          onClick={() => setProfileSex(null)}
+                          className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                        >
+                          {t("goalBody.sex.clear", { ns: "profile" })}
+                        </button>
+                      )}
+                    </div>
+                    <SegmentedControl
+                      options={sexOptions}
+                      value={profileSex}
+                      onChange={setProfileSex}
+                      ariaLabel={t("profile.sexLabel")}
+                      size="sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="onb-birth" className="text-xs text-muted-foreground">{t("profile.birthDateLabel")}</Label>
+                    <DatePicker
+                      id="onb-birth"
+                      value={profileBirthDate}
+                      onChange={(v) => setProfileBirthDate(v ?? "")}
+                      min="1900-01-01"
+                      max={today}
+                      clearable
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t("profile.activityLabel")}</Label>
+                  <SegmentedControl
+                    options={activityOptions}
+                    value={profileActivity}
+                    onChange={setProfileActivity}
+                    ariaLabel={t("profile.activityLabel")}
+                    size="sm"
+                  />
                 </div>
 
                 <div className="flex gap-3 justify-between pt-2">

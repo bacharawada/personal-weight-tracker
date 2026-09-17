@@ -97,6 +97,16 @@ users = sa.Table(
     # UI language, or NULL when the user has never picked one — in that case
     # the frontend keeps detecting it from the browser.
     sa.Column("language", sa.String(2), nullable=True),
+    # -- Metabolism inputs (all optional) ----------------------------------
+    # Which variant of the Mifflin-St Jeor BMR formula to use: 'male',
+    # 'female', or 'other' for the midpoint of the two (wider uncertainty).
+    # A formula input, not an identity field, and never shown publicly.
+    sa.Column("sex", sa.String(6), nullable=True),
+    # Date of birth, used to derive the age term of the BMR formula.
+    sa.Column("birth_date", sa.Date, nullable=True),
+    # Physical-activity level driving the BMR -> TDEE multiplier. The factor
+    # table lives in analysis/metabolism.py.
+    sa.Column("activity_level", sa.String(11), nullable=True),
     sa.Column(
         "created_at",
         sa.DateTime(timezone=True),
@@ -130,6 +140,15 @@ users = sa.Table(
     sa.CheckConstraint(
         "language IS NULL OR language IN ('en', 'fr')",
         name="ck_language",
+    ),
+    sa.CheckConstraint(
+        "sex IS NULL OR sex IN ('male', 'female', 'other')",
+        name="ck_sex",
+    ),
+    sa.CheckConstraint(
+        "activity_level IS NULL OR activity_level IN "
+        "('sedentary', 'light', 'moderate', 'active', 'very_active')",
+        name="ck_activity_level",
     ),
 )
 

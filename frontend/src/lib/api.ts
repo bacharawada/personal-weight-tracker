@@ -15,6 +15,7 @@ import type {
   DoseImpact,
   EnergyBalance,
   EnergyChartData,
+  Metabolism,
   GoalProjection,
   Measurement,
   MeasurementIn,
@@ -222,6 +223,14 @@ export async function getGoalMilestones(): Promise<MilestonesProjection> {
 
 export async function getEnergyBalance(): Promise<EnergyBalance> {
   return fetchJson<EnergyBalance>(`${BASE}/stats/energy`);
+}
+
+// ---------------------------------------------------------------------------
+// Metabolism (BMR / TDEE)
+// ---------------------------------------------------------------------------
+
+export async function getMetabolism(): Promise<Metabolism> {
+  return fetchJson<Metabolism>(`${BASE}/stats/metabolism`);
 }
 
 // ---------------------------------------------------------------------------
