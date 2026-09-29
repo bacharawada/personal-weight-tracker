@@ -7,7 +7,7 @@
  */
 
 import { useTranslation } from "react-i18next";
-import { useWeightTracker } from "../../../context/WeightTrackerContext";
+import { useDisplayPreferences } from "../../../context/DisplayPreferencesContext";
 import { kgToDisplay, unitLabel } from "../../../lib/units";
 
 /** Below this magnitude (kg) a change is scale noise, not a trend. */
@@ -21,7 +21,7 @@ interface DeltaStatProps {
 
 export function DeltaStat({ label, valueKg }: DeltaStatProps) {
   const { t } = useTranslation("dashboard");
-  const { unit } = useWeightTracker();
+  const { unit } = useDisplayPreferences();
 
   const isFlat = valueKg == null || Math.abs(valueKg) < FLAT_THRESHOLD_KG;
   const color = isFlat
