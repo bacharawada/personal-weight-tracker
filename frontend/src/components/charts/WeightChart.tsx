@@ -103,9 +103,13 @@ export function WeightChart({
   }, [data, onDataLoaded]);
 
   // Medication doses are fetched independently (never part of the chart
-  // payload) and overlaid client-side. Refetch on data changes only.
+  // payload) and overlaid client-side. Refetch on data changes only. Skipped
+  // while the markers are hidden: the public share page never shows them, and
+  // the endpoint is authenticated, so fetching there would only 401.
   const [doses, setDoses] = useState<MedicationDose[]>([]);
+  const showDoses = params.showDoses;
   useEffect(() => {
+    if (!showDoses) return;
     let cancelled = false;
     getMedications()
       .then((result) => {
@@ -117,7 +121,7 @@ export function WeightChart({
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, showDoses]);
 
   const palette = getPalette(params.palette);
   const theme = getChartTheme(params.dark);

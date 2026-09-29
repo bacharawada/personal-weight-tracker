@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { ChartAxes, ChartPoint, EffectiveAxes } from "../../lib/types";
 import { DatePicker } from "../ui/date-picker";
-import { SegmentedControl } from "../ui/segmented-control";
+import { RangePresets } from "./RangePresets";
 import { computeRangePreset } from "../../lib/charts/rangePreset";
 import {
   CHART_HEIGHT_MAX,
@@ -32,13 +32,6 @@ function parseNum(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-const RANGE_PRESETS = [
-  { key: "weeks4", days: 28 },
-  { key: "months3", days: 90 },
-  { key: "months6", days: 180 },
-  { key: "all", days: null },
-] as const;
-
 const inputClass =
   "w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 " +
   "px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 " +
@@ -61,13 +54,6 @@ export function AxisControls({
   const autoHeight = defaultChartHeight();
   const isCustom =
     JSON.stringify(axes) !== JSON.stringify(allPreset) || height !== autoHeight;
-  const activeAxes = JSON.stringify(axes);
-  // Which preset the current axes correspond to, if any — manual edits match none.
-  const activePreset = points.length === 0
-    ? null
-    : RANGE_PRESETS.find(
-        (preset) => JSON.stringify(computeRangePreset(points, preset.days)) === activeAxes,
-      )?.key ?? null;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-5">
@@ -94,20 +80,7 @@ export function AxisControls({
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
           {t("axes.presets")}
         </p>
-        <SegmentedControl
-          options={RANGE_PRESETS.map((preset) => ({
-            value: preset.key,
-            label: t(`axes.presetLabels.${preset.key}`),
-            shortLabel: t(`axes.presetShortLabels.${preset.key}`),
-            disabled: points.length === 0,
-          }))}
-          value={activePreset}
-          onChange={(key) => {
-            const preset = RANGE_PRESETS.find((candidate) => candidate.key === key);
-            if (preset) onChange(computeRangePreset(points, preset.days));
-          }}
-          ariaLabel={t("axes.presets")}
-        />
+        <RangePresets axes={axes} onChange={onChange} points={points} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">

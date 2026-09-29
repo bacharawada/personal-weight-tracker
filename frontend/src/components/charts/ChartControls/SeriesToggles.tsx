@@ -8,6 +8,11 @@ interface SeriesTogglesProps {
   params: ChartParams;
   onChange: (params: ChartParams) => void;
   className?: string;
+  /**
+   * Offer the medication-dose pill. The public share page turns it off: the
+   * dose journal is health data that is never shared.
+   */
+  hasDosesToggle?: boolean;
 }
 
 /**
@@ -16,7 +21,12 @@ interface SeriesTogglesProps {
  * The uncertainty band is drawn per model, so with no model enabled it has nothing
  * to shade — its pill is disabled rather than silently doing nothing.
  */
-export function SeriesToggles({ params, onChange, className }: SeriesTogglesProps) {
+export function SeriesToggles({
+  params,
+  onChange,
+  className,
+  hasDosesToggle = true,
+}: SeriesTogglesProps) {
   const { t } = useTranslation("analysis");
   const { t: tMed } = useTranslation("medication");
   const palette = getPalette(params.palette);
@@ -51,12 +61,14 @@ export function SeriesToggles({ params, onChange, className }: SeriesTogglesProp
           disabled={!hasModel}
           title={hasModel ? undefined : t("controls.bandNeedsModel")}
         />
-        <TogglePill
-          label={tMed("chart.toggle")}
-          isPressed={params.showDoses}
-          onPressedChange={(isPressed) => onChange({ ...params, showDoses: isPressed })}
-          swatchColor={palette.accent}
-        />
+        {hasDosesToggle && (
+          <TogglePill
+            label={tMed("chart.toggle")}
+            isPressed={params.showDoses}
+            onPressedChange={(isPressed) => onChange({ ...params, showDoses: isPressed })}
+            swatchColor={palette.accent}
+          />
+        )}
       </div>
     </ControlGroup>
   );
