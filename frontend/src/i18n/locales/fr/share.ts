@@ -10,8 +10,10 @@ const share: ShareResource = {
   badge: "Lecture seule",
   title: "Tableau de bord partagé",
   subtitle: "Une vue en lecture seule d'un suivi de poids.",
-  chartHeading: "Évolution du poids",
-  statsHeading: "Résumé",
+  daysTracked_one: "{{count}} jour de suivi",
+  daysTracked_other: "{{count}} jours de suivi",
+  measurementCount_one: "{{count}} pesée",
+  measurementCount_other: "{{count}} pesées",
   invalidTitle: "Lien indisponible",
   invalidBody:
     "Ce lien de partage est invalide ou a été désactivé par son propriétaire.",
