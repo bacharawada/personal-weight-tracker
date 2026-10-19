@@ -3,10 +3,10 @@
  *
  * Renders a read-only take on the analysis page's weight chart — the owner's
  * trajectory, the model headline numbers and the chart itself, with light
- * controls (quick ranges, series) for the visitor — for whoever owns the share
- * token. It lives entirely outside the auth context and the app shell: it
- * fetches the token-scoped public endpoints directly, manages its own
- * light/dark theme, and offers an in-page language switch. An invalid or
+ * controls (quick ranges, series, chart height) for the visitor — for whoever
+ * owns the share token. It lives entirely outside the auth context and the app
+ * shell: it fetches the token-scoped public endpoints directly, manages its
+ * own light/dark theme, and offers an in-page language switch. An invalid or
  * revoked token shows a clean "link unavailable" message.
  *
  * The visitor has no account, so weights and dates render with the *owner's*
@@ -76,7 +76,7 @@ export function SharePage() {
   );
   const [series, setSeries] = useState<SeriesParams>(DEFAULT_SERIES);
   const [axes, setAxes] = useState<ChartAxes>(WEIGHT_AXES_DEFAULT);
-  const [chartHeight] = useState<number>(defaultChartHeight);
+  const [chartHeight, setChartHeight] = useState<number>(defaultChartHeight);
   const [weightData, setWeightData] = useState<WeightChartData | null>(null);
 
   useEffect(() => {
@@ -171,6 +171,8 @@ export function SharePage() {
               axes={axes}
               onAxesChange={setAxes}
               points={points}
+              height={chartHeight}
+              onHeightChange={setChartHeight}
             />
 
             <ModelStatsStrip
@@ -179,7 +181,7 @@ export function SharePage() {
             />
 
             {/* The height lives on a wrapper, not the card: it is a runtime pixel
-                value resolved from the viewport, which Tailwind cannot express. */}
+                value from the height slider, which Tailwind cannot express. */}
             <div style={{ height: chartHeight }}>
               <WeightChart
                 params={params}
