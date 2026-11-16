@@ -45,6 +45,10 @@ class AnalysisConfig:
         recency_halflife_days: Half-life (days) for recency weighting. Points
             this many days older than the latest get half the influence on
             the fit. ``None`` disables recency weighting (equal weights).
+        max_relative_param_std: Largest ``std / |value|`` a fitted parameter
+            may have before the fit is deemed degenerate. Above 1 the
+            one-sigma interval spans zero, i.e. the data does not constrain
+            the parameter at all.
     """
 
     smoothing_window: int = 5
@@ -56,6 +60,7 @@ class AnalysisConfig:
         (500.0, 0.5, 300.0),
     )
     recency_halflife_days: float | None = 60.0
+    max_relative_param_std: float = 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +106,10 @@ class FitResult:
             non-finite (e.g. an under-determined fit).
         warning: Non-fatal diagnostic — set when the fit succeeds but is
             implausible (e.g. no real decay), empty otherwise.
+        is_degenerate: Whether the data fails to constrain the parameters (one
+            pinned to a bound, or an unusable / huge relative uncertainty).
+            The curve is still drawable, but its covariance is meaningless, so
+            no uncertainty band should be derived from it.
     """
 
     params: tuple[float, float, float] = (0.0, 0.0, 0.0)
@@ -113,11 +122,46 @@ class FitResult:
     param_std: tuple[float, float, float] | None = None
     pcov: NDArray[np.floating] = field(default_factory=lambda: np.array([]))
     warning: str = ""
+    is_degenerate: bool = False
 
 
 # ---------------------------------------------------------------------------
 # Curve fit
 # ---------------------------------------------------------------------------
+
+
+def _is_degenerate_fit(
+    params: tuple[float, float, float],
+    param_std: tuple[float, float, float] | None,
+    bounds: tuple[tuple[float, float, float], tuple[float, float, float]],
+    max_relative_std: float,
+) -> bool:
+    """Tell whether a bounded fit's parameters are actually constrained.
+
+    A short, near-linear series cannot separate the amplitude ``a`` from the
+    asymptote ``c`` (only ``a + c`` is pinned down): the solver then stops
+    against a bound and reports a covariance that is meaningless there.
+
+    Args:
+        params: Fitted ``(a, b, c)``.
+        param_std: One-sigma standard errors, ``None`` when the covariance is
+            unusable.
+        bounds: The ``(lower, upper)`` bounds the fit was run with.
+        max_relative_std: Largest acceptable ``std / |value|``.
+
+    Returns:
+        ``True`` when any parameter sits on a bound or is unconstrained.
+    """
+    if param_std is None:
+        return True
+    lower, upper = bounds
+    for value, std, low, high in zip(params, param_std, lower, upper, strict=True):
+        tolerance = 1e-6 * max(1.0, abs(low), abs(high))
+        if value - low <= tolerance or high - value <= tolerance:
+            return True
+        if value == 0.0 or std / abs(value) > max_relative_std:
+            return True
+    return False
 
 
 def fit_exponential_decay(
@@ -209,6 +253,15 @@ def fit_exponential_decay(
             "its projection is unreliable."
         )
 
+    result.is_degenerate = _is_degenerate_fit(
+        result.params, result.param_std, config.fit_bounds, config.max_relative_param_std
+    )
+    if result.is_degenerate and not result.warning:
+        result.warning = (
+            "Not enough curvature in the data yet to estimate an equilibrium "
+            "weight; the exponential projection is unreliable."
+        )
+
     return result
 
 
@@ -250,13 +303,15 @@ def exp_decay_band(
     pcov: NDArray[np.floating],
     n_samples: int = 200,
     confidence: float = 0.95,
+    bounds: tuple[tuple[float, float, float], tuple[float, float, float]] | None = None,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Monte-Carlo confidence band for the exponential-decay curve.
 
-    Samples parameter sets from ``multivariate_normal(popt, pcov)``, evaluates
-    the model at each *x*, and returns the per-*x* percentile envelope. The
-    band reflects parameter uncertainty propagated through the (non-linear)
-    model — a more honest projection than a single line.
+    Samples parameter sets from ``multivariate_normal(popt, pcov)``, keeps only
+    those inside the fit *bounds*, evaluates the model at each *x*, and returns
+    the per-*x* percentile envelope. The band reflects parameter uncertainty
+    propagated through the (non-linear) model — a more honest projection than
+    a single line.
 
     Args:
         x: Day-offset values at which to evaluate the band.
@@ -265,21 +320,36 @@ def exp_decay_band(
         n_samples: Number of Monte-Carlo parameter draws.
         confidence: Central confidence level (0–1); the band spans the
             symmetric percentile interval, e.g. 0.95 → [2.5%, 97.5%].
+        bounds: ``(lower, upper)`` parameter bounds draws must respect.
+            Defaults to ``AnalysisConfig().fit_bounds``.
 
     Returns:
         A tuple ``(y_low, y_high)`` of the same length as *x*. Both arrays are
-        empty when *pcov* is unusable (non-finite or wrong shape).
+        empty when *pcov* is unusable (non-finite or wrong shape) or when too
+        few draws fall inside *bounds*.
     """
     pcov = np.asarray(pcov, dtype=float)
     x = np.asarray(x, dtype=float)
     if pcov.shape != (3, 3) or not np.all(np.isfinite(pcov)) or x.size == 0:
         return np.array([]), np.array([])
+    if bounds is None:
+        bounds = AnalysisConfig().fit_bounds
 
     # Seeded generator so the band is deterministic across identical requests.
+    # Over-sample, then drop out-of-bounds draws: an unbounded normal happily
+    # draws b < 0, which turns the decay into exponential growth and blows the
+    # upper percentile up to tonnes.
     rng = np.random.default_rng(0)
     try:
-        samples = rng.multivariate_normal(np.asarray(popt, dtype=float), pcov, size=n_samples)
+        draws = rng.multivariate_normal(
+            np.asarray(popt, dtype=float), pcov, size=n_samples * 10
+        )
     except (ValueError, np.linalg.LinAlgError):
+        return np.array([]), np.array([])
+    lower, upper = (np.asarray(b, dtype=float) for b in bounds)
+    in_bounds = np.all((draws >= lower) & (draws <= upper), axis=1)
+    samples = draws[in_bounds][:n_samples]
+    if len(samples) < n_samples:
         return np.array([]), np.array([])
 
     # curves[i] is the model evaluated for parameter draw i: shape (n_samples, len(x)).

@@ -484,6 +484,24 @@ class TestGoalMilestones:
 # -----------------------------------------------------------------------
 
 
+@pytest.fixture
+def degenerate_df() -> pd.DataFrame:
+    """Nine weekly, near-linear measurements — too little curvature to fit.
+
+    Mirrors a real shared dashboard where ``c`` pinned to its lower bound and
+    the Monte-Carlo band shot up to tens of tonnes.
+
+    Returns:
+        A ``pandas.DataFrame`` with ``date`` and ``weight`` columns.
+    """
+    return pd.DataFrame(
+        {
+            "date": pd.date_range("2026-09-21", periods=9, freq="7D"),
+            "weight": [111.2, 109.8, 109.3, 109.0, 108.4, 108.2, 106.8, 106.5, 104.7],
+        }
+    )
+
+
 class TestHardenedExpFit:
     """Tests for the bounded, recency-weighted exponential fit."""
 
@@ -538,6 +556,54 @@ class TestHardenedExpFit:
         x = np.linspace(0.0, 100.0, 10)
         bad = np.full((3, 3), np.nan)
         y_low, y_high = exp_decay_band(x, (30.0, 0.003, 150.0), bad)
+        assert len(y_low) == 0
+        assert len(y_high) == 0
+
+    def test_should_flag_degenerate_when_asymptote_pinned_to_bound(
+        self, degenerate_df: pd.DataFrame
+    ) -> None:
+        """A short, near-linear series pins c to its bound and is flagged."""
+        result = fit_exponential_decay(degenerate_df)
+        assert result.success
+        assert result.is_degenerate
+        assert result.warning != ""
+
+    def test_should_not_flag_degenerate_when_fit_is_well_determined(
+        self, sample_df: pd.DataFrame
+    ) -> None:
+        """A fit whose parameters are all well constrained is not flagged."""
+        result = fit_exponential_decay(sample_df)
+        assert result.success
+        assert not result.is_degenerate
+        assert result.warning == ""
+
+    def test_should_keep_band_decreasing_when_some_draws_leave_fit_bounds(
+        self,
+    ) -> None:
+        """Draws with b < 0 (growth) are dropped, so the band only decays."""
+        x = np.linspace(0.0, 112.0, 20)
+        # b ~ N(0.005, 0.005): ~16% of raw draws are negative.
+        pcov = np.diag([1.0, 0.005**2, 1.0])
+        y_low, y_high = exp_decay_band(x, (20.0, 0.005, 90.0), pcov)
+        assert len(y_high) == len(x)
+        assert np.all(np.diff(y_high) <= 1e-9)
+        assert np.all(y_low <= y_high)
+
+    def test_should_return_empty_band_when_fit_is_degenerate(
+        self, degenerate_df: pd.DataFrame
+    ) -> None:
+        """A degenerate covariance yields too few in-bounds draws for a band."""
+        result = fit_exponential_decay(degenerate_df)
+        x = np.linspace(56.0, 112.0, 20)
+        y_low, y_high = exp_decay_band(x, result.params, result.pcov)
+        assert len(y_low) == 0
+        assert len(y_high) == 0
+
+    def test_should_return_empty_band_when_no_draw_is_within_bounds(self) -> None:
+        """A centre outside the bounds leaves no usable draw, so no band."""
+        x = np.linspace(0.0, 100.0, 10)
+        tiny = np.diag([1e-6, 1e-12, 1e-6])
+        y_low, y_high = exp_decay_band(x, (30.0, -0.01, 150.0), tiny)
         assert len(y_low) == 0
         assert len(y_high) == 0
 
@@ -645,6 +711,19 @@ class TestBuildModelCurve:
         assert len(curve.x_extra) > 0
         assert len(curve.y_extra_low) == len(curve.x_extra)
         assert curve.hline_y is None
+
+    def test_should_omit_band_when_exp_fit_is_degenerate(
+        self, degenerate_df: pd.DataFrame
+    ) -> None:
+        """A degenerate exp fit keeps its projection but drops the band."""
+        curve = build_model_curve(
+            degenerate_df, MODEL_EXP, extrapolation_days=56, with_band=True
+        )
+        assert curve.success
+        assert len(curve.x_extra) > 0
+        assert len(curve.y_extra_low) == 0
+        assert len(curve.y_extra_high) == 0
+        assert curve.warning != ""
 
     def test_band_absent_when_not_requested(self, sample_df: pd.DataFrame) -> None:
         """No band arrays are produced when with_band is False."""

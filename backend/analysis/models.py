@@ -160,8 +160,12 @@ def _build_exp_curve(
         x_extra, y_extra = extrapolate_fit(
             fit, last_date=last_date, first_date=first_date, horizon_days=extrapolation_days
         )
-        if with_band and len(x_extra) > 0:
-            y_low, y_high = exp_decay_band(x_extra, fit.params, fit.pcov)
+        # A degenerate fit's covariance is meaningless, so any band built on
+        # it would be noise (it once reached tens of tonnes).
+        if with_band and len(x_extra) > 0 and not fit.is_degenerate:
+            y_low, y_high = exp_decay_band(
+                x_extra, fit.params, fit.pcov, bounds=config.fit_bounds
+            )
 
     a, b, c = fit.params
     t_last = float((pd.Timestamp(last_date) - pd.Timestamp(first_date)).days)
